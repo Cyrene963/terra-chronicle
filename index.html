@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terra Chronicle · 大地编年史</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Noto+Serif+SC:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#2b2722; --ivory:#f6f1e7; --gold:#c9a24b; --gold-soft:rgba(201,162,75,.55);
+    --hairline:rgba(43,39,34,.18);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;background:#0d0f12;font-family:'Noto Serif SC',serif;color:var(--ink)}
+  canvas{display:block}
+  #stage{position:fixed;inset:0;z-index:10}
+
+  /* ---------- 标题界面 ---------- */
+  #title{
+    position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;
+    overflow:hidden;transition:opacity 2.2s cubic-bezier(.65,0,.35,1);
+  }
+  #title .bg{
+    position:absolute;inset:-6%;
+    background:url('assets/concept/kv_continent.png') center/cover;
+    animation:kvBreath 26s ease-in-out infinite alternate;
+    filter:saturate(1.04);
+  }
+  @keyframes kvBreath{from{transform:scale(1) translateY(0)}to{transform:scale(1.07) translateY(-1.4%)}}
+  #title .veil{position:absolute;inset:0;background:
+    radial-gradient(ellipse at 50% 42%,rgba(8,10,14,0) 30%,rgba(8,10,14,.55) 100%),
+    linear-gradient(rgba(8,10,14,.18),rgba(8,10,14,.34));}
+  #title .card{position:relative;text-align:center;color:var(--ivory);transform:translateY(-2vh)}
+  #title .epoch{
+    font-family:'Cormorant Garamond',serif;letter-spacing:.55em;font-size:13px;opacity:0;
+    text-transform:uppercase;animation:riseIn 1.6s .4s cubic-bezier(.2,.8,.2,1) forwards;
+  }
+  #title h1{
+    font-weight:300;font-size:clamp(44px,7vw,92px);letter-spacing:.18em;margin:18px 0 6px;
+    opacity:0;animation:riseIn 1.8s .8s cubic-bezier(.2,.8,.2,1) forwards;
+    text-shadow:0 2px 40px rgba(0,0,0,.45);
+  }
+  #title h2{
+    font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:400;
+    font-size:clamp(15px,1.6vw,21px);letter-spacing:.3em;opacity:0;
+    animation:riseIn 1.8s 1.15s cubic-bezier(.2,.8,.2,1) forwards;
+  }
+  #title .rule{
+    width:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold-soft),transparent);
+    margin:34px auto;animation:ruleGrow 1.6s 1.5s cubic-bezier(.65,0,.35,1) forwards;
+  }
+  @keyframes ruleGrow{to{width:min(420px,46vw)}}
+  @keyframes riseIn{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+  #enter{
+    opacity:0;animation:riseIn 1.6s 1.9s cubic-bezier(.2,.8,.2,1) forwards;
+    background:none;border:1px solid rgba(246,241,231,.4);color:var(--ivory);
+    font-family:'Noto Serif SC',serif;font-weight:300;letter-spacing:.5em;text-indent:.5em;
+    font-size:15px;padding:15px 52px;cursor:pointer;position:relative;overflow:hidden;
+    transition:border-color .6s,color .6s;
+  }
+  #enter::before{
+    content:'';position:absolute;inset:0;background:var(--ivory);transform:scaleX(0);
+    transform-origin:left;transition:transform .55s cubic-bezier(.65,0,.35,1);z-index:-1;
+  }
+  #enter:hover{color:var(--ink);border-color:var(--ivory)}
+  #enter:hover::before{transform:scaleX(1)}
+  #title .hint{margin-top:26px;font-size:11px;letter-spacing:.35em;opacity:0;
+    animation:riseIn 1.6s 2.3s forwards;color:rgba(246,241,231,.55)}
+  #clouds{position:fixed;inset:0;z-index:55;pointer-events:none;opacity:0}
+
+  /* ---------- HUD ---------- */
+  #hud{position:fixed;inset:0;z-index:30;pointer-events:none;opacity:0;transition:opacity 1.8s 1s}
+  .hud-on #hud{opacity:1}
+
+  #seasonDial{position:absolute;top:34px;left:38px;width:108px;height:108px}
+  #seasonDial svg{width:100%;height:100%;overflow:visible}
+  #dialLabel{
+    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    color:var(--ivory);text-shadow:0 1px 14px rgba(0,0,0,.5);
+  }
+  #dialLabel .s{font-size:19px;font-weight:500;letter-spacing:.32em;text-indent:.32em}
+  #dialLabel .d{font-family:'Cormorant Garamond',serif;font-size:11px;letter-spacing:.28em;margin-top:4px;opacity:.78}
+  #clock{position:absolute;top:46px;left:170px;color:var(--ivory);text-shadow:0 1px 12px rgba(0,0,0,.45)}
+  #clock .num{font-family:'Cormorant Garamond',serif;font-size:34px;font-weight:400;line-height:1}
+  #clock .cap{font-size:10px;letter-spacing:.42em;opacity:.7;margin-top:6px}
+  #stamina{position:absolute;top:40px;right:42px;display:flex;gap:9px;align-items:center}
+  #stamina .leaf{width:13px;height:13px;border-radius:60% 0 60% 0;background:var(--ivory);
+    opacity:.92;box-shadow:0 1px 10px rgba(0,0,0,.35);transform:rotate(45deg);transition:opacity .5s}
+  #stamina .leaf.spent{opacity:.22}
+  #weatherTag{
+    position:absolute;left:42px;bottom:44px;color:rgba(246,241,231,.75);
+    font-family:'Cormorant Garamond',serif;font-style:italic;font-size:14px;letter-spacing:.2em;
+    text-shadow:0 1px 12px rgba(0,0,0,.5);
+  }
+  #whisper{
+    position:absolute;bottom:46px;left:50%;transform:translateX(-50%);
+    color:rgba(246,241,231,.82);font-weight:300;font-size:13px;letter-spacing:.3em;text-indent:.3em;
+    text-shadow:0 1px 16px rgba(0,0,0,.55);opacity:0;transition:opacity 2s;white-space:nowrap;
+  }
+
+  /* 地块面板（毛玻璃,弹簧动效由 JS 驱动） */
+  #panel{
+    position:absolute;top:0;right:0;height:100%;width:min(360px,86vw);
+    background:rgba(246,241,231,.92);backdrop-filter:blur(14px) saturate(1.1);
+    border-left:1px solid var(--hairline);padding:54px 38px;pointer-events:auto;
+    transform:translateX(110%);box-shadow:-30px 0 80px rgba(10,10,10,.18);
+  }
+  #panel .kicker{font-family:'Cormorant Garamond',serif;font-size:11px;letter-spacing:.5em;color:var(--gold);text-transform:uppercase}
+  #panel h3{font-size:27px;font-weight:500;letter-spacing:.14em;margin:10px 0 4px}
+  #panel .latin{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:14px;opacity:.55;margin-bottom:30px}
+  #panel .close{position:absolute;top:26px;right:28px;width:30px;height:30px;cursor:pointer;opacity:.55;transition:opacity .3s,transform .5s cubic-bezier(.2,.8,.2,1)}
+  #panel .close:hover{opacity:1;transform:rotate(90deg)}
+  #panel .close::before,#panel .close::after{content:'';position:absolute;top:14px;left:4px;width:22px;height:1px;background:var(--ink)}
+  #panel .close::before{transform:rotate(45deg)}#panel .close::after{transform:rotate(-45deg)}
+  .stat{margin-bottom:24px}
+  .stat .row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px}
+  .stat .name{font-size:13px;letter-spacing:.26em}
+  .stat .val{font-family:'Cormorant Garamond',serif;font-size:21px}
+  .stat .bar{height:2px;background:rgba(43,39,34,.12);position:relative;overflow:hidden}
+  .stat .bar i{position:absolute;inset:0;transform-origin:left;background:var(--ink);transform:scaleX(0)}
+  .stat.gold .bar i{background:var(--gold)}
+  #panel .foot{position:absolute;bottom:44px;left:38px;right:38px;font-size:11px;
+    letter-spacing:.18em;line-height:2.1;opacity:.6;border-top:1px solid var(--hairline);padding-top:20px}
+
+  #cardPeek{
+    position:absolute;right:44px;bottom:40px;width:118px;aspect-ratio:2/3;pointer-events:auto;
+    perspective:700px;cursor:pointer;filter:drop-shadow(0 18px 30px rgba(0,0,0,.45));
+    transition:transform .7s cubic-bezier(.2,.8,.2,1);
+  }
+  #cardPeek:hover{transform:translateY(-12px) scale(1.06)}
+  #cardPeek .face{
+    width:100%;height:100%;border-radius:7px;background:url('assets/concept/card_template.png') center/cover;
+    transition:transform .25s ease-out;will-change:transform;
+  }
+  #cardPeek .tag{
+    position:absolute;bottom:-26px;left:0;right:0;text-align:center;color:rgba(246,241,231,.7);
+    font-size:10px;letter-spacing:.4em;text-indent:.4em;
+  }
+</style>
+</head>
+<body>
+
+<div id="stage"></div>
+
+<div id="hud">
+  <div id="seasonDial">
+    <svg viewBox="0 0 108 108">
+      <circle cx="54" cy="54" r="50" fill="rgba(10,12,14,.28)" stroke="rgba(246,241,231,.28)" stroke-width="1"/>
+      <g id="dialRing"></g>
+      <circle id="dialDot" cx="54" cy="4" r="2.6" fill="#f6f1e7"/>
+    </svg>
+    <div id="dialLabel"><div class="s" id="seasonName">春</div><div class="d" id="seasonLatin">VER</div></div>
+  </div>
+  <div id="clock"><div class="num"><span id="dayNum">01</span></div><div class="cap">年代 I · 第一年</div></div>
+  <div id="stamina"></div>
+  <div id="weatherTag">— 微风拂过山谷 —</div>
+
+  <div id="panel">
+    <div class="close" id="panelClose"></div>
+    <div class="kicker">Parcel · 地籍档案</div>
+    <h3 id="tileName">河畔田</h3>
+    <div class="latin" id="tileLatin">Ager Fluminis</div>
+    <div class="stat"><div class="row"><span class="name">肥 力</span><span class="val" id="vFert">—</span></div><div class="bar"><i id="bFert"></i></div></div>
+    <div class="stat"><div class="row"><span class="name">湿 度</span><span class="val" id="vMoist">—</span></div><div class="bar"><i id="bMoist"></i></div></div>
+    <div class="stat"><div class="row"><span class="name">虫害压力</span><span class="val" id="vPest">—</span></div><div class="bar"><i id="bPest"></i></div></div>
+    <div class="stat gold"><div class="row"><span class="name">灵脉充能</span><span class="val" id="vMana">—</span></div><div class="bar"><i id="bMana"></i></div></div>
+    <div class="foot">此地块产出的材料将继承土地质量。<br>肥力越高，锻造出的卡牌基础数值越高。</div>
+  </div>
+
+  <div id="cardPeek"><div class="face"></div><div class="tag">工坊 · 待锻</div></div>
+  <div id="whisper">WASD 移动 · 点击土地查看地籍 · 1-4 切换季节 · F 加速时光</div>
+</div>
+
+<div id="title">
+  <div class="bg"></div><div class="veil"></div>
+  <div class="card">
+    <div class="epoch">Epoch I · The First Continent</div>
+    <h1>大地编年史</h1>
+    <h2>TERRA CHRONICLE</h2>
+    <div class="rule"></div>
+    <button id="enter">踏 上 大 陆</button>
+    <div class="hint">这一次，亲自走在大地上</div>
+  </div>
+</div>
+<canvas id="clouds"></canvas>
+
+<script src="vendor/pixi.min.js"></script>
+<script src="src/main.js"></script>
+</body>
+</html>
