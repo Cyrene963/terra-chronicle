@@ -1,10 +1,20 @@
 # Terra Chronicle 大地编年史
 
 农场经营 × 灵兽养成 × 卡牌锻造 × 大陆地缘博弈的多人联机网页游戏。
-**v1 · 2.5D 探索原型**（PixiJS v8 / WebGL）。
+**v2 · 正式美术接入版**（PixiJS v8 / WebGL · gpt-image-2 生成全套贴图）。
 
 - 在线：https://terra.bz9.me （旧版氛围 demo 保留在 https://terra.bz9.me/v0/prototype/index.html）
 - v0 备份仓库：https://github.com/Cyrene963/terra-chronicle-v0-demo
+
+## v2 新增
+
+- **全套 AI 贴图已接入**：主角/橡树/樱树/岩石/灌木/农舍/风车/栅栏/作物 + 5 种无缝地表瓦片，
+  由 `tools/gen_sprites.py` 批量生成（gpt-image-2 → 品红色键抠图 → 裁切缩放）
+- **贴图模式四季工艺**：乘色调色改为全局 grading（`PAL.grade`）+ 冬季积雪覆盖层（snowL）
+- **性能体系**：粒子共享纹理批渲染、调色 150ms 节流、视口剔除（只渲染镜头附近瓦片）、
+  FPS 自适应降画质（<30fps 降中档，<15fps 降低档：分辨率 0.66 + 关高开销层）
+- **状态架构 `src/state.js`**：PrivateFarm / PublicOverworld / StrategicNode 双层资源隔离
+  （防脚本设计见 `docs/dual-world-architecture.md`）+ `craftCard()` 锻造经济（含单元测试公式）
 
 ## 本版核心（对应 2D/2.5D 架构审计）
 
