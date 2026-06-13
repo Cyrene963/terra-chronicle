@@ -49,12 +49,14 @@ TILES = [
 ]
 
 def call_api(prompt, size="1024x1024", tries=3):
-    body = json.dumps({"model":"gpt-image-2","prompt":prompt,"size":size,"n":1}).encode()
+    # 实测: 此代理 size>1536 不被采纳(square 上限 ~1254);quality=high 是真实可用的最高档。
+    body = json.dumps({"model":"gpt-image-2","prompt":prompt,"size":size,
+                       "quality":"high","n":1}).encode()
     for i in range(tries):
         try:
             req = urllib.request.Request(API, data=body, headers={
                 "Authorization":"Bearer "+KEY,"Content-Type":"application/json"})
-            with urllib.request.urlopen(req, timeout=420) as r:
+            with urllib.request.urlopen(req, timeout=460) as r:
                 d = json.load(r)
             return base64.b64decode(d["data"][0]["b64_json"])
         except Exception as e:
@@ -62,20 +64,22 @@ def call_api(prompt, size="1024x1024", tries=3):
             time.sleep(8)
     raise RuntimeError("api failed")
 
-def chroma_key(im, thr=115):
-    """去品红背景: 全局色距 + 去边缘溢色"""
-    im = im.convert("RGBA"); px = im.load()
-    w,h = im.size
+def chroma_key(im, thr=100):
+    """去品红背景: 角点采样背景基色 + 全局色距 + 去边缘溢色 + 1px alpha 腐蚀去毛边"""
+    from PIL import ImageFilter
+    im = im.convert("RGBA"); px = im.load(); w,h = im.size
+    cs=[px[3,3],px[w-4,3],px[3,h-4],px[w-4,h-4]]
+    br=sum(c[0] for c in cs)//4; bg=sum(c[1] for c in cs)//4; bb=sum(c[2] for c in cs)//4
     for y in range(h):
         for x in range(w):
             r,g,b,a = px[x,y]
-            d2 = (r-255)**2 + g**2 + (b-255)**2
-            if d2 < thr*thr: px[x,y]=(0,0,0,0)
-            elif r>g+40 and b>g+40:                      # 半透明边缘去品红溢色
+            if (r-br)**2 + (g-bg)**2 + (b-bb)**2 < thr*thr: px[x,y]=(0,0,0,0)
+            elif r>g+35 and b>g+35:                      # 半透明边缘去品红溢色
                 m=min(r,b); px[x,y]=(min(r,m+(r-m)//2), g, min(b,m+(b-m)//2), a)
+    im.putalpha(im.getchannel("A").filter(ImageFilter.MinFilter(3)))  # 吃掉残留半透明毛边
     return im
 
-def trim_pad(im, pad=8):
+def trim_pad(im, pad=6):
     bbox = im.getbbox()
     if not bbox: return im
     im = im.crop(bbox)
