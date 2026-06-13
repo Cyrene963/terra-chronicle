@@ -11,7 +11,7 @@
 'use strict';
 
 /* 资产版本号: 内容更新时 +1,绕过浏览器/CDN 旧缓存 */
-const ASSET_V='?v=5';
+const ASSET_V='?v=6';
 /* 贴图加载: mode='tile' → NEAREST+CLAMP(消除瓦片接缝+锐利);
    其余(精灵)→ LINEAR+mipmap(高清源缩小时干净不闪烁,painterly 风格不能用 NEAREST 否则缩小抖动) */
 async function loadTex(src, mode){
@@ -24,25 +24,28 @@ async function loadTex(src, mode){
 }
 
 /* ================= 1. 资产清单(换图接口) ================= */
+/* season:[春,夏,秋,冬] 四季专属贴图(取代代码调色);缺省回退到 src */
 const ASSETS = {
-  //  src: 贴图路径(null=占位符)  winterSrc: 冬季覆雪变体  faceDir: 原画朝向(-1=朝左)
   player:   { src: 'assets/sprites/player_idle.png', w: 46,  h: 73,  anchorY: 1.0, faceDir: -1 },
   tree:     { src: 'assets/sprites/tree_oak.png',    w: 128, h: 125, anchorY: 0.96, collideR: 18,
-              winterSrc: 'assets/sprites/tree_oak_winter.png' },
+              season: ['assets/sprites/tree_oak.png','assets/sprites/tree_oak.png','assets/sprites/tree_oak_autumn.png','assets/sprites/tree_oak_winter.png'] },
   cherry:   { src: 'assets/sprites/tree_cherry.png', w: 126, h: 119, anchorY: 0.96, collideR: 18,
-              winterSrc: 'assets/sprites/tree_cherry_winter.png' },
+              season: ['assets/sprites/tree_cherry.png','assets/sprites/tree_cherry.png','assets/sprites/tree_cherry_autumn.png','assets/sprites/tree_cherry_winter.png'] },
   rock:     { src: 'assets/sprites/rock.png',        w: 62,  h: 44,  anchorY: 0.9,  collideR: 20 },
   bush:     { src: 'assets/sprites/bush.png',        w: 58,  h: 57,  anchorY: 0.92,
-              winterSrc: 'assets/sprites/bush_winter.png' },
+              season: ['assets/sprites/bush.png','assets/sprites/bush.png','assets/sprites/bush.png','assets/sprites/bush_winter.png'] },
   house:    { src: 'assets/sprites/house.png',       w: 232, h: 213, anchorY: 0.97, collideR: 86,
-              winterSrc: 'assets/sprites/house_winter.png' },
-  windmill: { src: 'assets/sprites/windmill.png',    w: 128, h: 184, anchorY: 0.98, collideR: 30 },
+              season: ['assets/sprites/house.png','assets/sprites/house.png','assets/sprites/house.png','assets/sprites/house_winter.png'] },
+  windmill: { src: 'assets/sprites/windmill_base.png', w: 118, h: 178, anchorY: 0.98, collideR: 30,
+              bladesSrc: 'assets/sprites/windmill_blades.png', bladesW: 92, hubY: -0.74 },
   fence:    { src: 'assets/sprites/fence.png',       w: 66,  h: 53,  anchorY: 0.9 },
   crop:     { src: 'assets/sprites/crop.png',        w: 34,  h: 42,  anchorY: 1.0 },
   beast_water:{ src:'assets/sprites/beast_water.png',w: 62,  h: 64,  anchorY: 0.86 },
-  // 地表瓦片贴图(无缝,引擎仍做四季 grading)
+  portal:   { src: 'assets/sprites/portal.png',      w: 120, h: 132, anchorY: 0.92, collideR: 26 },
+  // 地表瓦片(扁平手绘,季节专属);grass 随季换图
   tiles: {
-    grass: { src: 'assets/sprites/tile_grass.png' },
+    grass: { src: 'assets/sprites/tile_grass.png',
+             season:['assets/sprites/grass_spring.png','assets/sprites/tile_grass.png','assets/sprites/grass_autumn.png','assets/sprites/tile_grass.png'] },
     soil:  { src: 'assets/sprites/tile_soil.png' },
     water: { src: 'assets/sprites/tile_water.png' },
     sand:  { src: 'assets/sprites/tile_sand.png' },
@@ -140,6 +143,10 @@ function placeObjects(){
   OBJECTS.push({kind:'windmill',tx:16,ty:20});
   // 耕地栅栏(留缺口)
   for(let x=21;x<=30;x++){ if(x!==25&&x!==26){OBJECTS.push({kind:'fence',tx:x,ty:27.4});OBJECTS.push({kind:'fence',tx:x,ty:33.4});} }
+  // 深渊传送门(东北角):清掉该格已有物件再放置
+  for(let i=OBJECTS.length-1;i>=0;i--){ const o=OBJECTS[i];
+    if(Math.abs(o.tx-47)<2 && Math.abs(o.ty-10)<2) OBJECTS.splice(i,1); }
+  OBJECTS.push({kind:'portal',tx:47,ty:10});
 }
 placeObjects();
 
@@ -168,13 +175,15 @@ const TEX_VIGNET = (()=>{const c=document.createElement('canvas');c.width=c.heig
 
 /* ---- 图层结构 ---- */
 const world = new PIXI.Container();              // 镜头作用对象
-const groundL = new PIXI.Container();            // 瓦片层
+const groundL = new PIXI.Container();            // 瓦片层(草/土/沙/耕地)
+const waterL = new PIXI.Container();             // 水面层(独立:加位移波纹滤镜)
+const foamL = new PIXI.Container();              // 水岸泡沫
 const snowL = new PIXI.Container();              // 冬季积雪覆盖层
 const overlayL = new PIXI.Container();           // 地表覆盖(作物/云影)
 const objL = new PIXI.Container();               // Y-Sort 实体层
 objL.sortableChildren = true;
 const fxScreen = new PIXI.Container();           // 屏幕空间: 粒子/光/晕影
-world.addChild(groundL, snowL, overlayL, objL);
+world.addChild(groundL, waterL, foamL, snowL, overlayL, objL);
 app.stage.addChild(world, fxScreen);
 
 /* —— 四季色彩分级: ColorMatrixFilter 对整个世界统一调色 —— */
@@ -189,14 +198,11 @@ function mkMat({s=1,br=1,rO=0,gO=0,bO=0}){        // 饱和度+亮度+RGB偏移 
           lr*iv*br, lg*iv*br, (lb*iv+s)*br, 0, bO,
           0,0,0,1,0];
 }
-const SEASON_MAT=[
-  mkMat({s:1.26, br:1.04, gO:.015}),                       // 春 · 清新高饱和
-  mkMat({s:1.12, br:1.08, rO:.02}),                        // 夏 · 明亮高对比
-  [ 1.02, .42, 0, 0, .05,                                  // 秋 · 绿叶转金(跨通道暖色相)
-    0,    .90,.06, 0, .005,
-    0,    .04,.55, 0,-.015,
-    0,0,0,1,0 ],
-  mkMat({s:.52, br:1.08, rO:-.02, bO:.06}),                // 冬 · 去饱和冷调
+const SEASON_MAT=[                                 // 主季节色由专属贴图承担,滤镜仅做轻微氛围润色
+  mkMat({s:1.12, br:1.03, gO:.012}),                       // 春 · 清新
+  mkMat({s:1.06, br:1.06, rO:.015}),                       // 夏 · 明亮
+  mkMat({s:1.05, br:1.0,  rO:.04, bO:-.035}),              // 秋 · 暖调
+  mkMat({s:.80,  br:1.06, rO:-.015, bO:.045}),             // 冬 · 冷调
 ];
 function applySeasonGrade(st){
   const i=((Math.floor(st)%4)+4)%4, j=(i+1)%4;
@@ -209,7 +215,7 @@ function applySeasonGrade(st){
 
 /* ================= 5. 瓦片地图渲染 ================= */
 const KIND2PAL={g:'grass',G:'grassB',s:'soil',w:'water',b:'sand',p:'plot'};
-const tileSprites=[], waterTiles=[], snowAt=[];
+const tileSprites=[], waterTiles=[], snowAt=[], grassTiles=[];
 for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
   const k=grid[y][x];
   const t=ASSETS.tiles[{g:'grass',G:'grass',s:'soil',w:'water',b:'sand',p:'plot'}[k]];
@@ -219,15 +225,67 @@ for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
   const r=hash(x*13+7,y*11+3);
   sp._k=k; sp._j=0.975+r*0.05;                 // 每块明度抖动(极轻,避免棋盘格感)
   sp._ph=r*6.28;                               // 水面相位
-  groundL.addChild(sp); tileSprites.push(sp);
-  if(k==='w'){ waterTiles.push(sp); snowAt.push(null); }
-  else {                                        // 积雪覆盖(冬季由 snowL.alpha 控制)
-    const sn=new PIXI.Sprite(PIXI.Texture.WHITE);
+  if(k==='g'||k==='G') grassTiles.push(sp);    // 草地:随季换图
+  if(k==='w'){ waterL.addChild(sp); waterTiles.push(sp); snowAt.push(null); }   // 水→独立层
+  else {
+    groundL.addChild(sp);
+    const sn=new PIXI.Sprite(PIXI.Texture.WHITE);   // 积雪覆盖(冬季由 snowL.alpha 控制)
     sn.width=TS+2; sn.height=TS+2; sn.position.set(x*TS-1,y*TS-1);
     sn.tint=0xf4f7fb; sn.alpha=.82+r*.18; snowL.addChild(sn); snowAt.push(sn);
   }
+  tileSprites.push(sp);
 }
 snowL.visible=false; snowL.alpha=0;
+
+/* —— 水岸泡沫: 在水↔陆边界叠柔光,消除马赛克阶梯硬边 —— */
+const isWater=(x,y)=>grid[y]&&grid[y][x]==='w';
+for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
+  if(!isWater(x,y)) continue;
+  const land = !isWater(x-1,y)||!isWater(x+1,y)||!isWater(x,y-1)||!isWater(x,y+1);
+  if(!land) continue;
+  const f=new PIXI.Sprite(TEX_GLOW); f.anchor.set(.5);
+  f.width=TS*1.5; f.height=TS*1.5; f.x=x*TS+TS/2; f.y=y*TS+TS/2;
+  f.tint=0xeaf6fb; f.alpha=.28; f.blendMode='add'; f._ph=hash(x*5,y*7)*6.28;
+  foamL.addChild(f);
+}
+/* —— 位移波纹滤镜: 给水面真实流动扭曲(quality>0 时启用) —— */
+let waterDisp=null, waterDispFilter=null;
+(function(){
+  const c=document.createElement('canvas'); c.width=c.height=128;
+  const g=c.getContext('2d');
+  for(let i=0;i<60;i++){ const gx=Math.random()*128,gy=Math.random()*128,rr=8+Math.random()*22;
+    const gr=g.createRadialGradient(gx,gy,0,gx,gy,rr);
+    const v=120+((Math.random()*70)|0);
+    gr.addColorStop(0,`rgb(${v},${v},255)`); gr.addColorStop(1,'rgb(128,128,255)');
+    g.fillStyle=gr; g.fillRect(gx-rr,gy-rr,rr*2,rr*2); }
+  waterDisp=new PIXI.Sprite(PIXI.Texture.from(c));
+  waterDisp.texture.source.addressMode='repeat';
+  waterDisp.scale.set(3); waterDisp.renderable=false; waterL.addChild(waterDisp);
+  try{ waterDispFilter=new PIXI.DisplacementFilter({sprite:waterDisp, scale:14});
+       waterL.filters=[waterDispFilter]; }catch(e){ console.warn('disp filter unavailable',e); }
+})();
+
+/* —— 季节专属贴图切换(取代代码强行调色,参照冬季成功经验) —— */
+let seasonIdx=1, snowTarget=0;
+function preloadSeasons(){
+  const set=new Set();
+  for(const k in ASSETS){ const a=ASSETS[k]; if(a&&a.season) a.season.forEach(s=>set.add(s)); }
+  if(ASSETS.tiles.grass.season) ASSETS.tiles.grass.season.forEach(s=>set.add(s));
+  set.forEach(s=>loadTex(s));
+}
+preloadSeasons();
+let grassSwap=null;
+function swapSeason(idx){
+  for(const o of OBJECTS){ const n=o.node, a=ASSETS[o.kind];
+    if(n._alt && a.season){
+      loadTex(a.season[idx]).then(tex=>{ n._alt.texture=tex; n._alt.width=a.w; n._alt.height=a.h; });
+      n._fadeT=0;
+    }
+  }
+  if(ASSETS.tiles.grass.season)
+    loadTex(ASSETS.tiles.grass.season[idx]).then(tex=>{ grassSwap={t:0,tex,done:false}; });
+  snowTarget = idx===3 ? 0.9 : 0;
+}
 
 /* —— 视口剔除: 只渲染镜头附近的瓦片/物件(性能核心) —— */
 function cullWorld(){
@@ -255,11 +313,15 @@ function makeNode(kind){
   if(a.src){
     const sp=new PIXI.Sprite(); sp.anchor.set(.5, a.anchorY??1);
     loadTex(a.src).then(tex=>{sp.texture=tex; sp.width=a.w; sp.height=a.h;});
-    node.addChild(sp); node._body=sp; node._graded=true;
-    if(a.winterSrc){                              // 冬季覆雪变体(crossfade)
-      const wsp=new PIXI.Sprite(); wsp.anchor.set(.5, a.anchorY??1); wsp.alpha=0;
-      loadTex(a.winterSrc).then(tex=>{wsp.texture=tex; wsp.width=a.w; wsp.height=a.h;});
-      node.addChild(wsp); node._winter=wsp;
+    node.addChild(sp); node._body=sp; node._graded=true; node._kind=kind;
+    if(a.season){                                 // 季节专属贴图交叉淡入备用层
+      const alt=new PIXI.Sprite(); alt.anchor.set(.5, a.anchorY??1); alt.alpha=0;
+      node.addChild(alt); node._alt=alt; node._seasonIdx=1; node._fadeT=1;
+    }
+    if(a.bladesSrc){                              // 风车叶片(独立子节点,主循环旋转)
+      const bl=new PIXI.Sprite(); bl.anchor.set(.5);
+      loadTex(a.bladesSrc).then(tex=>{bl.texture=tex; bl.width=a.bladesW; bl.height=a.bladesW;});
+      bl.y=a.h*(a.hubY||-0.6); node.addChild(bl); node._blades=bl;
     }
     if(kind==='house'){
       const lamp=new PIXI.Sprite(TEX_GLOW); lamp.anchor.set(.5);
@@ -364,6 +426,7 @@ objL.addChild(player);
 /* WASD 输入 */
 const keys={};
 addEventListener('keydown',e=>{
+  if(window.Battle&&Battle.active) return;          // 战斗中禁用世界输入
   keys[e.key.toLowerCase()]=true;
   if(e.code==='Space'){ e.preventDefault(); if(entered) interact(); }
   if(e.key==='f'||e.key==='F') timeScale=timeScale===1?10:1;
@@ -532,6 +595,12 @@ function commandTo(wx,wy){
     if(path){ player._path=path; pendingAction={type:'chop',obj:o}; toastHint('前往伐木…'); }
     return;
   }
+  if(o && o.kind==='portal'){                             // → 进入深渊副本
+    rebuildSolidTiles(); const nw=nearestWalkable(tx,ty);
+    if(!nw) return; const path=tilePath(sx,sy,nw.x,nw.y);
+    if(path){ player._path=path; pendingAction={type:'portal'}; toastHint('前往深渊之门…'); }
+    return;
+  }
   if(tileMeta[tx+','+ty]){                                 // → 种/收
     const path=tilePath(sx,sy,tx,ty);
     if(path){ player._path=path; pendingAction={type:'farm',key:tx+','+ty}; }
@@ -546,6 +615,28 @@ function onArrive(){
   if(!a) return;
   if(a.type==='farm') interactFarm(a.key);
   else if(a.type==='chop'){ chopLoop.obj=a.obj; chopLoop.t=0; }
+  else if(a.type==='portal') enterBattle();
+}
+function nearestPortal(){
+  for(const o of OBJECTS){ if(o.kind!=='portal') continue;
+    if(Math.hypot(o.node.x-player.x,o.node.y-player.y)<110) return o; }
+  return null;
+}
+function enterBattle(){
+  if(!window.Battle || Battle.active) return;
+  let fl=document.getElementById('battleFlash');
+  if(!fl){ fl=document.createElement('div'); fl.id='battleFlash';
+    fl.style.cssText='position:fixed;inset:0;z-index:79;background:#160f24;opacity:0;pointer-events:none;transition:opacity .45s'; document.body.appendChild(fl); }
+  fl.style.opacity='1';
+  setTimeout(()=>{
+    Battle.enter({
+      deck: farm.inventory.cards,
+      onWin(loot){ for(const k in loot) farm.inventory.materials[k]=(farm.inventory.materials[k]||0)+loot[k];
+        Terra.save(); updateDock(); toastHint('凯旋 · 获得 污染种子×1 灵兽灵魂×1'); fl.style.opacity='0'; },
+      onLose(){ toastHint('败退 · 已退回农场'); fl.style.opacity='0'; },
+    });
+    setTimeout(()=>{ fl.style.opacity='0'; }, 200);
+  }, 460);
 }
 
 /* ================= 8.6 水灵兽 AI(状态机:闲逛→前往→浇水) ================= */
@@ -723,58 +814,52 @@ app.ticker.add(tk=>{
   /* —— 世界调色: 重活 150ms 节流 —— */
   recolorClock-=dt;
   if(recolorClock<=0){ recolorClock=.15;
-    applySeasonGrade(st);                                  // 四季色彩分级(ColorMatrixFilter)
-    const TEXTURED=!!ASSETS.tiles.grass.src;
-    const grade=pal('grade',st), gradeHex=hex(grade);
-    if(TEXTURED){
-      for(const sp of tileSprites){ if(sp._k==='w')continue;
-        const j=sp._j; sp.tint=hex([grade[0]*j,grade[1]*j,grade[2]*j]); }
-      curWaterBase=[grade[0]*.92,grade[1],Math.min(255,grade[2]*1.06)];
-    } else {
-      const base={};
-      for(const k in KIND2PAL) base[k]=pal(KIND2PAL[k],st);
-      for(const sp of tileSprites){ if(sp._k==='w')continue;
-        const b=base[sp._k],j=sp._j; sp.tint=hex([b[0]*j,b[1]*j,b[2]*j]); }
-      curWaterBase=base.w;
-    }
-    const sm=((st%4)+4)%4, wmix=Math.max(0,1-Math.abs(sm-3.5)*1.35);   // 冬季积雪
-    snowL.visible=wmix>0.02; snowL.alpha=wmix*.88;
-    const cCan=hex(pal('canopy',st)), cBloom=hex(pal('bloom',st)), cBush=hex(pal('bushC',st));
-    curCrop=hex(pal('cropC',st));
-    for(const o of OBJECTS){
-      const n=o.node;
-      if(n._graded){
-        n._body.tint=gradeHex;
-        if(n._winter){ n._winter.alpha=wmix; n._winter.tint=gradeHex; n._body.alpha=1-wmix; }
-      }
-      else if(o.kind==='tree'&&n._canopy) n._canopy.tint=cCan;
-      else if(o.kind==='cherry'&&n._canopy) n._canopy.tint=cBloom;
-      else if(o.kind==='bush'&&n._canopy) n._canopy.tint=cBush;
+    applySeasonGrade(st);                                  // 四季微调级(主季节色由专属贴图承担)
+    const si=((Math.floor(st)%4)+4)%4;
+    if(si!==seasonIdx){ seasonIdx=si; swapSeason(si); }     // 季节切换 → 换专属贴图
+    for(const o of OBJECTS){                                // 非季节物件(石/栅栏/传送门)无需调色
+      const n=o.node; if(n._graded && !ASSETS[o.kind].season) n._body.tint=0xffffff;
       n._shadow.alpha=.25+sun*.45;
     }
     for(const key in planted){                                         // 作物视觉(生长累计见每帧块)
       const pc=planted[key];
       const g=Math.min(1,(pc.grown||0)/GROW_SECONDS);
-      pc.node._body.tint=pc.mature?0xffe9b0:gradeHex;                  // 成熟泛金
+      pc.node._body.tint=pc.mature?0xffe9b0:0xffffff;                  // 成熟泛金
       if(!pc.mature) pc.node.scale.set(.32+g*.72);
     }
   }
-  /* —— 每帧轻活: 水面闪烁/风车/夜灯/树摇 —— */
-  const wph=elapsed*2;
-  for(const sp of waterTiles){
-    if(!sp.visible) continue;
-    const j=.88+(Math.sin(wph+sp._ph)*.5+.5)*.24;
-    sp.tint=hex([curWaterBase[0]*j,curWaterBase[1]*j,curWaterBase[2]*j]);
+  /* —— 每帧轻活: 水面闪烁/季节交叉淡入/风车/夜灯/树摇 —— */
+  snowL.alpha += (snowTarget-snowL.alpha)*Math.min(1,dt*2.2);          // 雪地淡入淡出
+  snowL.visible = snowL.alpha>0.02;
+  if(grassSwap){ grassSwap.t+=dt/0.7;                                  // 草地 alpha-dip 换图
+    const ph=grassSwap.t, a=Math.max(.45, ph<.5? 1-ph*1.1 : .45+(ph-.5)*1.1);
+    if(ph>=.5 && !grassSwap.done && grassSwap.tex){ for(const g of grassTiles) g.texture=grassSwap.tex; grassSwap.done=true; }
+    for(const g of grassTiles) g.alpha=Math.min(1,a);
+    if(ph>=1){ for(const g of grassTiles) g.alpha=1; grassSwap=null; }
   }
+  const wph=elapsed*2;
+  for(const sp of waterTiles){ if(!sp.visible) continue;        // 流水:沿河道移动的亮带(非逐格随机)
+    const flow=Math.sin((sp.position.y*0.03+sp.position.x*0.013)-elapsed*1.5)*0.5+0.5;
+    const b=0.8+flow*0.32; sp.tint=hex([108*b,176*b,198*b]);
+  }
+  for(const f of foamL.children) f.alpha=.16+Math.sin(elapsed*1.6+f._ph)*.11;   // 泡沫脉动
+  if(waterDisp){ waterDisp.x=(waterDisp.x+dt*9)%384; waterDisp.y=Math.sin(elapsed*.5)*18; }
+  if(waterDispFilter){ const on=quality>0;                       // 低端机关闭波纹滤镜
+    if((waterL.filters&&waterL.filters.length>0)!==on) waterL.filters=on?[waterDispFilter]:[]; }
   for(const o of OBJECTS){
     const n=o.node;
+    if(n._alt && n._fadeT<1){                                          // 树木季节交叉淡入
+      n._fadeT=Math.min(1,n._fadeT+dt/0.8);
+      n._alt.alpha=n._fadeT; n._body.alpha=1-n._fadeT;
+      if(n._fadeT>=1){ const a=ASSETS[o.kind];
+        n._body.texture=n._alt.texture; n._body.width=a.w; n._body.height=a.h; n._body.alpha=1; n._alt.alpha=0; }
+    }
     if(!n.visible) continue;
-    if(n._blades) n._blades.rotation+=dt*1.2;
+    if(n._blades) n._blades.rotation+=dt*1.1;                          // 风车叶片旋转
     if(n._lamp) n._lamp.alpha=night>.5?(night-.5)*1.6:0;
-    if(n._canopy&&o.kind!=='bush') n._canopy.rotation=Math.sin(elapsed*1.2+n.x*.01)*.012;
-    else if(n._graded&&(o.kind==='tree'||o.kind==='cherry')){
+    if(n._graded&&(o.kind==='tree'||o.kind==='cherry')){
       n._body.rotation=Math.sin(elapsed*1.1+n.x*.01)*.008;
-      if(n._winter) n._winter.rotation=n._body.rotation;
+      if(n._alt) n._alt.rotation=n._body.rotation;
     }
     if(o._shake>0){                                // 伐木受击晃动
       o._shake-=dt*2.4;
@@ -783,7 +868,7 @@ app.ticker.add(tk=>{
     }
   }
   /* 玩家与镜头 */
-  if(entered){ movePlayer(dt); }
+  if(entered && !(window.Battle&&Battle.active)){ movePlayer(dt); }
   updateCamera(dt);
   /* 作物生长累计(浇水 boost 加速) + 灵兽 AI + 连续伐木 */
   for(const key in planted){ const pc=planted[key];
@@ -965,6 +1050,7 @@ function interactFarm(key){
 function interact(){                              // 空格:在当前位置就近交互
   const key=playerTileKey();
   if(tileMeta[key]){ interactFarm(key); return; }
+  if(nearestPortal()){ enterBattle(); return; }
   const t=nearestChoppable();
   if(t){ chop(t); return; }
   toastHint('站上耕地可播种 · 靠近树木可伐木');
@@ -980,6 +1066,7 @@ function updateHint(){
     el.style.opacity = (!pc||pc.mature)? 1 : .55;
     return;
   }
+  if(nearestPortal()){ txt.textContent='进入深渊副本'; el.style.opacity=1; return; }
   if(nearestChoppable()){ txt.textContent='伐木 · 体力×1'; el.style.opacity=1; return; }
   el.style.opacity=0;
 }
