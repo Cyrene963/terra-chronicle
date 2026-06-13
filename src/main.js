@@ -634,6 +634,12 @@ function commandTo(wx,wy){
     if(path){ player._path=path; pendingAction={type:'breed'}; toastHint('前往孵化阵…'); }
     return;
   }
+  if(o && o.kind==='furnace'){                            // → 农场升级面板
+    rebuildSolidTiles(); const nw=nearestWalkable(tx,ty);
+    if(!nw) return; const path=tilePath(sx,sy,nw.x,nw.y);
+    if(path){ player._path=path; pendingAction={type:'upgrade'}; toastHint('前往工坊升级…'); }
+    return;
+  }
   if(tileMeta[tx+','+ty]){                                 // → 种/收
     const path=tilePath(sx,sy,tx,ty);
     if(path){ player._path=path; pendingAction={type:'farm',key:tx+','+ty}; }
@@ -648,8 +654,9 @@ function onArrive(){
   if(!a) return;
   if(a.type==='farm') interactFarm(a.key);
   else if(a.type==='chop'){ chopLoop.obj=a.obj; chopLoop.t=0; }
-  else if(a.type==='portal') enterBattle();
+  else if(a.type==='portal'){ if(window.DungeonMap) DungeonMap.open(); }
   else if(a.type==='breed') openBreed();
+  else if(a.type==='upgrade'){ if(window.FarmUpgrade) FarmUpgrade.open(); }
 }
 function nearestPortal(){
   for(const o of OBJECTS){ if(o.kind!=='portal') continue;
@@ -878,6 +885,8 @@ function openBreed(){
 }
 function closeBreed(){ if(!breedEl)return; breedEl.style.opacity='0'; breedEl.style.pointerEvents='none'; breedEl.style.transform='translate(-50%,-50%) scale(.92)'; }
 function nearestIncubator(){ for(const o of OBJECTS){ if(o.kind!=='incubator')continue;
+  if(Math.hypot(o.node.x-player.x,o.node.y-player.y)<110) return o; } return null; }
+function nearestFurnace(){ for(const o of OBJECTS){ if(o.kind!=='furnace')continue;
   if(Math.hypot(o.node.x-player.x,o.node.y-player.y)<110) return o; } return null; }
 
 // 全局光(乘) + 暮金(加) + 晕影 + 太阳柔光
@@ -1233,7 +1242,8 @@ function interact(){                              // 空格:在当前位置就�
   const key=playerTileKey();
   if(tileMeta[key]){ interactFarm(key); return; }
   if(nearestIncubator()){ openBreed(); return; }
-  if(nearestPortal()){ enterBattle(); return; }
+  if(nearestFurnace()){ if(window.FarmUpgrade) FarmUpgrade.open(); return; }
+  if(nearestPortal()){ if(window.DungeonMap) DungeonMap.open(); return; }
   const t=nearestChoppable();
   if(t){ chop(t); return; }
   toastHint('站上耕地可播种 · 靠近树木可伐木');
@@ -1250,7 +1260,8 @@ function updateHint(){
     return;
   }
   if(nearestIncubator()){ txt.textContent='灵兽孵化阵'; el.style.opacity=1; return; }
-  if(nearestPortal()){ txt.textContent='进入深渊副本'; el.style.opacity=1; return; }
+  if(nearestFurnace()){ txt.textContent='农场升级面板'; el.style.opacity=1; return; }
+  if(nearestPortal()){ txt.textContent='查看深渊路线图'; el.style.opacity=1; return; }
   if(nearestChoppable()){ txt.textContent='伐木 · 体力×1'; el.style.opacity=1; return; }
   el.style.opacity=0;
 }
