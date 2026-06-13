@@ -9,6 +9,24 @@
 const $=(t,c,p)=>{const e=document.createElement(t);if(c)e.className=c;if(p)p.appendChild(e);return e;};
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[a[i],a[j]]=[a[j],a[i]];}return a;}
 
+/* ---- 场景转场淡入淡出 (Fade Transition) ---- */
+let fadeEl=null;
+function createFade(){
+  if(fadeEl) return;
+  fadeEl=$('div'); fadeEl.id='sceneFade';
+  fadeEl.style.cssText='position:fixed;inset:0;z-index:100;background:#0a0a0e;opacity:0;pointer-events:none;transition:opacity .5s cubic-bezier(.4,0,.2,1)';
+  document.body.appendChild(fadeEl);
+}
+function fadeToBlack(callback){
+  createFade();
+  fadeEl.style.opacity='1';
+  setTimeout(()=>{if(callback)callback();},500);
+}
+function fadeFromBlack(){
+  if(!fadeEl) return;
+  fadeEl.style.opacity='0';
+}
+
 /* ---- 把锻造卡转成战斗牌;补充基础牌 ---- */
 function buildDeck(crafted){
   const base=[
@@ -336,27 +354,36 @@ function finish(win){
 function exit(){
   if(!Battle.active) return;
   const win=S?S._win:false, c=cb;
-  Battle.active=false; cb=null; stopMiasma();       // 立即解锁世界输入 + 触发回调(视觉淡出独立)
-  root.classList.remove('on');
-  setTimeout(()=>{ root.style.display='none'; S=null; }, 600);
-  if(win&&c&&c.onWin) c.onWin({ blight_seed:1, beast_soul:1 });
-  else if(!win&&c&&c.onLose) c.onLose();
+  Battle.active=false; cb=null; stopMiasma();
+  fadeToBlack(()=>{
+    root.classList.remove('on');
+    setTimeout(()=>{ root.style.display='none'; S=null; fadeFromBlack(); }, 200);
+    if(win&&c&&c.onWin) c.onWin({ blight_seed:1, beast_soul:1 });
+    else if(!win&&c&&c.onLose) c.onLose();
+  });
 }
 
 const Battle={
   active:false,
   enter(opts){
-    injectStyle(); buildDOM();
-    cb=opts||{};
-    const deck=shuffle(buildDeck(cb.deck));
-    S={ pHP:60, pMax:60, shield:0, energy:3, energyMax:3,
-        draw:deck, hand:[], discard:[], turn:1, phase:'player', over:false,
-        enemy:{ hp:48, max:48, block:0, intent:rollIntent(1) } };
-    root.style.display='block'; root.querySelector('#b_result').classList.remove('on');
-    const ar=root.querySelector('.arena'); if(ar) ar.style.transform='';   // 清除上一场残留的震屏偏移
-    requestAnimationFrame(()=>root.classList.add('on'));
-    Battle.active=true;
-    startPlayerTurn(); startMiasma();
+    fadeToBlack(()=>{
+      injectStyle(); buildDOM();
+      cb=opts||{};
+      const deck=shuffle(buildDeck(cb.deck));
+      S={ pHP:60, pMax:60, shield:0, energy:3, energyMax:3,
+          draw:deck, hand:[], discard:[], turn:1, phase:'player', over:false,
+          enemy:{ hp:48, max:48, block:0, intent:rollIntent(1) } };
+      if(cb.isBoss){ S.pMax=80; S.pHP=80; S.enemy.max=S.enemy.hp=90; }
+      else if(cb.isElite){ S.enemy.max=S.enemy.hp=70; }
+      root.style.display='block'; root.querySelector('#b_result').classList.remove('on');
+      const ar=root.querySelector('.arena'); if(ar) ar.style.transform='';
+      requestAnimationFrame(()=>{
+        root.classList.add('on');
+        setTimeout(()=>fadeFromBlack(),300);  // 战斗场景显示后淡入
+      });
+      Battle.active=true;
+      startPlayerTurn(); startMiasma();
+    });
   },
 };
 window.Battle=Battle;
