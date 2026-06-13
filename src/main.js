@@ -11,7 +11,7 @@
 'use strict';
 
 /* 资产版本号: 内容更新时 +1,绕过浏览器/CDN 旧缓存 */
-const ASSET_V='?v=8';
+const ASSET_V="?v=9";
 /* 贴图加载: mode='tile' → NEAREST+CLAMP(消除瓦片接缝+锐利);
    其余(精灵)→ LINEAR+mipmap(高清源缩小时干净不闪烁,painterly 风格不能用 NEAREST 否则缩小抖动) */
 async function loadTex(src, mode){
@@ -184,8 +184,7 @@ const TEX_VIGNET = (()=>{const c=document.createElement('canvas');c.width=c.heig
 /* ---- 图层结构 ---- */
 const world = new PIXI.Container();              // 镜头作用对象
 const groundL = new PIXI.Container();            // 瓦片层(草/土/沙/耕地)
-const waterSourceL = new PIXI.Container();       // 水面源容器(渲染到离屏纹理)
-const waterL = new PIXI.Container();             // 水面层(模糊+阈值后的流体效果)
+const waterL = new PIXI.Container();             // 水面层(独立,轻量波纹滤镜)
 const foamL = new PIXI.Container();              // 水岸泡沫
 const snowL = new PIXI.Container();              // 冬季积雪覆盖层
 const overlayL = new PIXI.Container();           // 地表覆盖(作物/云影)
@@ -243,7 +242,7 @@ for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
   sp._k=k; sp._j=0.975+r*0.05;                 // 每块明度抖动(极轻,避免棋盘格感)
   sp._ph=r*6.28;                               // 水面相位
   if(k==='g'||k==='G') grassTiles.push(sp);    // 草地:随季换图
-  if(k==='w'){ waterSourceL.addChild(sp); waterTiles.push(sp); snowAt.push(null); }   // 水→离屏源层
+  if(k==='w'){ waterL.addChild(sp); waterTiles.push(sp); snowAt.push(null); }   // 水→独立层
   else {
     groundL.addChild(sp);
     const sn=new PIXI.Sprite(PIXI.Texture.WHITE);   // 积雪覆盖(冬季由 snowL.alpha 控制)
@@ -254,28 +253,24 @@ for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
 }
 snowL.visible=false; snowL.alpha=0;
 
-/* ================= 5.5 流体融合水面（Metaball/Threshold）================= */
-/* 将原始水块容器渲染到离屏纹理 → 高斯模糊 → Alpha 阈值 → 得到圆润有机液体边缘 */
-const waterRT = PIXI.RenderTexture.create({width:MAP*TS, height:MAP*TS});
-const waterSprite = new PIXI.Sprite(waterRT);
-waterL.addChild(waterSprite);
+/* ================= 5.5 水面优化（轻量级边缘柔化）================= */
+// 在水陆边界添加半透明泡沫层,用最轻量的方式平滑过渡(无重度滤镜)
+const isWater=(x,y)=>grid[y]&&grid[y][x]==='w';
+for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
+  if(!isWater(x,y)) continue;
+  // 检测4邻方向是否有陆地,有则在边缘叠加柔光泡沫
+  const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+  for(const [dx,dy] of dirs){
+    if(isWater(x+dx,y+dy)) continue;
+    const foam=new PIXI.Sprite(TEX_GLOW); foam.anchor.set(.5);
+    foam.width=TS*1.2; foam.height=TS*1.2;
+    foam.x=x*TS+TS/2+dx*TS*0.35; foam.y=y*TS+TS/2+dy*TS*0.35;
+    foam.tint=0xeefaff; foam.alpha=.28; foam.blendMode='add';
+    foamL.addChild(foam);
+  }
+}
 
-// 模糊 + 阈值滤镜组合（metaball 效果）
-const waterBlur = new PIXI.BlurFilter({ strength:12, quality:3 });   // 高斯模糊:融合相邻水块
-// Alpha 阈值:低于 0.45 → 0(透明),高于 0.55 → 1(满),制造边缘的"吞噬"效果
-const thresholdMat = new PIXI.ColorMatrixFilter();
-thresholdMat.matrix = [
-  1,0,0,0,0,  0,1,0,0,0,  0,0,1,0,0,  // RGB 保持
-  0,0,0,50,-22  // Alpha: a_out = clamp(a_in*50 - 22, 0, 1) → 陡峭阈值曲线(0.44~0.48处跳变)
-];
-waterSourceL.filters = [waterBlur, thresholdMat];
-
-// 内发光泡沫(在圆润水面边缘自然显现)
-const foamGlow = new PIXI.Graphics();
-foamGlow.circle(0,0,TS*1.8).fill({color:0xffffff,alpha:0});  // 占位,后续可添粒子
-foamL.addChild(foamGlow);
-
-// 位移波纹滤镜(quality>0 时给流体表面加微扰)
+// 位移波纹滤镜(给水面微扰动效,仅 quality>0 时启用)
 let waterDisp=null, waterDispFilter=null;
 (function(){
   const c=document.createElement('canvas'); c.width=c.height=128;
@@ -287,9 +282,8 @@ let waterDisp=null, waterDispFilter=null;
     g.fillStyle=gr; g.fillRect(gx-rr,gy-rr,rr*2,rr*2); }
   waterDisp=new PIXI.Sprite(PIXI.Texture.from(c));
   waterDisp.texture.source.addressMode='repeat';
-  waterDisp.scale.set(3); waterDisp.renderable=false; waterSprite.addChild(waterDisp);
-  try{ waterDispFilter=new PIXI.DisplacementFilter({sprite:waterDisp, scale:10});
-       waterSprite.filters=[waterDispFilter]; }catch(e){ console.warn('disp filter unavailable',e); }
+  waterDisp.scale.set(3); waterDisp.renderable=false; waterL.addChild(waterDisp);
+  // DisplacementFilter 默认不启用,由 setQuality() 按需开启
 })();
 
 /* —— 季节专属贴图切换(取代代码强行调色,参照冬季成功经验) —— */
@@ -980,7 +974,14 @@ function setQuality(q){
   if(q>=quality) return; quality=q;
   if(q===1){ app.renderer.resolution=1; cloudShadows.forEach(c=>c.visible=false); }
   if(q===0){ app.renderer.resolution=.75; cloudShadows.forEach(c=>c.visible=false);
-    golden.visible=false; vignette.visible=false; }
+    golden.visible=false; vignette.visible=false;
+    // 低画质下关闭水面位移滤镜
+    if(waterL && waterL.filters) waterL.filters=[];
+  }
+  if(q>=1 && waterDisp && !waterDispFilter){  // 中高画质启用位移滤镜
+    try{ waterDispFilter=new PIXI.DisplacementFilter({sprite:waterDisp, scale:10});
+         waterL.filters=[waterDispFilter]; }catch(e){ console.warn('disp filter unavailable',e); }
+  }
   app.resize();
   console.info('[Terra] quality →', q===1?'mid':'low');
 }
@@ -1087,9 +1088,6 @@ app.ticker.add(tk=>{
   vignette.width=vw; vignette.height=vh;
   for(const c of cloudShadows){ c.x+=c._v*dt; if(c.x>MAP*TS+600)c.x=-600; }
   spawnParticles(st,dt,night>.62); updateParticles(dt,((Math.floor(st)%4)+4)%4);
-
-  /* —— 流体融合水面:每帧渲染 waterSourceL 到 RenderTexture,blur+threshold 生效 —— */
-  if(waterRT) app.renderer.render({container:waterSourceL, target:waterRT, clear:true});
 
   updateHUD(st,Math.floor(elapsed/DAY_SECONDS));
   springTick(dt);
@@ -1328,7 +1326,7 @@ function enterWorld(){
 $('enter').onclick=enterWorld;
 
 /* 调试句柄(性能排查/控制台实验用) */
-window.__dbg={app,world,groundL,waterSourceL,waterRT,waterSprite,snowL,overlayL,objL,fxScreen,player,cam,beast,beastAI,
+window.__dbg={app,world,groundL,waterL,snowL,overlayL,objL,fxScreen,player,cam,beast,beastAI,
   seasonFilter, findPath, planted, commandTo, interactFarm,
   beastStep, get quality(){return quality}, get fireBeast(){return fireBeast}, get forgeHot(){return forgeHot}, openBreed,
   get parts(){return parts.length}};
