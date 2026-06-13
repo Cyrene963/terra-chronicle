@@ -11,7 +11,7 @@
 'use strict';
 
 /* 资产版本号: 内容更新时 +1,绕过浏览器/CDN 旧缓存 */
-const ASSET_V='?v=6';
+const ASSET_V='?v=7';
 /* 贴图加载: mode='tile' → NEAREST+CLAMP(消除瓦片接缝+锐利);
    其余(精灵)→ LINEAR+mipmap(高清源缩小时干净不闪烁,painterly 风格不能用 NEAREST 否则缩小抖动) */
 async function loadTex(src, mode){
@@ -41,7 +41,10 @@ const ASSETS = {
   fence:    { src: 'assets/sprites/fence.png',       w: 66,  h: 53,  anchorY: 0.9 },
   crop:     { src: 'assets/sprites/crop.png',        w: 34,  h: 42,  anchorY: 1.0 },
   beast_water:{ src:'assets/sprites/beast_water.png',w: 62,  h: 64,  anchorY: 0.86 },
+  beast_fire:{ src:'assets/sprites/beast_fire.png', w: 58,  h: 66,  anchorY: 0.86 },
   portal:   { src: 'assets/sprites/portal.png',      w: 120, h: 132, anchorY: 0.92, collideR: 26 },
+  incubator:{ src: 'assets/sprites/incubator.png',   w: 96,  h: 104, anchorY: 0.92, collideR: 30 },
+  furnace:  { src: 'assets/sprites/furnace.png',     w: 104, h: 96,  anchorY: 0.92, collideR: 30 },
   // 地表瓦片(扁平手绘,季节专属);grass 随季换图
   tiles: {
     grass: { src: 'assets/sprites/tile_grass.png',
@@ -147,6 +150,11 @@ function placeObjects(){
   for(let i=OBJECTS.length-1;i>=0;i--){ const o=OBJECTS[i];
     if(Math.abs(o.tx-47)<2 && Math.abs(o.ty-10)<2) OBJECTS.splice(i,1); }
   OBJECTS.push({kind:'portal',tx:47,ty:10});
+  // 孵化阵 + 工坊熔炉(农庄附近):清格再放
+  for(let i=OBJECTS.length-1;i>=0;i--){ const o=OBJECTS[i];
+    if((Math.abs(o.tx-17)<2&&Math.abs(o.ty-31)<2)||(Math.abs(o.tx-25)<2&&Math.abs(o.ty-22)<2)) OBJECTS.splice(i,1); }
+  OBJECTS.push({kind:'incubator',tx:17,ty:31});
+  OBJECTS.push({kind:'furnace',tx:25,ty:22});
 }
 placeObjects();
 
@@ -185,6 +193,14 @@ objL.sortableChildren = true;
 const fxScreen = new PIXI.Container();           // 屏幕空间: 粒子/光/晕影
 world.addChild(groundL, waterL, foamL, snowL, overlayL, objL);
 app.stage.addChild(world, fxScreen);
+
+/* DPR/视口加固: 画布撑满屏 + resize 时同步渲染器与滤镜区域(防止高分屏下视口缩进黑屏) */
+app.canvas.style.width='100%'; app.canvas.style.height='100%';
+app.canvas.style.display='block';
+addEventListener('resize',()=>{
+  app.renderer.resize(window.innerWidth, window.innerHeight);
+  if(world.filters && world.filters.length) world.filterArea=new PIXI.Rectangle(0,0,app.screen.width,app.screen.height);
+});
 
 /* —— 四季色彩分级: ColorMatrixFilter 对整个世界统一调色 —— */
 /* 春=高饱和清新 / 夏=明亮高对比 / 秋=金黄枫红色相偏移 / 冬=去饱和冷调 */
@@ -239,14 +255,17 @@ snowL.visible=false; snowL.alpha=0;
 
 /* —— 水岸泡沫: 在水↔陆边界叠柔光,消除马赛克阶梯硬边 —— */
 const isWater=(x,y)=>grid[y]&&grid[y][x]==='w';
+const FOAM_DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
 for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
   if(!isWater(x,y)) continue;
-  const land = !isWater(x-1,y)||!isWater(x+1,y)||!isWater(x,y-1)||!isWater(x,y+1);
-  if(!land) continue;
-  const f=new PIXI.Sprite(TEX_GLOW); f.anchor.set(.5);
-  f.width=TS*1.5; f.height=TS*1.5; f.x=x*TS+TS/2; f.y=y*TS+TS/2;
-  f.tint=0xeaf6fb; f.alpha=.28; f.blendMode='add'; f._ph=hash(x*5,y*7)*6.28;
-  foamL.addChild(f);
+  for(const [dx,dy] of FOAM_DIRS){               // 每条水↔陆边界都骑一层柔光泡沫,打破方块阶梯
+    if(isWater(x+dx,y+dy)) continue;
+    const f=new PIXI.Sprite(TEX_GLOW); f.anchor.set(.5);
+    f.width=TS*1.35; f.height=TS*1.35;
+    f.x=x*TS+TS/2+dx*TS*0.5; f.y=y*TS+TS/2+dy*TS*0.5;
+    f.tint=0xeefaff; f.alpha=.4; f.blendMode='add'; f._ph=hash(x*5+dx*3,y*7+dy*3)*6.28;
+    foamL.addChild(f);
+  }
 }
 /* —— 位移波纹滤镜: 给水面真实流动扭曲(quality>0 时启用) —— */
 let waterDisp=null, waterDispFilter=null;
@@ -601,6 +620,12 @@ function commandTo(wx,wy){
     if(path){ player._path=path; pendingAction={type:'portal'}; toastHint('前往深渊之门…'); }
     return;
   }
+  if(o && o.kind==='incubator'){                          // → 灵兽孵化阵
+    rebuildSolidTiles(); const nw=nearestWalkable(tx,ty);
+    if(!nw) return; const path=tilePath(sx,sy,nw.x,nw.y);
+    if(path){ player._path=path; pendingAction={type:'breed'}; toastHint('前往孵化阵…'); }
+    return;
+  }
   if(tileMeta[tx+','+ty]){                                 // → 种/收
     const path=tilePath(sx,sy,tx,ty);
     if(path){ player._path=path; pendingAction={type:'farm',key:tx+','+ty}; }
@@ -616,6 +641,7 @@ function onArrive(){
   if(a.type==='farm') interactFarm(a.key);
   else if(a.type==='chop'){ chopLoop.obj=a.obj; chopLoop.t=0; }
   else if(a.type==='portal') enterBattle();
+  else if(a.type==='breed') openBreed();
 }
 function nearestPortal(){
   for(const o of OBJECTS){ if(o.kind!=='portal') continue;
@@ -650,9 +676,27 @@ function beastGoto(tx,ty){
   if(!path) return false; beastAI.path=path; return true;
 }
 function beastStep(dt){
-  beastAI.bob+=dt*3.2;
-  if(beast._body) beast._body.y = Math.sin(beastAI.bob)*3.5;   // 漂浮
-  beast._shadow.alpha=.28;
+  const moving = !!(beastAI.path && beastAI.path.length);
+  if(beast._body){
+    if(beast._bw===undefined && beast._body.texture && beast._body.texture.width>1){
+      beast._bw=beast._body.scale.x; beast._bh=beast._body.scale.y;   // 捕获加载后的基准缩放
+    }
+    const bw=beast._bw||beast._body.scale.x||1, bh=beast._bh||beast._body.scale.y||1;
+    if(beastAI.state==='water'){                  // 浇水:剧烈膨胀+回弹
+      beastAI.bob+=dt*10; const pf=Math.abs(Math.sin(beastAI.bob))*0.22;
+      beast._body.y=-Math.abs(Math.sin(beastAI.bob))*6;
+      beast._body.scale.set(bw*(1+pf), bh*(1+pf));
+    } else if(moving){                            // 移动:弹跳+落地挤压(squash&stretch)
+      beastAI.hop=(beastAI.hop||0)+dt*9; const h=Math.abs(Math.sin(beastAI.hop)), land=1-h;
+      beast._body.y=-h*9;
+      beast._body.scale.set(bw*(1+land*0.12), bh*(1-land*0.14));
+    } else {                                      // 待机:呼吸
+      beastAI.bob+=dt*2.6; const br=Math.sin(beastAI.bob)*0.035;
+      beast._body.y=Math.sin(beastAI.bob)*2.4;
+      beast._body.scale.set(bw*(1-br), bh*(1+br));
+    }
+  }
+  beast._shadow.alpha=.22+ (moving? Math.abs(Math.sin(beastAI.hop||0))*0.12 : 0);
   // 沿路径移动
   if(beastAI.path && beastAI.path.length){
     const wp=beastAI.path[0]; let dx=wp.wx-beast.x, dy=wp.wy-beast.y; const d=Math.hypot(dx,dy);
@@ -675,10 +719,10 @@ function beastStep(dt){
     }
   } else if(beastAI.state==='seek'){
     const pc=planted[beastAI.target];                          // 到达(无路径了)
-    if(pc && !pc.watered){ beastAI.state='water'; beastAI.t=2.0; setBeastStatus('water'); }
+    if(pc && !pc.watered){ beastAI.state='water'; beastAI.t=waterEvolved?1.2:2.0; setBeastStatus('water'); }
     else { beastAI.state='idle'; beastAI.t=.3; }
   } else if(beastAI.state==='water'){
-    if((beastAI.t*5|0)!==((beastAI.t+dt)*5|0)) spawnWaterDrop();  // 周期喷水滴
+    if((beastAI.t*4|0)!==((beastAI.t+dt)*4|0)) spawnSplash(beastAI.target);  // 周期水花爆发
     if(beastAI.t<=0){
       const pc=planted[beastAI.target];
       if(pc){ pc.watered=true; pc.boost=true; toastHint('水灵兽灌溉了一块田 · 生长加速'); }
@@ -691,15 +735,123 @@ function findDryPlot(){
   return null;
 }
 const waterDrops=[];
-function spawnWaterDrop(){
-  const g=new PIXI.Graphics(); g.circle(0,0,3).fill({color:0x8fd4e8,alpha:.9});
-  g.x=beast.x+(Math.random()*16-8); g.y=beast.y-20; g._vy=40+Math.random()*30; g._life=0;
-  overlayL.addChild(g); waterDrops.push(g);
+function spawnSplash(key){                          // 在耕地处喷涌一束蓝色水花(上抛+重力下落)
+  let cx=beast.x, cy=beast.y-16;
+  if(key && tileMeta[key]){ const [tx,ty]=key.split(',').map(Number); cx=tx*TS+TS/2; cy=ty*TS+TS/2; }
+  const n=4+(Math.random()*3|0);
+  for(let i=0;i<n;i++){
+    const g=new PIXI.Graphics(); g.circle(0,0,2+Math.random()*2.4).fill({color:0x9fdcf0,alpha:.95});
+    g.x=cx+(Math.random()*18-9); g.y=cy;
+    g._vx=(Math.random()*60-30); g._vy=-70-Math.random()*55; g._life=0;
+    overlayL.addChild(g); waterDrops.push(g);
+  }
 }
 function stepWaterDrops(dt){
-  for(let i=waterDrops.length-1;i>=0;i--){const g=waterDrops[i]; g._life+=dt; g.y+=g._vy*dt; g.alpha=Math.max(0,.9-g._life*1.3);
-    if(g._life>.7){overlayL.removeChild(g);waterDrops.splice(i,1);}}
+  for(let i=waterDrops.length-1;i>=0;i--){const g=waterDrops[i];
+    g._life+=dt; g._vy+=260*dt;                    // 重力
+    g.x+=g._vx*dt; g.y+=g._vy*dt; g.alpha=Math.max(0,1-g._life*1.2);
+    if(g._life>.8){overlayL.removeChild(g);waterDrops.splice(i,1);}}
 }
+
+/* ================= 8.7 灵兽繁育 + 火灵兽(工坊熔炉增益) ================= */
+let fireBeast=null, fireAI=null, forgeHot=false, waterEvolved=false;
+const embers=[];
+function furnacePos(){ const o=OBJECTS.find(o=>o.kind==='furnace'); return o?{x:o.node.x,y:o.node.y}:{x:25*TS,y:22*TS}; }
+function spawnEmber(x,y){
+  const g=new PIXI.Graphics(); g.circle(0,0,2+Math.random()*2).fill({color:Math.random()<.5?0xffb24a:0xff7a2a,alpha:.95});
+  g.x=x+(Math.random()*16-8); g.y=y; g._vy=-30-Math.random()*30; g._vx=(Math.random()*20-10); g._life=0;
+  overlayL.addChild(g); embers.push(g);
+}
+function stepEmbers(dt){
+  for(let i=embers.length-1;i>=0;i--){const g=embers[i]; g._life+=dt; g.x+=g._vx*dt; g.y+=g._vy*dt;
+    g.alpha=Math.max(0,.95-g._life*1.1); if(g._life>.9){overlayL.removeChild(g);embers.splice(i,1);}}
+}
+function hatchFire(){
+  if(fireBeast) return;
+  fireBeast=makeNode('beast_fire');
+  const fp=furnacePos(); fireBeast.x=fp.x+TS; fireBeast.y=fp.y+TS*1.2; fireBeast.zIndex=fireBeast.y;
+  objL.addChild(fireBeast);
+  fireAI={state:'idle',t:1.2,path:null,bob:0,hop:0};
+  (farm.beasts ??= []).push({species:'fire_spirit',element:'fire'}); Terra.save();
+}
+function fireGoto(tx,ty){ const sx=Math.floor(fireBeast.x/TS),sy=Math.floor(fireBeast.y/TS);
+  const p=tilePath(sx,sy,tx,ty); if(!p) return false; fireAI.path=p; return true; }
+function fireStep(dt){
+  if(!fireBeast) return;
+  const moving=!!(fireAI.path&&fireAI.path.length);
+  if(fireBeast._body){
+    if(fireBeast._bw===undefined && fireBeast._body.texture && fireBeast._body.texture.width>1){ fireBeast._bw=fireBeast._body.scale.x; fireBeast._bh=fireBeast._body.scale.y; }
+    const bw=fireBeast._bw||fireBeast._body.scale.x||1, bh=fireBeast._bh||fireBeast._body.scale.y||1;
+    if(moving){ fireAI.hop+=dt*9; const h=Math.abs(Math.sin(fireAI.hop)); fireBeast._body.y=-h*8; fireBeast._body.scale.set(bw*(1+(1-h)*0.1),bh*(1-(1-h)*0.12)); }
+    else { fireAI.bob+=dt*3; const br=Math.sin(fireAI.bob)*0.04; fireBeast._body.y=Math.sin(fireAI.bob)*2; fireBeast._body.scale.set(bw*(1-br),bh*(1+br)); }
+  }
+  fireBeast._shadow.alpha=.2;
+  if(moving){ const wp=fireAI.path[0]; let dx=wp.wx-fireBeast.x,dy=wp.wy-fireBeast.y; const d=Math.hypot(dx,dy);
+    if(d<5) fireAI.path.shift(); else { dx/=d;dy/=d; fireBeast.x+=dx*150*dt; fireBeast.y+=dy*150*dt; fireBeast.zIndex=fireBeast.y; }
+    if(fireAI.path&&!fireAI.path.length) fireAI.path=null; forgeHot=false; return; }
+  fireAI.t-=dt;
+  const fp=furnacePos();
+  if(fireAI.state==='idle'){ forgeHot=false;
+    if(fireAI.t<=0){ const tx=Math.floor(fp.x/TS), ty=Math.floor(fp.y/TS)+1;
+      rebuildSolidTiles(); const nw=nearestWalkable(tx,ty);
+      if(nw && fireGoto(nw.x,nw.y)) fireAI.state='seekForge'; else fireAI.t=2; }
+  } else if(fireAI.state==='seekForge'){           // 到达熔炉
+    fireAI.state='work'; fireAI.t=6; forgeHot=true; toastHint('火灵兽点燃了工坊熔炉 · 锻造品质提升'); updateDock();
+  } else if(fireAI.state==='work'){
+    forgeHot=true;
+    if(Math.random()<0.5) spawnEmber(fireBeast.x, fireBeast.y-12);
+    if(fireAI.t<=0){ fireAI.state='idle'; fireAI.t=3+Math.random()*3; forgeHot=false; updateDock(); }
+  }
+}
+/* 繁育面板(运行时注入) */
+let breedEl=null;
+function buildBreedPanel(){
+  if(breedEl) return; breedEl=document.createElement('div'); breedEl.id='breedPanel';
+  breedEl.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.92);z-index:45;'+
+    'width:min(420px,90vw);background:rgba(246,241,231,.96);backdrop-filter:blur(16px);border:1px solid rgba(43,39,34,.18);'+
+    'border-radius:18px;padding:34px 36px;box-shadow:0 30px 80px rgba(10,10,10,.4);opacity:0;pointer-events:none;'+
+    'transition:opacity .4s,transform .4s cubic-bezier(.2,.8,.2,1);font-family:"Noto Serif SC",serif;color:#2b2722;';
+  breedEl.innerHTML=`
+    <div style="font-family:'Cormorant Garamond',serif;font-size:11px;letter-spacing:.5em;color:#c9a24b;text-transform:uppercase">Incubation · 孵化阵</div>
+    <h3 style="font-weight:500;font-size:25px;letter-spacing:.12em;margin:8px 0 4px">灵兽培育</h3>
+    <div id="breedLoot" style="font-size:13px;letter-spacing:.1em;opacity:.7;margin-bottom:22px"></div>
+    <div id="breedOpts" style="display:flex;flex-direction:column;gap:12px"></div>
+    <div id="breedClose" style="position:absolute;top:22px;right:24px;cursor:pointer;opacity:.5;font-size:20px">×</div>`;
+  document.body.appendChild(breedEl);
+  breedEl.querySelector('#breedClose').onclick=closeBreed;
+}
+function breedBtn(label,sub,enabled,onClick){
+  const b=document.createElement('button');
+  b.style.cssText='text-align:left;border:1px solid '+(enabled?'#c9a24b':'rgba(43,39,34,.18)')+';background:none;'+
+    'border-radius:12px;padding:14px 18px;cursor:'+(enabled?'pointer':'default')+';opacity:'+(enabled?1:.45)+';'+
+    'font-family:"Noto Serif SC",serif;color:#2b2722;transition:background .3s';
+  b.innerHTML=`<div style="font-size:15px;letter-spacing:.1em">${label}</div><div style="font-size:11px;opacity:.6;margin-top:4px">${sub}</div>`;
+  if(enabled){ b.onmouseenter=()=>b.style.background='rgba(201,162,75,.14)'; b.onmouseleave=()=>b.style.background='none'; b.onclick=onClick; }
+  return b;
+}
+function openBreed(){
+  buildBreedPanel();
+  const soul=farm.inventory.materials.beast_soul||0, seed=farm.inventory.materials.blight_seed||0;
+  breedEl.querySelector('#breedLoot').textContent=`库存战利品 · 灵兽灵魂 ${soul} · 污染种子 ${seed}`;
+  const opts=breedEl.querySelector('#breedOpts'); opts.innerHTML='';
+  opts.appendChild(breedBtn(
+    fireBeast?'火灵兽 · 已孵化':'孵化 火灵兽 🔥',
+    fireBeast?'它正在工坊为你升温熔炉':'消耗 灵兽灵魂×1 + 污染种子×1 · 自动为锻造加热熔炉',
+    !fireBeast && soul>=1 && seed>=1,
+    ()=>{ farm.inventory.materials.beast_soul--; farm.inventory.materials.blight_seed--;
+      hatchFire(); Terra.save(); updateDock(); toastHint('火灵兽破壳而出!'); openBreed(); }));
+  opts.appendChild(breedBtn(
+    waterEvolved?'水灵兽 · 已进化':'进化 水灵兽 💧',
+    waterEvolved?'体型更大,灌溉更勤':'消耗 灵兽灵魂×1 · 体型更大、灌溉更快',
+    !waterEvolved && soul>=1,
+    ()=>{ farm.inventory.materials.beast_soul--; waterEvolved=true;
+      if(beast._bw){ beast._bw*=1.22; beast._bh*=1.22; }
+      Terra.save(); updateDock(); toastHint('水灵兽进化了 · 更强的丰饶之灵'); openBreed(); }));
+  breedEl.style.opacity='1'; breedEl.style.pointerEvents='auto'; breedEl.style.transform='translate(-50%,-50%) scale(1)';
+}
+function closeBreed(){ if(!breedEl)return; breedEl.style.opacity='0'; breedEl.style.pointerEvents='none'; breedEl.style.transform='translate(-50%,-50%) scale(.92)'; }
+function nearestIncubator(){ for(const o of OBJECTS){ if(o.kind!=='incubator')continue;
+  if(Math.hypot(o.node.x-player.x,o.node.y-player.y)<110) return o; } return null; }
 
 // 全局光(乘) + 暮金(加) + 晕影 + 太阳柔光
 const ambient=new PIXI.Sprite(PIXI.Texture.WHITE); ambient.blendMode='multiply';
@@ -874,7 +1026,7 @@ app.ticker.add(tk=>{
   for(const key in planted){ const pc=planted[key];
     if(!pc.mature){ pc.grown=(pc.grown||0)+dt*timeScale*(pc.boost?1.8:1);
       if(pc.grown>=GROW_SECONDS) pc.mature=true; } }
-  if(entered){ beastStep(dt); stepWaterDrops(dt);
+  if(entered){ beastStep(dt); stepWaterDrops(dt); fireStep(dt); stepEmbers(dt);
     if(chopLoop.obj){ const o=chopLoop.obj;
       if(o.felled||staminaUsed>=6) chopLoop.obj=null;
       else if(Math.hypot(o.node.x-player.x,o.node.y-player.y)>100) chopLoop.obj=null;
@@ -1050,6 +1202,7 @@ function interactFarm(key){
 function interact(){                              // 空格:在当前位置就近交互
   const key=playerTileKey();
   if(tileMeta[key]){ interactFarm(key); return; }
+  if(nearestIncubator()){ openBreed(); return; }
   if(nearestPortal()){ enterBattle(); return; }
   const t=nearestChoppable();
   if(t){ chop(t); return; }
@@ -1066,6 +1219,7 @@ function updateHint(){
     el.style.opacity = (!pc||pc.mature)? 1 : .55;
     return;
   }
+  if(nearestIncubator()){ txt.textContent='灵兽孵化阵'; el.style.opacity=1; return; }
   if(nearestPortal()){ txt.textContent='进入深渊副本'; el.style.opacity=1; return; }
   if(nearestChoppable()){ txt.textContent='伐木 · 体力×1'; el.style.opacity=1; return; }
   el.style.opacity=0;
@@ -1077,12 +1231,14 @@ function updateDock(){
   $('invWood').textContent=farm.inventory.materials.wood||0;
   $('invCards').textContent=farm.inventory.cards.length;
   $('craftBtn').disabled = !(wheat>=3 && (farm.inventory.materials.wood||0)>=2);
+  $('craftBtn').textContent = forgeHot ? '锻造 · 熔炉灼热 🔥' : '锻造 · 新芽守卫';
 }
 $('craftBtn').onclick=()=>{
-  const res=Terra.craftCard(farm,'card_sprout_guard', .55+Math.random()*.4);
+  const craftsmanship = forgeHot ? 0.9+Math.random()*0.1 : 0.55+Math.random()*0.4;  // 火灵兽点炉→高品质
+  const res=Terra.craftCard(farm,'card_sprout_guard', craftsmanship);
   if(!res.ok){ toastHint('材料不足:星麦×3 木材×2'); return; }
   Terra.save(); updateDock();
-  $('cvName').textContent=res.card.name;
+  $('cvName').textContent=res.card.name + (forgeHot?' · 熔炉精铸':'');
   $('cvAtk').textContent=res.card.atk; $('cvDef').textContent=res.card.def;
   $('cvQ').textContent=Math.round(res.card.quality*100)+'%';
   $('cvAffix').innerHTML=res.card.affixes.length
@@ -1133,7 +1289,7 @@ $('enter').onclick=enterWorld;
 /* 调试句柄(性能排查/控制台实验用) */
 window.__dbg={app,world,groundL,snowL,overlayL,objL,fxScreen,player,cam,beast,beastAI,
   seasonFilter, findPath, planted, commandTo, interactFarm,
-  beastStep, get quality(){return quality},
+  beastStep, get quality(){return quality}, get fireBeast(){return fireBeast}, get forgeHot(){return forgeHot}, openBreed,
   get parts(){return parts.length}};
 
 })();

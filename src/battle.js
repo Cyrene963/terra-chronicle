@@ -47,7 +47,12 @@ function injectStyle(){
   #battle .arena{position:absolute;inset:0;display:flex;flex-direction:column;}
   #battle .enemyZone{flex:1;display:flex;align-items:center;justify-content:center;position:relative;}
   #battle .enemy{position:relative;text-align:center;transition:transform .12s;}
-  #battle .enemy img{width:230px;filter:drop-shadow(0 18px 36px rgba(0,0,0,.55));image-rendering:auto;}
+  #battle .enemy img{width:230px;filter:drop-shadow(0 18px 36px rgba(0,0,0,.55));image-rendering:auto;
+    animation:ebreathe 3.4s ease-in-out infinite;transition:filter .08s;}
+  #battle .enemy img.flash{filter:brightness(6) contrast(1.4) drop-shadow(0 18px 36px rgba(0,0,0,.55));}
+  @keyframes ebreathe{0%,100%{transform:scale(1,1)}50%{transform:scale(1.035,.962)}}
+  #battle .miasma{position:absolute;border-radius:50%;pointer-events:none;mix-blend-mode:screen;
+    background:radial-gradient(circle,rgba(186,120,224,.6),rgba(150,80,200,0));}
   #battle .enemy.hit{animation:eh .3s;}
   @keyframes eh{0%,100%{transform:translateX(0)}25%{transform:translateX(-12px)}75%{transform:translateX(12px)}}
   #battle .ename{position:absolute;top:-6px;left:50%;transform:translateX(-50%);font-size:13px;letter-spacing:.3em;opacity:.85;white-space:nowrap;}
@@ -57,9 +62,8 @@ function injectStyle(){
   #battle .intent{margin-top:10px;font-size:15px;letter-spacing:.14em;color:#ffcaa0;height:20px;}
   #battle .intent.def{color:#9fd4e8;}
   #battle .eblock{display:inline-block;margin-left:8px;color:#9fd4e8;font-size:13px;}
-  #battle .floatN{position:absolute;font-family:'Cormorant Garamond',serif;font-size:34px;font-weight:600;
-    pointer-events:none;animation:fl 1s ease-out forwards;}
-  @keyframes fl{0%{opacity:0;transform:translateY(0) scale(.7)}20%{opacity:1}100%{opacity:0;transform:translateY(-60px) scale(1.1)}}
+  #battle .floatN{position:absolute;left:0;top:0;font-family:'Cormorant Garamond',serif;font-size:36px;font-weight:600;
+    pointer-events:none;will-change:transform,opacity;text-shadow:0 2px 8px rgba(0,0,0,.6);}
   #battle .pbar{height:96px;display:flex;align-items:center;justify-content:space-between;padding:0 40px;
     border-top:1px solid rgba(246,241,231,.1);background:rgba(10,8,16,.4);}
   #battle .vit{display:flex;align-items:center;gap:26px;}
@@ -150,11 +154,63 @@ function buildDOM(){
   root.querySelector('#b_back').onclick=exit;
 }
 
-function floatNum(text,color,x,y){
+function floatNum(text,color,x,y){                 // 抛物线弹跳伤害数字(FCT)
   const f=$('div','floatN',root); f.textContent=text; f.style.color=color;
-  f.style.left=(x||window.innerWidth/2)+'px'; f.style.top=(y||window.innerHeight*0.42)+'px';
-  setTimeout(()=>f.remove(),1000);
+  const vx=(Math.random()-.5)*140, vy=-180-Math.random()*50, g=560, t0=performance.now();
+  (function step(){ const t=(performance.now()-t0)/1000;
+    const px=x+vx*t, py=y+vy*t+0.5*g*t*t;
+    f.style.transform=`translate(${px}px,${py}px) scale(${1+Math.min(t*1.6,.45)})`;
+    f.style.opacity = t<0.08 ? t*12 : Math.max(0,1-(t-0.08)*1.25);
+    if(t<1.0) requestAnimationFrame(step); else f.remove();
+  })();
 }
+function screenShake(mag,dur){                       // 屏幕震动
+  const el=root.querySelector('.arena'); if(!el) return; const t0=performance.now();
+  (function s(){ const e=(performance.now()-t0)/dur;
+    if(e>=1){ el.style.transform=''; return; }
+    const m=mag*(1-e); el.style.transform=`translate(${(Math.random()-.5)*m}px,${(Math.random()-.5)*m}px)`;
+    requestAnimationFrame(s);
+  })();
+}
+function hitFlash(){ const img=root.querySelector('#b_eimg'); if(!img) return;
+  img.classList.add('flash'); setTimeout(()=>img.classList.remove('flash'),100); }
+function playerHurtFx(){ let v=root.querySelector('#b_hurt');
+  if(!v){ v=$('div',null,root); v.id='b_hurt';
+    v.style.cssText='position:absolute;inset:0;z-index:88;pointer-events:none;opacity:0;transition:opacity .1s;'+
+      'box-shadow:inset 0 0 160px 40px rgba(200,40,40,.7);'; }
+  v.style.opacity='1'; setTimeout(()=>v.style.opacity='0',130); }
+function projectile(fromEl){                         // 卡牌飞向敌人的光弹
+  const img=root.querySelector('#b_eimg'); if(!img) return;
+  const r1=fromEl?fromEl.getBoundingClientRect():{left:innerWidth/2,top:innerHeight-170,width:0,height:0};
+  const r2=img.getBoundingClientRect();
+  const p=$('div',null,root);
+  p.style.cssText='position:fixed;z-index:90;width:26px;height:26px;border-radius:50%;pointer-events:none;'+
+    'background:radial-gradient(circle,#fff,#ffd27a 55%,rgba(255,150,60,0));';
+  const x0=r1.left+r1.width/2,y0=r1.top,x1=r2.left+r2.width/2,y1=r2.top+r2.height*0.45,t0=performance.now();
+  (function a(){ const t=Math.min(1,(performance.now()-t0)/180);
+    p.style.left=(x0+(x1-x0)*t-13)+'px'; p.style.top=(y0+(y1-y0)*t-13)+'px';
+    p.style.transform=`scale(${0.6+t*0.9})`;
+    if(t<1) requestAnimationFrame(a); else p.remove();
+  })();
+}
+let miasmaTimer=null;
+function startMiasma(){ stopMiasma();
+  miasmaTimer=setInterval(()=>{
+    if(!Battle.active){ stopMiasma(); return; }
+    const z=root.querySelector('.enemyZone'); if(!z) return;
+    const m=$('div','miasma',z); const sz=14+Math.random()*28; m.style.width=m.style.height=sz+'px';
+    m.style.left=(z.clientWidth/2+(Math.random()-.5)*190)+'px';
+    m.style.top=(z.clientHeight*0.52+(Math.random()-.5)*120)+'px';
+    const t0=performance.now(),drift=(Math.random()-.5)*46,rise=34+Math.random()*44;
+    (function a(){ const t=(performance.now()-t0)/1900;
+      if(t>=1){ m.remove(); return; }
+      m.style.transform=`translate(${drift*t}px,${-rise*t}px)`;
+      m.style.opacity=(t<.3? t/.3 : (1-t)/.7)*0.65;
+      requestAnimationFrame(a);
+    })();
+  }, 300);
+}
+function stopMiasma(){ if(miasmaTimer){ clearInterval(miasmaTimer); miasmaTimer=null; } }
 
 function render(){
   const r=id=>root.querySelector(id);
@@ -179,7 +235,7 @@ function render(){
     const el=$('div','card '+c.type+(playable?'':' disabled'),hand);
     el.innerHTML=`<div class="cost">${c.cost}</div><div class="cname">${c.name}</div>
       <div class="cart">${c.type==='atk'?'⚔':'🛡'}</div><div class="cdesc">${c.desc}</div>`;
-    if(playable) el.onclick=()=>playCard(i);
+    if(playable) el.onclick=(ev)=>playCard(i, ev.currentTarget);
   });
 }
 
@@ -194,33 +250,41 @@ function startPlayerTurn(){
   S.enemy.intent=S.enemy.intent||rollIntent(S.turn);
   drawCards(5); render();
 }
-function playCard(i){
+function playCard(i, el){
   const c=S.hand[i]; if(!c||S.energy<c.cost||S.phase!=='player'||S.over) return;
-  S.energy-=c.cost;
+  S.energy-=c.cost; S.discard.push(c); S.hand.splice(i,1);
   if(c.type==='atk'){
-    let dmg=c.val; const blk=Math.min(S.enemy.block,dmg); S.enemy.block-=blk; dmg-=blk;
-    S.enemy.hp-=dmg;
-    const e=root.querySelector('#b_enemy'); e.classList.add('hit'); setTimeout(()=>e.classList.remove('hit'),300);
-    floatNum('-'+dmg,'#ff9b7a', window.innerWidth/2, window.innerHeight*0.34);
+    projectile(el); const dmgRaw=c.val;
+    setTimeout(()=>{                               // 命中:闪白+震屏+抛物线伤害数字
+      if(!S||S.over) return;
+      let dmg=dmgRaw; const blk=Math.min(S.enemy.block,dmg); S.enemy.block-=blk; dmg-=blk;
+      S.enemy.hp-=dmg;
+      hitFlash(); screenShake(15,260);
+      const b=root.querySelector('#b_eimg').getBoundingClientRect();
+      floatNum('-'+dmg,'#ff9b7a', b.left+b.width/2, b.top+b.height*0.4);
+      const e=root.querySelector('#b_enemy'); e.classList.add('hit'); setTimeout(()=>e.classList.remove('hit'),300);
+      if(S.enemy.hp<=0){ render(); return finish(true); }
+      render();
+    },175);
   } else {
-    S.shield+=c.val; floatNum('+'+c.val+'🛡','#bcd8ee', window.innerWidth/2, window.innerHeight-150);
+    S.shield+=c.val;
+    floatNum('+'+c.val,'#bcd8ee', innerWidth/2, innerHeight-180);
   }
-  S.discard.push(c); S.hand.splice(i,1);
-  if(S.enemy.hp<=0){ return finish(true); }
   render();
 }
 function endTurn(){
   if(S.phase!=='player'||S.over) return;
   S.phase='enemy';
-  // 手牌弃置
   S.discard.push(...S.hand); S.hand=[];
   render();
   setTimeout(()=>{
+    if(!S) return;
     const it=S.enemy.intent;
     if(it.kind==='atk'){
       let dmg=it.val; const blk=Math.min(S.shield,dmg); S.shield-=blk; dmg-=blk;
       S.pHP-=dmg;
-      floatNum('-'+dmg,'#ff8a8a', window.innerWidth/2, window.innerHeight-150);
+      if(dmg>0){ screenShake(20,300); playerHurtFx(); }
+      floatNum('-'+dmg,'#ff8a8a', innerWidth/2, innerHeight-180);
     } else { S.enemy.block+=it.val; }
     if(S.pHP<=0){ render(); return finish(false); }
     S.turn++; S.enemy.intent=rollIntent(S.turn);
@@ -244,7 +308,7 @@ function finish(win){
 function exit(){
   if(!Battle.active) return;
   const win=S?S._win:false, c=cb;
-  Battle.active=false; cb=null;                    // 立即解锁世界输入 + 触发回调(视觉淡出独立)
+  Battle.active=false; cb=null; stopMiasma();       // 立即解锁世界输入 + 触发回调(视觉淡出独立)
   root.classList.remove('on');
   setTimeout(()=>{ root.style.display='none'; S=null; }, 600);
   if(win&&c&&c.onWin) c.onWin({ blight_seed:1, beast_soul:1 });
@@ -263,7 +327,7 @@ const Battle={
     root.style.display='block'; root.querySelector('#b_result').classList.remove('on');
     requestAnimationFrame(()=>root.classList.add('on'));
     Battle.active=true;
-    startPlayerTurn();
+    startPlayerTurn(); startMiasma();
   },
 };
 window.Battle=Battle;
