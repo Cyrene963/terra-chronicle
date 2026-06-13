@@ -835,26 +835,35 @@ function fireStep(dt){
 let breedEl=null;
 function buildBreedPanel(){
   if(breedEl) return; breedEl=document.createElement('div'); breedEl.id='breedPanel';
-  breedEl.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.92);z-index:45;'+
-    'width:min(420px,90vw);background:rgba(246,241,231,.96);backdrop-filter:blur(16px);border:1px solid rgba(43,39,34,.18);'+
-    'border-radius:18px;padding:34px 36px;box-shadow:0 30px 80px rgba(10,10,10,.4);opacity:0;pointer-events:none;'+
-    'transition:opacity .4s,transform .4s cubic-bezier(.2,.8,.2,1);font-family:"Noto Serif SC",serif;color:#2b2722;';
+  breedEl.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.88);z-index:45;'+
+    'width:min(460px,90vw);background:rgba(246,241,231,.08);backdrop-filter:blur(22px) saturate(1.25);'+
+    'border:1px solid rgba(246,241,231,.14);border-radius:22px;padding:38px 40px;'+
+    'box-shadow:0 36px 90px rgba(10,10,10,.5),inset 0 1px 0 rgba(255,255,255,.08);opacity:0;pointer-events:none;'+
+    'transition:opacity .4s,transform .4s cubic-bezier(.34,1.56,.64,1);font-family:"Noto Serif SC",serif;color:#f6f1e7;';
   breedEl.innerHTML=`
-    <div style="font-family:'Cormorant Garamond',serif;font-size:11px;letter-spacing:.5em;color:#c9a24b;text-transform:uppercase">Incubation · 孵化阵</div>
-    <h3 style="font-weight:500;font-size:25px;letter-spacing:.12em;margin:8px 0 4px">灵兽培育</h3>
-    <div id="breedLoot" style="font-size:13px;letter-spacing:.1em;opacity:.7;margin-bottom:22px"></div>
-    <div id="breedOpts" style="display:flex;flex-direction:column;gap:12px"></div>
-    <div id="breedClose" style="position:absolute;top:22px;right:24px;cursor:pointer;opacity:.5;font-size:20px">×</div>`;
+    <div style="font-family:'Cormorant Garamond',serif;font-size:11px;letter-spacing:.6em;color:rgba(201,162,75,.9);text-transform:uppercase">Incubation · 孵化阵</div>
+    <h3 style="font-weight:400;font-size:28px;letter-spacing:.14em;margin:10px 0 6px;background:linear-gradient(135deg,#f6f1e7 0%,#c9a24b 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">灵兽培育</h3>
+    <div id="breedLoot" style="font-size:13px;letter-spacing:.12em;opacity:.7;margin-bottom:26px"></div>
+    <div id="breedOpts" style="display:flex;flex-direction:column;gap:14px"></div>
+    <div id="breedClose" style="position:absolute;top:26px;right:28px;cursor:pointer;opacity:.4;font-size:22px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:50%;border:1px solid rgba(246,241,231,.2);background:rgba(246,241,231,.05);backdrop-filter:blur(8px);color:#f6f1e7;transition:all .3s">×</div>`;
   document.body.appendChild(breedEl);
-  breedEl.querySelector('#breedClose').onclick=closeBreed;
+  const closeBtn=breedEl.querySelector('#breedClose');
+  closeBtn.onmouseenter=()=>{closeBtn.style.opacity='1';closeBtn.style.transform='scale(1.1)';closeBtn.style.borderColor='rgba(246,241,231,.4)'};
+  closeBtn.onmouseleave=()=>{closeBtn.style.opacity='.4';closeBtn.style.transform='scale(1)';closeBtn.style.borderColor='rgba(246,241,231,.2)'};
+  closeBtn.onclick=closeBreed;
 }
 function breedBtn(label,sub,enabled,onClick){
   const b=document.createElement('button');
-  b.style.cssText='text-align:left;border:1px solid '+(enabled?'#c9a24b':'rgba(43,39,34,.18)')+';background:none;'+
-    'border-radius:12px;padding:14px 18px;cursor:'+(enabled?'pointer':'default')+';opacity:'+(enabled?1:.45)+';'+
-    'font-family:"Noto Serif SC",serif;color:#2b2722;transition:background .3s';
-  b.innerHTML=`<div style="font-size:15px;letter-spacing:.1em">${label}</div><div style="font-size:11px;opacity:.6;margin-top:4px">${sub}</div>`;
-  if(enabled){ b.onmouseenter=()=>b.style.background='rgba(201,162,75,.14)'; b.onmouseleave=()=>b.style.background='none'; b.onclick=onClick; }
+  b.style.cssText='text-align:left;border:1px solid '+(enabled?'rgba(201,162,75,.6)':'rgba(246,241,231,.15)')+';'+
+    'background:'+(enabled?'rgba(246,241,231,.04)':'rgba(246,241,231,.02)')+';backdrop-filter:blur(10px);'+
+    'border-radius:14px;padding:16px 20px;cursor:'+(enabled?'pointer':'default')+';opacity:'+(enabled?1:.4)+';'+
+    'font-family:"Noto Serif SC",serif;color:#f6f1e7;transition:all .3s cubic-bezier(.34,1.56,.64,1)';
+  b.innerHTML=`<div style="font-size:16px;letter-spacing:.12em">${label}</div><div style="font-size:11px;opacity:.65;margin-top:6px;letter-spacing:.04em">${sub}</div>`;
+  if(enabled){
+    b.onmouseenter=()=>{b.style.background='rgba(201,162,75,.12)';b.style.borderColor='rgba(201,162,75,.8)';b.style.transform='translateY(-2px)';b.style.boxShadow='0 6px 20px rgba(201,162,75,.25)'};
+    b.onmouseleave=()=>{b.style.background='rgba(246,241,231,.04)';b.style.borderColor='rgba(201,162,75,.6)';b.style.transform='translateY(0)';b.style.boxShadow='none'};
+    b.onclick=onClick;
+  }
   return b;
 }
 function openBreed(){
@@ -877,7 +886,7 @@ function openBreed(){
       Terra.save(); updateDock(); toastHint('水灵兽进化了 · 更强的丰饶之灵'); openBreed(); }));
   breedEl.style.opacity='1'; breedEl.style.pointerEvents='auto'; breedEl.style.transform='translate(-50%,-50%) scale(1)';
 }
-function closeBreed(){ if(!breedEl)return; breedEl.style.opacity='0'; breedEl.style.pointerEvents='none'; breedEl.style.transform='translate(-50%,-50%) scale(.92)'; }
+function closeBreed(){ if(!breedEl)return; breedEl.style.opacity='0'; breedEl.style.pointerEvents='none'; breedEl.style.transform='translate(-50%,-50%) scale(.88)'; }
 function nearestIncubator(){ for(const o of OBJECTS){ if(o.kind!=='incubator')continue;
   if(Math.hypot(o.node.x-player.x,o.node.y-player.y)<110) return o; } return null; }
 function nearestFurnace(){ for(const o of OBJECTS){ if(o.kind!=='furnace')continue;

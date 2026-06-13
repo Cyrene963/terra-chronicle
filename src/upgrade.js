@@ -11,28 +11,42 @@ let root=null, injected=false;
 function injectStyle(){
   if(injected) return; injected=true;
   const css=`
-  #upgradePanel{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:88;
-    width:min(520px,92vw);background:rgba(246,241,231,.97);backdrop-filter:blur(18px);
-    border:1px solid rgba(43,39,34,.2);border-radius:20px;padding:36px 38px;
-    box-shadow:0 32px 90px rgba(10,10,10,.45);opacity:0;pointer-events:none;
-    transition:opacity .45s,transform .45s cubic-bezier(.2,.8,.2,1);
-    font-family:'Noto Serif SC',serif;color:#2b2722;}
+  #upgradePanel{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.85);z-index:88;
+    width:min(540px,92vw);
+    background:rgba(246,241,231,.08);
+    backdrop-filter:blur(24px) saturate(1.3);
+    border:1px solid rgba(246,241,231,.15);border-radius:24px;padding:40px 42px;
+    box-shadow:0 40px 100px rgba(10,10,10,.55),inset 0 1px 0 rgba(255,255,255,.1);
+    opacity:0;pointer-events:none;
+    transition:opacity .4s,transform .4s cubic-bezier(.34,1.56,.64,1);
+    font-family:'Noto Serif SC',serif;color:#f6f1e7;}
   #upgradePanel.on{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1);}
-  #upgradePanel .hdr{font-family:'Cormorant Garamond',serif;font-size:12px;letter-spacing:.6em;
-    color:#c9a24b;text-transform:uppercase;margin-bottom:10px;}
-  #upgradePanel h3{font-weight:500;font-size:27px;letter-spacing:.14em;margin-bottom:6px;}
-  #upgradePanel .res{font-size:13px;letter-spacing:.12em;opacity:.75;margin-bottom:26px;}
-  #upgradePanel .upgrades{display:flex;flex-direction:column;gap:14px;}
-  #upgradePanel .upg{border:1px solid rgba(43,39,34,.15);border-radius:14px;padding:16px 20px;
-    cursor:pointer;transition:all .3s;background:rgba(255,255,255,.3);}
-  #upgradePanel .upg:hover{border-color:#c9a24b;background:rgba(201,162,75,.12);}
-  #upgradePanel .upg.locked{opacity:.45;cursor:default;pointer-events:none;}
-  #upgradePanel .upg .title{font-size:16px;letter-spacing:.12em;margin-bottom:6px;font-weight:500;}
-  #upgradePanel .upg .cost{font-size:12px;opacity:.7;margin-bottom:8px;}
-  #upgradePanel .upg .desc{font-size:13px;opacity:.85;line-height:1.6;}
-  #upgradePanel .close{position:absolute;top:24px;right:28px;cursor:pointer;opacity:.5;
-    font-size:26px;transition:opacity .3s;}
-  #upgradePanel .close:hover{opacity:1;}
+  #upgradePanel .hdr{font-family:'Cormorant Garamond',serif;font-size:11px;letter-spacing:.7em;
+    color:rgba(201,162,75,.9);text-transform:uppercase;margin-bottom:12px;}
+  #upgradePanel h3{font-weight:400;font-size:30px;letter-spacing:.16em;margin-bottom:8px;
+    background:linear-gradient(135deg,#f6f1e7 0%,#c9a24b 100%);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  #upgradePanel .res{font-size:13px;letter-spacing:.14em;opacity:.7;margin-bottom:28px;}
+  #upgradePanel .upgrades{display:flex;flex-direction:column;gap:16px;}
+  #upgradePanel .upg{
+    border:1px solid rgba(246,241,231,.18);border-radius:16px;padding:18px 22px;
+    cursor:pointer;
+    transition:all .35s cubic-bezier(.34,1.56,.64,1);
+    background:rgba(246,241,231,.04);
+    backdrop-filter:blur(10px);}
+  #upgradePanel .upg:hover{border-color:rgba(201,162,75,.7);
+    background:rgba(201,162,75,.12);
+    transform:translateY(-2px);
+    box-shadow:0 8px 24px rgba(201,162,75,.25);}
+  #upgradePanel .upg.locked{opacity:.4;cursor:default;pointer-events:none;}
+  #upgradePanel .upg .title{font-size:17px;letter-spacing:.14em;margin-bottom:8px;font-weight:400;}
+  #upgradePanel .upg .cost{font-size:12px;opacity:.65;margin-bottom:10px;letter-spacing:.08em;}
+  #upgradePanel .upg .desc{font-size:13px;opacity:.8;line-height:1.7;letter-spacing:.02em;}
+  #upgradePanel .close{position:absolute;top:28px;right:32px;cursor:pointer;opacity:.4;
+    font-size:24px;transition:all .3s;width:36px;height:36px;display:flex;align-items:center;justify-content:center;
+    border-radius:50%;border:1px solid rgba(246,241,231,.2);background:rgba(246,241,231,.05);
+    backdrop-filter:blur(8px);color:#f6f1e7;}
+  #upgradePanel .close:hover{opacity:1;transform:scale(1.1);border-color:rgba(246,241,231,.4);}
   `;
   const s=$('style');s.textContent=css;document.head.appendChild(s);
 }

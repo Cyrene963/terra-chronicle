@@ -13,25 +13,39 @@ function injectStyle(){
   if(injected) return; injected=true;
   const css=`
   #dungeonMap{position:fixed;inset:0;z-index:85;display:none;opacity:0;
-    transition:opacity .5s;background:radial-gradient(ellipse at 50% 40%,#1a1625,#0d0a14);
+    transition:opacity .45s cubic-bezier(.2,.8,.2,1);
+    background:radial-gradient(ellipse at 50% 40%,rgba(26,22,37,.95),rgba(13,10,20,.98));
+    backdrop-filter:blur(20px);
     font-family:'Noto Serif SC',serif;color:#f6f1e7;overflow:auto;}
-  #dungeonMap.on{display:block;opacity:1;}
-  #dungeonMap .header{padding:28px 32px;text-align:center;}
-  #dungeonMap .header h2{font-size:26px;letter-spacing:.2em;font-weight:500;margin-bottom:8px;}
-  #dungeonMap .header .sub{font-size:12px;letter-spacing:.4em;opacity:.7;}
+  #dungeonMap.on{display:block;opacity:1;animation:mapIn .5s cubic-bezier(.34,1.56,.64,1);}
+  @keyframes mapIn{0%{transform:scale(.85);opacity:0}100%{transform:scale(1);opacity:1}}
+  #dungeonMap .header{padding:32px 40px;text-align:center;}
+  #dungeonMap .header h2{font-size:28px;letter-spacing:.24em;font-weight:400;margin-bottom:12px;
+    background:linear-gradient(135deg,#f6f1e7 0%,#c9a24b 100%);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  #dungeonMap .header .sub{font-size:12px;letter-spacing:.45em;opacity:.65;text-transform:uppercase;
+    font-family:'Cormorant Garamond',serif;}
   #dungeonMap .mapCanvas{position:relative;width:900px;height:600px;margin:0 auto 40px;padding:40px 0;}
-  #dungeonMap .node{position:absolute;width:80px;height:80px;border-radius:50%;cursor:pointer;
-    border:2px solid rgba(246,241,231,.3);background:rgba(26,22,37,.8);backdrop-filter:blur(8px);
-    display:flex;align-items:center;justify-content:center;transition:all .25s;flex-direction:column;gap:4px;}
-  #dungeonMap .node:hover{transform:scale(1.15);border-color:rgba(246,241,231,.9);box-shadow:0 8px 30px rgba(201,162,75,.4);}
-  #dungeonMap .node.locked{opacity:.4;cursor:default;pointer-events:none;}
-  #dungeonMap .node.current{border-color:#c9a24b;border-width:3px;box-shadow:0 0 20px rgba(201,162,75,.6);}
-  #dungeonMap .node .icon{font-size:28px;}
-  #dungeonMap .node .label{font-size:11px;letter-spacing:.15em;opacity:.85;}
-  #dungeonMap .path{position:absolute;height:2px;background:rgba(246,241,231,.2);transform-origin:left center;}
-  #dungeonMap .closeBtn{position:absolute;top:24px;right:32px;font-size:32px;cursor:pointer;opacity:.6;
-    transition:opacity .3s;color:#f6f1e7;}
-  #dungeonMap .closeBtn:hover{opacity:1;}
+  #dungeonMap .node{position:absolute;width:84px;height:84px;border-radius:50%;cursor:pointer;
+    border:1.5px solid rgba(246,241,231,.25);
+    background:rgba(246,241,231,.04);
+    backdrop-filter:blur(12px) saturate(1.2);
+    box-shadow:0 8px 32px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.08);
+    display:flex;align-items:center;justify-content:center;
+    transition:all .3s cubic-bezier(.34,1.56,.64,1);flex-direction:column;gap:4px;}
+  #dungeonMap .node:hover{transform:scale(1.18);border-color:rgba(201,162,75,.8);
+    box-shadow:0 12px 40px rgba(201,162,75,.5),inset 0 1px 0 rgba(255,255,255,.15);}
+  #dungeonMap .node.locked{opacity:.35;cursor:default;pointer-events:none;}
+  #dungeonMap .node.current{border-color:#c9a24b;border-width:2px;
+    box-shadow:0 0 24px rgba(201,162,75,.7),0 8px 32px rgba(0,0,0,.4);}
+  #dungeonMap .node .icon{font-size:32px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.4));}
+  #dungeonMap .node .label{font-size:10px;letter-spacing:.18em;opacity:.8;margin-top:2px;}
+  #dungeonMap .path{position:absolute;height:2px;background:rgba(246,241,231,.15);transform-origin:left center;}
+  #dungeonMap .closeBtn{position:absolute;top:28px;right:36px;font-size:28px;cursor:pointer;opacity:.5;
+    transition:all .3s;color:#f6f1e7;width:40px;height:40px;display:flex;align-items:center;justify-content:center;
+    border-radius:50%;border:1px solid rgba(246,241,231,.2);background:rgba(246,241,231,.05);
+    backdrop-filter:blur(10px);}
+  #dungeonMap .closeBtn:hover{opacity:1;transform:scale(1.1);border-color:rgba(246,241,231,.4);}
   `;
   const s=$('style');s.textContent=css;document.head.appendChild(s);
 }
