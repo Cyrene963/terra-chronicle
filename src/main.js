@@ -409,13 +409,18 @@ function followPath(dt){                           // 沿 A* 路径自动行走
   const wp=player._path[0];
   let dx=wp.wx-player.x, dy=wp.wy-player.y;
   const d=Math.hypot(dx,dy);
-  if(d<4){ player._path.shift();
+  if(d<5){ player._path.shift();
     if(!player._path.length){ player._path=null; onArrive(); animateWalk(dt,false); }
     return; }
   dx/=d; dy/=d;
-  const nx=player.x+dx*SPEED*dt, ny=player.y+dy*SPEED*dt;
-  if(!collides(nx,player.y)) player.x=nx; else { player._path=null; pendingAction=null; }
+  const px=player.x, py=player.y;
+  const nx=px+dx*SPEED*dt, ny=py+dy*SPEED*dt;
+  if(!collides(nx,py)) player.x=nx;               // 轴分离:贴着障碍滑行,不整段放弃
   if(!collides(player.x,ny)) player.y=ny;
+  if(Math.hypot(player.x-px,player.y-py) < SPEED*dt*0.3){   // 几乎没动 → 累计卡顿
+    player._stuck=(player._stuck||0)+dt;
+    if(player._stuck>0.5){ player._path=null; pendingAction=null; player._stuck=0; }
+  } else player._stuck=0;
   player.zIndex=player.y;
   if(Math.abs(dx)>.05) facing=dx>0?1:-1;
   animateWalk(dt,true);
