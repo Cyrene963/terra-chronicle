@@ -325,6 +325,7 @@ const Battle={
         draw:deck, hand:[], discard:[], turn:1, phase:'player', over:false,
         enemy:{ hp:48, max:48, block:0, intent:rollIntent(1) } };
     root.style.display='block'; root.querySelector('#b_result').classList.remove('on');
+    const ar=root.querySelector('.arena'); if(ar) ar.style.transform='';   // 清除上一场残留的震屏偏移
     requestAnimationFrame(()=>root.classList.add('on'));
     Battle.active=true;
     startPlayerTurn(); startMiasma();
