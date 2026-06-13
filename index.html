@@ -15,8 +15,14 @@
   *{margin:0;padding:0;box-sizing:border-box}
   html,body{height:100%;overflow:hidden;background:#0d0f12;font-family:'Noto Serif SC',serif;color:var(--ink);
     -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
-  canvas{display:block;touch-action:none}
+  canvas{display:block;touch-action:none;width:100%;height:100%}
   #stage{position:fixed;inset:0;z-index:10}
+
+  /* Loading overlay (hides until first frame ready) */
+  #loading{position:fixed;inset:0;z-index:999;background:#0a0a0e;
+    display:flex;align-items:center;justify-content:center;
+    transition:opacity .6s cubic-bezier(.4,0,.2,1);pointer-events:none;}
+  #loading.ready{opacity:0;}
 
   /* ---------- 标题界面 ---------- */
   #title{
@@ -290,6 +296,9 @@
   </div>
 </div>
 <canvas id="clouds"></canvas>
+
+<!-- Loading overlay (fades out when game ready) -->
+<div id="loading"></div>
 
 <script src="vendor/pixi.min.js"></script>
 <script src="src/state.js?v=7"></script>

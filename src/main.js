@@ -1340,4 +1340,10 @@ window.__dbg={app,world,groundL,waterL,snowL,overlayL,objL,fxScreen,player,cam,b
   beastStep, get quality(){return quality}, get fireBeast(){return fireBeast}, get forgeHot(){return forgeHot}, openBreed,
   get parts(){return parts.length}};
 
+/* Loading screen fade-out (after first successful frame) */
+setTimeout(()=>{
+  const loader=document.getElementById('loading');
+  if(loader){ loader.classList.add('ready'); setTimeout(()=>loader.remove(),800); }
+},100);
+
 })();
