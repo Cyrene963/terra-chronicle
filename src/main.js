@@ -10,6 +10,10 @@
    ========================================================= */
 'use strict';
 
+/* 资产版本号: 内容更新时 +1,绕过浏览器/CDN 旧缓存 */
+const ASSET_V='?v=3';
+const loadTex=src=>PIXI.Assets.load(src+ASSET_V);
+
 /* ================= 1. 资产清单(换图接口) ================= */
 const ASSETS = {
   //  src: 贴图路径(null=占位符)  winterSrc: 冬季覆雪变体  faceDir: 原画朝向(-1=朝左)
@@ -171,7 +175,7 @@ for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
   const t=ASSETS.tiles[{g:'grass',G:'grass',s:'soil',w:'water',b:'sand',p:'plot'}[k]];
   const sp=new PIXI.Sprite(PIXI.Texture.WHITE);
   sp.width=TS+1; sp.height=TS+1; sp.position.set(x*TS,y*TS);
-  if(t.src) PIXI.Assets.load(t.src).then(tex=>{sp.texture=tex;sp.width=TS+1;sp.height=TS+1;});
+  if(t.src) loadTex(t.src).then(tex=>{sp.texture=tex;sp.width=TS+1;sp.height=TS+1;});
   const r=hash(x*13+7,y*11+3);
   sp._k=k; sp._j=0.965+r*0.07;                 // 每块明度抖动(轻,避免棋盘感)
   sp._ph=r*6.28;                               // 水面相位
@@ -197,7 +201,7 @@ function cullWorld(){
       tileSprites[i].visible=v; const sn=snowAt[i]; if(sn)sn.visible=v;
     }}
   for(const o of OBJECTS){const n=o.node;
-    n.visible = n.x>wx0-220&&n.x<wx1+220&&n.y>wy0-300&&n.y<wy1+140;}
+    n.visible = !o.felled && n.x>wx0-220&&n.x<wx1+220&&n.y>wy0-300&&n.y<wy1+140;}
   for(const c of crops) c.visible = c.x>wx0-60&&c.x<wx1+60&&c.y>wy0-70&&c.y<wy1+70;
 }
 
@@ -210,11 +214,11 @@ function makeNode(kind){
   sh.width=a.w*1.15; sh.height=a.w*.42; sh.y=-2; node.addChild(sh); node._shadow=sh;
   if(a.src){
     const sp=new PIXI.Sprite(); sp.anchor.set(.5, a.anchorY??1);
-    PIXI.Assets.load(a.src).then(tex=>{sp.texture=tex; sp.width=a.w; sp.height=a.h;});
+    loadTex(a.src).then(tex=>{sp.texture=tex; sp.width=a.w; sp.height=a.h;});
     node.addChild(sp); node._body=sp; node._graded=true;
     if(a.winterSrc){                              // 冬季覆雪变体(crossfade)
       const wsp=new PIXI.Sprite(); wsp.anchor.set(.5, a.anchorY??1); wsp.alpha=0;
-      PIXI.Assets.load(a.winterSrc).then(tex=>{wsp.texture=tex; wsp.width=a.w; wsp.height=a.h;});
+      loadTex(a.winterSrc).then(tex=>{wsp.texture=tex; wsp.width=a.w; wsp.height=a.h;});
       node.addChild(wsp); node._winter=wsp;
     }
     if(kind==='house'){
@@ -296,7 +300,7 @@ function makePlayer(){
   const rig=new PIXI.Container(); node.addChild(rig); node._rig=rig;
   if(a.src){
     const sp=new PIXI.Sprite(); sp.anchor.set(.5,1);
-    PIXI.Assets.load(a.src).then(tex=>{sp.texture=tex;sp.width=a.w;sp.height=a.h;});
+    loadTex(a.src).then(tex=>{sp.texture=tex;sp.width=a.w;sp.height=a.h;});
     rig.addChild(sp);
   } else {
     // 纸片人占位:亚麻袍 + 草帽,饥荒式比例
@@ -402,44 +406,58 @@ const TEX_PETAL=shapeTex(g=>{g.fillStyle='#f4c4d2';g.beginPath();g.ellipse(8,8,6
 const TEX_LEAF =shapeTex(g=>{g.fillStyle='#c47834';g.beginPath();g.ellipse(8,8,7,4.2,0,0,7);g.fill();});
 const TEX_SNOW =shapeTex(g=>{g.fillStyle='#f8fafc';g.beginPath();g.arc(8,8,4.4,0,7);g.fill();});
 const parts=[];
+let emitAcc=0, wind=0;
 function spawnParticles(st,dt,night){
   const s=((Math.floor(st)%4)+4)%4;
-  const vw=app.screen.width;
-  const budget=s===1?(night?1:0):s===3?2:1;
-  for(let i=0;i<budget;i++){
+  const vw=app.screen.width, vh=app.screen.height;
+  wind=Math.sin(elapsed*.13)*.6+Math.sin(elapsed*.047)*.4;        // 缓慢阵风
+  /* 按"每秒个数"发射(与帧率解耦,杜绝低帧率下整行同时落下) */
+  const rate = s===1?(night?3:0) : s===3?9 : 6;
+  emitAcc+=dt*rate;
+  while(emitAcc>=1){
+    emitAcc-=1;
     if(parts.length>(quality===2?140:60)) break;
     let p;
-    const sc=.45+Math.random()*.65;            // 大小≈景深:近大快,远小慢
+    const sc=.45+Math.random()*.65;                               // 大小≈景深
     if(s===1&&night){
       p=new PIXI.Sprite(TEX_GLOW); p.width=p.height=8+sc*6; p.blendMode='add'; p.tint=0xffe896;
       p._fire=true; p._vx=0; p._vy=0;
-      p.x=Math.random()*vw; p.y=app.screen.height*(.3+Math.random()*.5);
+      p.x=Math.random()*vw; p.y=vh*(.3+Math.random()*.5);
     } else {
       p=new PIXI.Sprite(s===0?TEX_PETAL:s===2?TEX_LEAF:TEX_SNOW);
       p.scale.set(sc);
-      const depth=.45+sc*.85;
-      p._vx=(s===2?-26:s===0?7:-6)*depth;
-      p._vy=(s===2?42:s===0?36:26)*depth;
+      const depth=.5+sc*.8;
+      /* 速度按屏幕高度缩放:整屏下落 9~16 秒,大屏小屏氛围一致 */
+      p._vy=vh*(s===3? .055+sc*.05 : .07+sc*.06)*depth;
+      p._vx=vh*(s===2?-.030:s===0?.012:-.008)*depth;
       p._spin=s===3?(Math.random()-.5)*.7:(Math.random()-.5)*3.2;
-      p._swayA=s===3?6+Math.random()*8:10+Math.random()*18;
+      p._swayA=(s===3?.006+Math.random()*.008:.010+Math.random()*.016)*vh;
+      p._swayF=.7+Math.random()*.9;                               // 各自摆动频率,不同步
       p.alpha=.42+sc*.5;
-      p.x=Math.random()*vw*1.2-vw*.1; p.y=-14;
+      p.x=Math.random()*(vw+vh*.3)-vh*.15; p.y=-14-Math.random()*vh*.06;
     }
     p.anchor.set(.5); p._s=s; p._ph=Math.random()*6.28; p._life=0;
     partC.addChild(p); parts.push(p);
   }
 }
-function updateParticles(dt){
+function updateParticles(dt,curSeason){
+  const vh=app.screen.height;
   for(let i=parts.length-1;i>=0;i--){const p=parts[i];
-    p._ph+=dt*(p._fire?2:1.1); p._life+=dt;
+    p._ph+=dt*(p._fire?2:p._swayF||1); p._life+=dt;
+    /* 换季: 旧季粒子快速淡出(樱花不会飘进冬天) */
+    if(!p._fire && p._s!==curSeason){
+      p.alpha-=dt*1.4;
+      if(p.alpha<=0){partC.removeChild(p);parts.splice(i,1);continue;}
+    }
     if(p._fire){
       p.x+=Math.sin(p._ph*.9)*20*dt; p.y+=Math.cos(p._ph*.7)*13*dt;
       p.alpha=Math.max(0,Math.sin(p._ph))*.9;
       if(p._life>7){partC.removeChild(p);parts.splice(i,1);} continue;
     }
-    p.x+=(p._vx+Math.sin(p._ph)*p._swayA)*dt; p.y+=p._vy*dt;
+    p.x+=(p._vx + wind*vh*.045*(p._s===3?1:.6) + Math.sin(p._ph)*p._swayA)*dt;
+    p.y+=p._vy*dt;
     p.rotation+=p._spin*dt;
-    if(p.y>app.screen.height+16){partC.removeChild(p);parts.splice(i,1);}
+    if(p.y>vh+16){partC.removeChild(p);parts.splice(i,1);}
   }
 }
 
@@ -528,6 +546,11 @@ app.ticker.add(tk=>{
       n._body.rotation=Math.sin(elapsed*1.1+n.x*.01)*.008;
       if(n._winter) n._winter.rotation=n._body.rotation;
     }
+    if(o._shake>0){                                // 伐木受击晃动
+      o._shake-=dt*2.4;
+      n.scale.set(1+Math.sin(o._shake*26)*.05*Math.max(0,o._shake));
+      if(o._shake<=0) n.scale.set(1);
+    }
   }
   /* 玩家与镜头 */
   if(entered){ movePlayer(dt); }
@@ -545,7 +568,7 @@ app.ticker.add(tk=>{
   golden.tint=0xe89646; golden.alpha=dusk*.34;
   vignette.width=vw; vignette.height=vh;
   for(const c of cloudShadows){ c.x+=c._v*dt; if(c.x>MAP*TS+600)c.x=-600; }
-  spawnParticles(st,dt,night>.62); updateParticles(dt);
+  spawnParticles(st,dt,night>.62); updateParticles(dt,((Math.floor(st)%4)+4)%4);
 
   updateHUD(st,Math.floor(elapsed/DAY_SECONDS));
   springTick(dt);
@@ -576,7 +599,13 @@ function updateHUD(st,day){
     $('weatherTag').textContent='— '+WEATHER[si][(Math.random()*3)|0]+' —';}
   if(day!==lastDay){lastDay=day;$('dayNum').textContent=String(day%28+1).padStart(2,'0');
     if(day%3===0)$('weatherTag').textContent='— '+WEATHER[si][(Math.random()*3)|0]+' —';
-    staminaUsed=0; syncLeaves();}                                      // 新一天体力恢复
+    staminaUsed=0; syncLeaves();                                       // 新一天体力恢复
+    for(let i=fellQueue.length-1;i>=0;i--){                            // 伐倒的树次日重生
+      const f=fellQueue[i];
+      if(day>=f.day){ f.o.felled=false; f.o.hp=2;
+        if(f.o._col) colliders.push(f.o._col);
+        fellQueue.splice(i,1); }
+    }}
 }
 
 /* 地块面板(弹簧物理) */
@@ -633,38 +662,72 @@ function toastHint(t){ const w=$('whisper'); w.textContent=t; w.style.opacity=1;
 
 const playerTileKey=()=>Math.floor(player.x/TS)+','+Math.floor((player.y-4)/TS);
 
+/* 伐木 */
+const fellQueue=[];
+function nearestChoppable(){
+  let best=null,bd=1e9;
+  for(const o of OBJECTS){
+    if((o.kind!=='tree'&&o.kind!=='cherry')||o.felled) continue;
+    const dx=o.node.x-player.x, dy=o.node.y-player.y, d=dx*dx+dy*dy;
+    if(d<bd){bd=d;best=o;}
+  }
+  return bd<95*95? best:null;
+}
+function chop(o){
+  o.hp=(o.hp??2)-1; o._shake=1;
+  if(o.hp>0){ toastHint('咔 —— 再砍一下'); return; }
+  if(staminaUsed>=6){ toastHint('体力耗尽 · 待明日恢复'); o.hp=1; return; }
+  staminaUsed++; syncLeaves();
+  farm.inventory.materials.wood=(farm.inventory.materials.wood||0)+2;
+  Terra.save(); updateDock(); toastHint('伐木 · 木材 +2');
+  o.felled=true; o.node.visible=false;
+  const ci=colliders.findIndex(c=>c.x===o.node.x&&c.y===o.node.y);
+  if(ci>=0) o._col=colliders.splice(ci,1)[0];
+  fellQueue.push({o, day:Math.floor(elapsed/DAY_SECONDS)+1});
+}
+
 function interact(){
   const key=playerTileKey();
-  if(!tileMeta[key]) return;
-  const pc=planted[key];
-  if(!pc){                                      // 播种
-    if(staminaUsed>=6){ toastHint('体力耗尽 · 待明日恢复'); return; }
-    staminaUsed++; syncLeaves();
-    const c=makeNode('crop');
-    const [tx,ty]=key.split(',').map(Number);
-    c.x=tx*TS+TS/2; c.y=ty*TS+TS/2+16; c._shadow.visible=false; c.scale.set(.32);
-    overlayL.addChild(c); crops.push(c);
-    planted[key]={node:c, at:elapsed, mature:false};
-  } else if(pc.mature){                         // 收获:质量继承产地肥力
-    const meta=tileMeta[key];
-    (farm.inventory.crops.starwheat ??= []).push({
-      quality:+(meta.fert/100).toFixed(2), originFertility:meta.fert });
-    Terra.save(); updateDock();
-    toastHint(`收获 星麦 · 产地肥力 ${meta.fert}`);
-    overlayL.removeChild(pc.node);
-    const ci=crops.indexOf(pc.node); if(ci>=0)crops.splice(ci,1);
-    delete planted[key];
+  if(tileMeta[key]){
+    const pc=planted[key];
+    if(!pc){                                      // 播种
+      if(staminaUsed>=6){ toastHint('体力耗尽 · 待明日恢复'); return; }
+      staminaUsed++; syncLeaves();
+      const c=makeNode('crop');
+      const [tx,ty]=key.split(',').map(Number);
+      c.x=tx*TS+TS/2; c.y=ty*TS+TS/2+16; c._shadow.visible=false; c.scale.set(.32);
+      overlayL.addChild(c); crops.push(c);
+      planted[key]={node:c, at:elapsed, mature:false};
+      toastHint('播种 星麦 · 静待生长');
+    } else if(pc.mature){                         // 收获:质量继承产地肥力
+      const meta=tileMeta[key];
+      (farm.inventory.crops.starwheat ??= []).push({
+        quality:+(meta.fert/100).toFixed(2), originFertility:meta.fert });
+      Terra.save(); updateDock();
+      toastHint(`收获 星麦 · 产地肥力 ${meta.fert}`);
+      overlayL.removeChild(pc.node);
+      const ci=crops.indexOf(pc.node); if(ci>=0)crops.splice(ci,1);
+      delete planted[key];
+    } else toastHint('成长中 · 再等等');
+    return;
   }
+  const t=nearestChoppable();
+  if(t){ chop(t); return; }
+  toastHint('站上耕地可播种 · 靠近树木可伐木');
 }
 
 function updateHint(){
   const el=$('hintAction'), txt=$('hintTxt');
   if(!entered){ el.style.opacity=0; return; }
   const key=playerTileKey();
-  if(!tileMeta[key]){ el.style.opacity=0; return; }
-  const pc=planted[key];
-  txt.textContent = !pc? '播种 · 体力×1' : pc.mature? '收获星麦' : '成长中 …';
-  el.style.opacity = (!pc||pc.mature)? 1 : .55;
+  if(tileMeta[key]){
+    const pc=planted[key];
+    txt.textContent = !pc? '播种 · 体力×1' : pc.mature? '收获星麦' : '成长中 …';
+    el.style.opacity = (!pc||pc.mature)? 1 : .55;
+    return;
+  }
+  if(nearestChoppable()){ txt.textContent='伐木 · 体力×1'; el.style.opacity=1; return; }
+  el.style.opacity=0;
 }
 
 function updateDock(){
