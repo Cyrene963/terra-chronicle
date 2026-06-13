@@ -836,32 +836,37 @@ let breedEl=null;
 function buildBreedPanel(){
   if(breedEl) return; breedEl=document.createElement('div'); breedEl.id='breedPanel';
   breedEl.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.88);z-index:45;'+
-    'width:min(460px,90vw);background:rgba(246,241,231,.08);backdrop-filter:blur(22px) saturate(1.25);'+
-    'border:1px solid rgba(246,241,231,.14);border-radius:22px;padding:38px 40px;'+
-    'box-shadow:0 36px 90px rgba(10,10,10,.5),inset 0 1px 0 rgba(255,255,255,.08);opacity:0;pointer-events:none;'+
-    'transition:opacity .4s,transform .4s cubic-bezier(.34,1.56,.64,1);font-family:"Noto Serif SC",serif;color:#f6f1e7;';
+    'width:min(500px,90vw);'+
+    'background:linear-gradient(135deg, #f4ecd8 0%, #e8dcbf 100%);'+
+    'border:3px double #8b7355;border-radius:8px;padding:40px 42px;'+
+    'box-shadow:0 36px 90px rgba(0,0,0,.6),inset 0 0 60px rgba(139,115,85,.1);opacity:0;pointer-events:none;'+
+    'transition:opacity .4s,transform .4s cubic-bezier(.34,1.56,.64,1);font-family:"Cormorant Garamond",serif;color:#2a2520;position:relative;';
   breedEl.innerHTML=`
-    <div style="font-family:'Cormorant Garamond',serif;font-size:11px;letter-spacing:.6em;color:rgba(201,162,75,.9);text-transform:uppercase">Incubation · 孵化阵</div>
-    <h3 style="font-weight:400;font-size:28px;letter-spacing:.14em;margin:10px 0 6px;background:linear-gradient(135deg,#f6f1e7 0%,#c9a24b 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">灵兽培育</h3>
-    <div id="breedLoot" style="font-size:13px;letter-spacing:.12em;opacity:.7;margin-bottom:26px"></div>
-    <div id="breedOpts" style="display:flex;flex-direction:column;gap:14px"></div>
-    <div id="breedClose" style="position:absolute;top:26px;right:28px;cursor:pointer;opacity:.4;font-size:22px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:50%;border:1px solid rgba(246,241,231,.2);background:rgba(246,241,231,.05);backdrop-filter:blur(8px);color:#f6f1e7;transition:all .3s">×</div>`;
+    <div style="position:absolute;inset:8px;border:1px solid rgba(212,175,55,.5);border-radius:4px;pointer-events:none"></div>
+    <div style="position:absolute;top:12px;left:12px;width:36px;height:36px;border-left:2px solid #d4af37;border-top:2px solid #d4af37;pointer-events:none"></div>
+    <div style="position:absolute;bottom:12px;right:12px;width:36px;height:36px;border-right:2px solid #d4af37;border-bottom:2px solid #d4af37;pointer-events:none"></div>
+    <div style="font-size:12px;letter-spacing:.7em;color:#8b7355;text-transform:uppercase;font-style:italic;margin-bottom:12px">Incubation · 孵化阵</div>
+    <h3 style="font-weight:400;font-size:34px;letter-spacing:.18em;margin:10px 0 8px;color:#d4af37;text-shadow:0 2px 8px rgba(0,0,0,.2)">灵兽培育</h3>
+    <div id="breedLoot" style="font-size:14px;letter-spacing:.12em;opacity:.75;margin-bottom:28px;font-family:'Noto Serif SC',serif"></div>
+    <div id="breedOpts" style="display:flex;flex-direction:column;gap:16px"></div>
+    <div id="breedClose" style="position:absolute;top:30px;right:32px;cursor:pointer;font-size:26px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:50%;border:2px solid #d4af37;background:rgba(244,236,216,.6);color:#2a2520;opacity:.6;transition:all .3s;box-shadow:0 4px 12px rgba(0,0,0,.2)">×</div>`;
   document.body.appendChild(breedEl);
   const closeBtn=breedEl.querySelector('#breedClose');
-  closeBtn.onmouseenter=()=>{closeBtn.style.opacity='1';closeBtn.style.transform='scale(1.1)';closeBtn.style.borderColor='rgba(246,241,231,.4)'};
-  closeBtn.onmouseleave=()=>{closeBtn.style.opacity='.4';closeBtn.style.transform='scale(1)';closeBtn.style.borderColor='rgba(246,241,231,.2)'};
+  closeBtn.onmouseenter=()=>{closeBtn.style.opacity='1';closeBtn.style.transform='scale(1.15)';closeBtn.style.boxShadow='0 0 16px rgba(212,175,55,.5),0 4px 12px rgba(0,0,0,.3)'};
+  closeBtn.onmouseleave=()=>{closeBtn.style.opacity='.6';closeBtn.style.transform='scale(1)';closeBtn.style.boxShadow='0 4px 12px rgba(0,0,0,.2)'};
   closeBtn.onclick=closeBreed;
 }
 function breedBtn(label,sub,enabled,onClick){
   const b=document.createElement('button');
-  b.style.cssText='text-align:left;border:1px solid '+(enabled?'rgba(201,162,75,.6)':'rgba(246,241,231,.15)')+';'+
-    'background:'+(enabled?'rgba(246,241,231,.04)':'rgba(246,241,231,.02)')+';backdrop-filter:blur(10px);'+
-    'border-radius:14px;padding:16px 20px;cursor:'+(enabled?'pointer':'default')+';opacity:'+(enabled?1:.4)+';'+
-    'font-family:"Noto Serif SC",serif;color:#f6f1e7;transition:all .3s cubic-bezier(.34,1.56,.64,1)';
-  b.innerHTML=`<div style="font-size:16px;letter-spacing:.12em">${label}</div><div style="font-size:11px;opacity:.65;margin-top:6px;letter-spacing:.04em">${sub}</div>`;
+  b.style.cssText='text-align:left;border:2px solid '+(enabled?'#d4af37':'rgba(139,115,85,.4)')+';'+
+    'background:'+(enabled?'linear-gradient(135deg, rgba(244,236,216,.4), rgba(232,220,191,.5))':'rgba(232,220,191,.2)')+';'+
+    'border-radius:6px;padding:18px 22px;cursor:'+(enabled?'pointer':'default')+';opacity:'+(enabled?1:.35)+';'+
+    'font-family:"Cormorant Garamond",serif;color:#2a2520;transition:all .3s cubic-bezier(.34,1.56,.64,1);'+
+    'box-shadow:'+(enabled?'0 4px 12px rgba(0,0,0,.15),inset 0 1px 0 rgba(255,255,255,.3)':'none')+';position:relative';
+  b.innerHTML=`<div style="font-size:18px;letter-spacing:.14em;font-weight:500">${label}</div><div style="font-size:12px;opacity:.7;margin-top:7px;letter-spacing:.04em;font-family:'Noto Serif SC',serif">${sub}</div>`;
   if(enabled){
-    b.onmouseenter=()=>{b.style.background='rgba(201,162,75,.12)';b.style.borderColor='rgba(201,162,75,.8)';b.style.transform='translateY(-2px)';b.style.boxShadow='0 6px 20px rgba(201,162,75,.25)'};
-    b.onmouseleave=()=>{b.style.background='rgba(246,241,231,.04)';b.style.borderColor='rgba(201,162,75,.6)';b.style.transform='translateY(0)';b.style.boxShadow='none'};
+    b.onmouseenter=()=>{b.style.background='linear-gradient(135deg, rgba(212,175,55,.2), rgba(201,162,75,.15))';b.style.transform='translateY(-3px)';b.style.boxShadow='0 0 24px rgba(212,175,55,.4),0 8px 24px rgba(0,0,0,.2)'};
+    b.onmouseleave=()=>{b.style.background='linear-gradient(135deg, rgba(244,236,216,.4), rgba(232,220,191,.5))';b.style.transform='translateY(0)';b.style.boxShadow='0 4px 12px rgba(0,0,0,.15),inset 0 1px 0 rgba(255,255,255,.3)'};
     b.onclick=onClick;
   }
   return b;
