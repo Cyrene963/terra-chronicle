@@ -46,7 +46,21 @@ TILES = [
    "directly from above, even lighting, edges must tile perfectly"),
   ("tile_plot", "seamless tileable texture of freshly tilled dark farm soil with neat furrow rows "
    "viewed directly from above, even lighting, edges must tile perfectly"),
+  # Diagonal water-land transitions (eliminate stair-step jaggedness)
+  ("water_diag_tl", "square tile 256x256, top-left corner is lush green grass, bottom-right corner is "
+   "clear teal water, smooth diagonal transition line from top-right to bottom-left, soft natural shoreline "
+   "with water lapping onto grass, painterly hand-painted style, viewed from directly above, seamless edges"),
+  ("water_diag_tr", "square tile 256x256, top-right corner is lush green grass, bottom-left corner is "
+   "clear teal water, smooth diagonal transition line from top-left to bottom-right, soft natural shoreline "
+   "with water lapping onto grass, painterly hand-painted style, viewed from directly above, seamless edges"),
+  ("water_diag_bl", "square tile 256x256, bottom-left corner is lush green grass, top-right corner is "
+   "clear teal water, smooth diagonal transition line from top-left to bottom-right, soft natural shoreline "
+   "with water lapping onto grass, painterly hand-painted style, viewed from directly above, seamless edges"),
+  ("water_diag_br", "square tile 256x256, bottom-right corner is lush green grass, top-left corner is "
+   "clear teal water, smooth diagonal transition line from top-right to bottom-left, soft natural shoreline "
+   "with water lapping onto grass, painterly hand-painted style, viewed from directly above, seamless edges"),
 ]
+
 
 def call_api(prompt, size="1024x1024", tries=3):
     # 实测: 此代理 size>1536 不被采纳(square 上限 ~1254);quality=high 是真实可用的最高档。

@@ -1287,17 +1287,8 @@ function updateDock(){
   $('craftBtn').textContent = forgeHot ? '锻造 · 熔炉灼热 🔥' : '锻造 · 新芽守卫';
 }
 $('craftBtn').onclick=()=>{
-  const craftsmanship = forgeHot ? 0.9+Math.random()*0.1 : 0.55+Math.random()*0.4;  // 火灵兽点炉→高品质
-  const res=Terra.craftCard(farm,'card_sprout_guard', craftsmanship);
-  if(!res.ok){ toastHint('材料不足:星麦×3 木材×2'); return; }
-  Terra.save(); updateDock();
-  $('cvName').textContent=res.card.name + (forgeHot?' · 熔炉精铸':'');
-  $('cvAtk').textContent=res.card.atk; $('cvDef').textContent=res.card.def;
-  $('cvQ').textContent=Math.round(res.card.quality*100)+'%';
-  $('cvAffix').innerHTML=res.card.affixes.length
-    ? res.card.affixes.map(a=>'✦ '+a).join('<br>')
-    : '无词条 · 高肥力与好手感可获得词条';
-  $('cardReveal').classList.add('on');
+  if(window.Alchemy) Alchemy.open();
+  else toastHint('炼金工坊载入中…');
 };
 $('cardReveal').onclick=()=>$('cardReveal').classList.remove('on');
 updateDock();
