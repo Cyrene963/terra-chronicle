@@ -677,7 +677,17 @@ function enterBattle(){
 const beast=makeNode('beast_water');
 beast.x=29*TS+TS/2; beast.y=30*TS+TS/2; beast.zIndex=beast.y;
 objL.addChild(beast);
-const beastAI={ state:'idle', t:1.5, path:null, target:null, home:{x:beast.x,y:beast.y}, bob:0 };
+const beastAI={ state:'idle', t:1.5, path:null, target:null, home:{x:beast.x,y:beast.y}, bob:0, trailClock:0 };
+const trails=[];                                         // 移动残影拖尾粒子
+function spawnTrail(x,y,tint){
+  const t=new PIXI.Graphics(); t.circle(0,0,5+Math.random()*3).fill({color:tint,alpha:.6});
+  t.x=x+(Math.random()*12-6); t.y=y+(Math.random()*12-6); t._life=0;
+  overlayL.addChild(t); trails.push(t);
+}
+function stepTrails(dt){
+  for(let i=trails.length-1;i>=0;i--){const t=trails[i]; t._life+=dt; t.alpha=Math.max(0,.6-t._life*1.8);
+    if(t._life>.35){overlayL.removeChild(t);trails.splice(i,1);}}
+}
 function beastGoto(tx,ty){
   const sx=Math.floor(beast.x/TS), sy=Math.floor(beast.y/TS);
   const path=tilePath(sx,sy,tx,ty);
@@ -705,11 +715,15 @@ function beastStep(dt){
     }
   }
   beast._shadow.alpha=.22+ (moving? Math.abs(Math.sin(beastAI.hop||0))*0.12 : 0);
-  // 沿路径移动
+  // 沿路径移动 + 拖尾粒子
   if(beastAI.path && beastAI.path.length){
     const wp=beastAI.path[0]; let dx=wp.wx-beast.x, dy=wp.wy-beast.y; const d=Math.hypot(dx,dy);
     if(d<5){ beastAI.path.shift(); }
-    else { dx/=d;dy/=d; const sp=145; beast.x+=dx*sp*dt; beast.y+=dy*sp*dt; beast.zIndex=beast.y; }
+    else {
+      dx/=d;dy/=d; const sp=145; beast.x+=dx*sp*dt; beast.y+=dy*sp*dt; beast.zIndex=beast.y;
+      beastAI.trailClock+=dt;                        // 每 0.08s 留一个蓝色残影
+      if(beastAI.trailClock>=0.08){ beastAI.trailClock=0; spawnTrail(beast.x,beast.y,0x6ac8e0); }
+    }
     if(beastAI.path && !beastAI.path.length) beastAI.path=null;
     return;
   }
@@ -795,7 +809,12 @@ function fireStep(dt){
   }
   fireBeast._shadow.alpha=.2;
   if(moving){ const wp=fireAI.path[0]; let dx=wp.wx-fireBeast.x,dy=wp.wy-fireBeast.y; const d=Math.hypot(dx,dy);
-    if(d<5) fireAI.path.shift(); else { dx/=d;dy/=d; fireBeast.x+=dx*150*dt; fireBeast.y+=dy*150*dt; fireBeast.zIndex=fireBeast.y; }
+    if(d<5) fireAI.path.shift();
+    else {
+      dx/=d;dy/=d; fireBeast.x+=dx*150*dt; fireBeast.y+=dy*150*dt; fireBeast.zIndex=fireBeast.y;
+      fireAI.trailClock=(fireAI.trailClock||0)+dt;   // 每 0.07s 留橙色残影
+      if(fireAI.trailClock>=0.07){ fireAI.trailClock=0; spawnTrail(fireBeast.x,fireBeast.y,0xff9a4a); }
+    }
     if(fireAI.path&&!fireAI.path.length) fireAI.path=null; forgeHot=false; return; }
   fireAI.t-=dt;
   const fp=furnacePos();
@@ -1034,7 +1053,7 @@ app.ticker.add(tk=>{
   for(const key in planted){ const pc=planted[key];
     if(!pc.mature){ pc.grown=(pc.grown||0)+dt*timeScale*(pc.boost?1.8:1);
       if(pc.grown>=GROW_SECONDS) pc.mature=true; } }
-  if(entered){ beastStep(dt); stepWaterDrops(dt); fireStep(dt); stepEmbers(dt);
+  if(entered){ beastStep(dt); stepWaterDrops(dt); stepTrails(dt); fireStep(dt); stepEmbers(dt);
     if(chopLoop.obj){ const o=chopLoop.obj;
       if(o.felled||staminaUsed>=6) chopLoop.obj=null;
       else if(Math.hypot(o.node.x-player.x,o.node.y-player.y)>100) chopLoop.obj=null;

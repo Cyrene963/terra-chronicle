@@ -55,6 +55,18 @@ function injectStyle(){
     background:radial-gradient(circle,rgba(186,120,224,.6),rgba(150,80,200,0));}
   #battle .enemy.hit{animation:eh .3s;}
   @keyframes eh{0%,100%{transform:translateX(0)}25%{transform:translateX(-12px)}75%{transform:translateX(12px)}}
+  #battle .arena.chroma{animation:chromaticShake .2s ease-out;}
+  @keyframes chromaticShake{
+    0%{filter:none}
+    10%{filter:drop-shadow(3px 0 0 rgba(255,0,0,.8)) drop-shadow(-3px 0 0 rgba(0,255,255,.7))}
+    40%{filter:drop-shadow(2px 0 0 rgba(255,0,0,.5)) drop-shadow(-2px 0 0 rgba(0,255,255,.45))}
+    100%{filter:none}
+  }
+  #battle .slash{position:absolute;pointer-events:none;width:180px;height:8px;background:linear-gradient(90deg,
+    transparent,rgba(255,255,255,.95) 20%,rgba(255,240,220,.85) 50%,rgba(255,200,180,.7) 80%,transparent);
+    transform-origin:center;box-shadow:0 0 20px rgba(255,255,255,.6);mix-blend-mode:screen;
+    animation:slashFade .35s ease-out forwards;}
+  @keyframes slashFade{0%{opacity:1;transform:scaleX(.3)}40%{opacity:1;transform:scaleX(1.2)}100%{opacity:0;transform:scaleX(1.5)}}
   #battle .ename{position:absolute;top:-6px;left:50%;transform:translateX(-50%);font-size:13px;letter-spacing:.3em;opacity:.85;white-space:nowrap;}
   #battle .ehp{width:230px;height:10px;border-radius:6px;background:rgba(255,255,255,.12);margin:14px auto 0;overflow:hidden;position:relative;}
   #battle .ehp i{position:absolute;inset:0;transform-origin:left;background:linear-gradient(90deg,#d65a5a,#e88);transition:transform .4s cubic-bezier(.2,.8,.2,1);}
@@ -211,6 +223,22 @@ function startMiasma(){ stopMiasma();
   }, 300);
 }
 function stopMiasma(){ if(miasmaTimer){ clearInterval(miasmaTimer); miasmaTimer=null; } }
+function spawnSlashes(){                                 // 在敌人身上划出 2-3 道斜斩剑气
+  const img=root.querySelector('#b_eimg'); if(!img) return;
+  const r=img.getBoundingClientRect();
+  const n=2+(Math.random()<0.4?1:0);
+  for(let i=0;i<n;i++){
+    const s=$('div','slash',root);
+    s.style.left=(r.left+r.width*0.3+Math.random()*r.width*0.4)+'px';
+    s.style.top=(r.top+r.height*0.25+Math.random()*r.height*0.4)+'px';
+    s.style.transform=`rotate(${-45+Math.random()*90}deg)`;
+    setTimeout(()=>s.remove(), 400);
+  }
+}
+function chromaticAberration(){                          // 全屏色差畸变 0.2s
+  const ar=root.querySelector('.arena'); if(!ar) return;
+  ar.classList.add('chroma'); setTimeout(()=>ar.classList.remove('chroma'), 200);
+}
 
 function render(){
   const r=id=>root.querySelector(id);
@@ -255,11 +283,11 @@ function playCard(i, el){
   S.energy-=c.cost; S.discard.push(c); S.hand.splice(i,1);
   if(c.type==='atk'){
     projectile(el); const dmgRaw=c.val;
-    setTimeout(()=>{                               // 命中:闪白+震屏+抛物线伤害数字
+    setTimeout(()=>{                               // 命中:斩击剑气+闪白+色差+震屏+抛物线伤害数字
       if(!S||S.over) return;
       let dmg=dmgRaw; const blk=Math.min(S.enemy.block,dmg); S.enemy.block-=blk; dmg-=blk;
       S.enemy.hp-=dmg;
-      hitFlash(); screenShake(15,260);
+      spawnSlashes(); hitFlash(); chromaticAberration(); screenShake(dmg>=10?22:15, 280);
       const b=root.querySelector('#b_eimg').getBoundingClientRect();
       floatNum('-'+dmg,'#ff9b7a', b.left+b.width/2, b.top+b.height*0.4);
       const e=root.querySelector('#b_enemy'); e.classList.add('hit'); setTimeout(()=>e.classList.remove('hit'),300);
