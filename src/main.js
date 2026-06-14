@@ -11,7 +11,7 @@
 'use strict';
 
 /* 资产版本号: 内容更新时 +1,绕过浏览器/CDN 旧缓存 */
-const ASSET_V="?v=9";
+const ASSET_V="?v=11";
 /* 贴图加载: mode='tile' → NEAREST+CLAMP(消除瓦片接缝+锐利);
    其余(精灵)→ LINEAR+mipmap(高清源缩小时干净不闪烁,painterly 风格不能用 NEAREST 否则缩小抖动) */
 async function loadTex(src, mode){
@@ -53,11 +53,6 @@ const ASSETS = {
     water: { src: 'assets/sprites/tile_water.png' },
     sand:  { src: 'assets/sprites/tile_sand.png' },
     plot:  { src: 'assets/sprites/tile_plot.png' },
-    // 对角线水岸过渡贴图
-    water_diag_tl: { src: 'assets/sprites/water_diag_tl.png' },
-    water_diag_tr: { src: 'assets/sprites/water_diag_tr.png' },
-    water_diag_bl: { src: 'assets/sprites/water_diag_bl.png' },
-    water_diag_br: { src: 'assets/sprites/water_diag_br.png' },
   },
 };
 
@@ -264,10 +259,7 @@ const KIND2PAL={g:'grass',G:'grassB',s:'soil',w:'water',b:'sand',p:'plot'};
 const tileSprites=[], waterTiles=[], snowAt=[], grassTiles=[];
 for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
   const k=grid[y][x];
-  const tileMap = {
-    g:'grass', G:'grass', s:'soil', w:'water', b:'sand', p:'plot',
-    wtl:'water_diag_tl', wtr:'water_diag_tr', wbl:'water_diag_bl', wbr:'water_diag_br'
-  };
+  const tileMap = {g:'grass', G:'grass', s:'soil', w:'water', b:'sand', p:'plot'};
   const t=ASSETS.tiles[tileMap[k]];
   const sp=new PIXI.Sprite(PIXI.Texture.WHITE);
   sp.width=TS+2; sp.height=TS+2; sp.position.set(x*TS-1,y*TS-1);  // 1px 重叠:消除瓦片接缝
@@ -276,9 +268,7 @@ for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
   sp._k=k; sp._j=0.975+r*0.05;                 // 每块明度抖动(极轻,避免棋盘格感)
   sp._ph=r*6.28;                               // 水面相位
   if(k==='g'||k==='G') grassTiles.push(sp);    // 草地:随季换图
-  if(k==='w'||k==='wtl'||k==='wtr'||k==='wbl'||k==='wbr'){
-    waterL.addChild(sp); waterTiles.push(sp); snowAt.push(null);    // 水(含对角线)→独立层
-  }
+  if(k==='w'){ waterL.addChild(sp); waterTiles.push(sp); snowAt.push(null); }   // 水→独立层
   else {
     groundL.addChild(sp);
     const sn=new PIXI.Sprite(PIXI.Texture.WHITE);   // 积雪覆盖(冬季由 snowL.alpha 控制)
@@ -291,11 +281,7 @@ snowL.visible=false; snowL.alpha=0;
 
 /* ================= 5.5 水面优化（轻量级边缘柔化）================= */
 // 在水陆边界添加半透明泡沫层,用最轻量的方式平滑过渡(无重度滤镜)
-const isWater=(x,y)=>{
-  if(!grid[y] || !grid[y][x]) return false;
-  const k = grid[y][x];
-  return k==='w' || k==='wtl' || k==='wtr' || k==='wbl' || k==='wbr';
-};
+const isWater=(x,y)=>grid[y]&&grid[y][x]==='w';
 for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
   if(!isWater(x,y)) continue;
   // 检测4邻方向是否有陆地,有则在边缘叠加柔光泡沫
