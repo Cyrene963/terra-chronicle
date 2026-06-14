@@ -97,13 +97,13 @@ function buildDOM(){
 
 const UPGRADES=[
   {id:'workshop_2',name:'工坊 II 级',cost:{wood:8,soul:2},unlock:'unlock_cards_tier2',
-   desc:'解锁更强的锻造配方,攻防基础值提升 40%'},
+   desc:'锻造倍率 +10%, 产出卡牌追加「工坊精炼」词条'},
   {id:'workshop_3',name:'工坊 III 级',cost:{wood:16,soul:4},unlock:'unlock_cards_tier3',req:'workshop_2',
-   desc:'解锁顶级配方,攻防基础值提升 80%,必出词条'},
+   desc:'锻造倍率 +18%, 工艺固定高阶,追加「大师铭刻」'},
   {id:'farmland_2',name:'农田扩建 II',cost:{wood:10,soul:1},unlock:'expand_farmland',
-   desc:'新增 20 块可耕种土地,增加产出'},
+   desc:'每次收获额外获得 星麦×1,让锻造循环更快启动'},
   {id:'beast_capacity',name:'灵兽栖地',cost:{wood:12,soul:3},unlock:'more_beasts',
-   desc:'最多同时拥有 4 只灵兽协助农场'},
+   desc:'水灵兽灌溉时间缩短,更快触发生长加速'},
 ];
 
 function render(){

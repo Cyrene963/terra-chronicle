@@ -770,13 +770,16 @@ function beastStep(dt){
     }
   } else if(beastAI.state==='seek'){
     const pc=planted[beastAI.target];                          // 到达(无路径了)
-    if(pc && !pc.watered){ beastAI.state='water'; beastAI.t=waterEvolved?1.2:2.0; setBeastStatus('water'); }
+    if(pc && !pc.watered){
+      const habitat=farm.upgrades?.includes('beast_capacity');
+      beastAI.state='water'; beastAI.t=habitat ? 0.85 : waterEvolved?1.2:2.0; setBeastStatus('water');
+    }
     else { beastAI.state='idle'; beastAI.t=.3; }
   } else if(beastAI.state==='water'){
     if((beastAI.t*4|0)!==((beastAI.t+dt)*4|0)) spawnSplash(beastAI.target);  // 周期水花爆发
     if(beastAI.t<=0){
       const pc=planted[beastAI.target];
-      if(pc){ pc.watered=true; pc.boost=true; toastHint('水灵兽灌溉了一块田 · 生长加速'); }
+      if(pc){ pc.watered=true; pc.boost=true; toastHint(`水灵兽灌溉了一块田 · 生长加速${farm.upgrades?.includes('beast_capacity')?' · 栖地加成':''}`); }
       beastAI.state='idle'; beastAI.t=.5; setBeastStatus('idle');
     }
   }
@@ -1273,10 +1276,14 @@ function interactFarm(key){
     toastHint('播种 星麦 · 静待生长');
   } else if(pc.mature){                           // 收获:质量继承产地肥力
     const meta=tileMeta[key];
-    (farm.inventory.crops.starwheat ??= []).push({
-      quality:+(meta.fert/100).toFixed(2), originFertility:meta.fert });
+    const bonus=farm.upgrades?.includes('farmland_2') ? 1 : 0;
+    const total=1+bonus;
+    for(let i=0;i<total;i++){
+      (farm.inventory.crops.starwheat ??= []).push({
+        quality:+(meta.fert/100).toFixed(2), originFertility:meta.fert });
+    }
     Terra.save(); updateDock();
-    toastHint(`收获 星麦 · 产地肥力 ${meta.fert}`);
+    toastHint(`收获 星麦 ×${total} · 产地肥力 ${meta.fert}${bonus?' · 扩建加成':''}`);
     overlayL.removeChild(pc.node);
     const ci=crops.indexOf(pc.node); if(ci>=0)crops.splice(ci,1);
     delete planted[key];

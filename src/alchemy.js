@@ -159,13 +159,18 @@ function cauldronQuality(){
 }
 
 function makeAlchemyCard(recipe){
+  const farm=window.Terra?.farm;
+  const upgrades=farm?.upgrades||[];
   const q=cauldronQuality();
   const forgeBonus=window.__dbg?.forgeHot ? 0.08 : 0;
-  const scale=0.82 + Math.min(.99, q+forgeBonus)*0.36;
-  const craft=window.__dbg?.forgeHot ? 0.9 : Math.min(0.88, 0.42 + q*0.5);
+  const workshopBonus=upgrades.includes('workshop_3') ? 0.18 : upgrades.includes('workshop_2') ? 0.10 : 0;
+  const scale=0.82 + Math.min(.99, q+forgeBonus)*0.36 + workshopBonus;
+  const craft=upgrades.includes('workshop_3') ? 0.96 : window.__dbg?.forgeHot ? 0.9 : Math.min(0.88, 0.42 + q*0.5 + workshopBonus*.45);
   const affixes=[];
   if(craft>.5) affixes.push(q>.75?'丰饶产地':'稳定工艺');
   if(craft>.85) affixes.push(window.__dbg?.forgeHot?'熔炉灼痕':'同季共鸣');
+  if(upgrades.includes('workshop_2')) affixes.push('工坊精炼');
+  if(upgrades.includes('workshop_3')) affixes.push('大师铭刻');
   return {
     id:'card_'+Date.now().toString(36)+(Math.random()*1e4|0),
     recipeId:recipe.recipeId,
@@ -230,7 +235,7 @@ function updateDisplay(){
 
 function open(){
   buildDOM();
-  cauldron.wheat=0; cauldron.wood=0;
+  cauldron.starwheat=[]; cauldron.wood=0;
   updateDisplay();
   root.classList.add('on');
 }
