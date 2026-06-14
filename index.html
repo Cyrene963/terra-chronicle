@@ -117,17 +117,26 @@
   }
   #dock .item b{font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:600;margin-left:5px}
   #dock .sep{width:1px;height:18px;background:var(--hairline)}
-  #craftBtn{
+  #craftBtn, #eventBtn{
     border:1px solid var(--gold);background:none;color:var(--ink);cursor:pointer;
     font-family:'Noto Serif SC',serif;font-size:12px;letter-spacing:.3em;text-indent:.3em;
     padding:9px 20px;border-radius:999px;position:relative;overflow:hidden;
     transition:color .45s,opacity .3s;z-index:0;
   }
-  #craftBtn::before{content:'';position:absolute;inset:0;background:var(--gold);
+  #craftBtn::before, #eventBtn::before{content:'';position:absolute;inset:0;background:var(--gold);
     transform:scaleX(0);transform-origin:left;transition:transform .45s cubic-bezier(.65,0,.35,1);z-index:-1}
-  #craftBtn:not(:disabled):hover{color:#fff}
-  #craftBtn:not(:disabled):hover::before{transform:scaleX(1)}
+  #craftBtn:not(:disabled):hover, #eventBtn:hover{color:#fff}
+  #craftBtn:not(:disabled):hover::before, #eventBtn:hover::before{transform:scaleX(1)}
   #craftBtn:disabled{opacity:.35;cursor:default}
+  #eventBtn{
+    background:linear-gradient(135deg, rgba(212,175,55,0.15), rgba(201,162,75,0.1));
+    border-color:#d4af37;
+    animation: eventGlow 2s ease-in-out infinite;
+  }
+  @keyframes eventGlow {
+    0%, 100% { box-shadow: 0 0 8px rgba(212,175,55,0.3); }
+    50% { box-shadow: 0 0 16px rgba(212,175,55,0.6); }
+  }
   #hintAction{
     position:absolute;bottom:92px;left:50%;transform:translateX(-50%);
     color:var(--ivory);font-size:12px;letter-spacing:.4em;text-indent:.4em;
@@ -292,6 +301,7 @@
     <span class="item">木材<b id="invWood">0</b></span>
     <span class="sep"></span>
     <span class="item">卡牌<b id="invCards">0</b></span>
+    <button id="eventBtn" style="display:none;">查看活动</button>
     <button id="craftBtn">炼金 · 炼制卡牌</button>
   </div>
 </div>
@@ -329,10 +339,15 @@
 <script src="vendor/pixi.min.js"></script>
 <script src="src/state.js?v=7"></script>
 <script src="src/seasonal_events.js?v=1"></script>
+<script src="src/farming_enhanced.js?v=1"></script>
+<script src="src/capture_system.js?v=1"></script>
+<script src="src/capture_integration.js?v=1"></script>
 <script src="src/alchemy.js?v=9"></script>
 <script src="src/battle.js?v=9"></script>
 <script src="src/dungeon.js?v=9"></script>
 <script src="src/upgrade.js?v=9"></script>
+<script src="src/world_map.js?v=1"></script>
+<script src="src/world_map_integration.js?v=1"></script>
 <script src="src/main.js?v=9"></script>
 </body>
 </html>

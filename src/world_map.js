@@ -689,9 +689,10 @@ const WorldMap = {
   }
 };
 
-// 导出到全局
+// Export HexMath to global for external access
 if (typeof window !== 'undefined') {
   window.WorldMap = WorldMap;
+  window.HexMath = HexMath;
 }
 
 // 自动初始化 (如果 DOM 已加载)

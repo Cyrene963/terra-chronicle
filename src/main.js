@@ -711,9 +711,21 @@ function enterBattle(){
   setTimeout(()=>{
     Battle.enter({
       deck: farm.inventory.cards,
-      onWin(loot){ for(const k in loot) farm.inventory.materials[k]=(farm.inventory.materials[k]||0)+loot[k];
-        Terra.save(); updateDock(); toastHint('凯旋 · 获得 污染种子×1 灵兽灵魂×1'); fl.style.opacity='0'; },
-      onLose(){ toastHint('败退 · 已退回农场'); fl.style.opacity='0'; },
+      onWin(loot){
+        for(const k in loot) farm.inventory.materials[k]=(farm.inventory.materials[k]||0)+loot[k];
+        Terra.save(); updateDock(); toastHint('凯旋 · 获得 污染种子×1 灵兽灵魂×1');
+        fl.style.opacity='0';
+
+        // Report battle damage to Void Tide event if active
+        if(window.onVoidBossDamage) {
+          const damage = 100; // Base damage for winning a battle
+          window.onVoidBossDamage(damage);
+        }
+      },
+      onLose(){
+        toastHint('败退 · 已退回农场');
+        fl.style.opacity='0';
+      },
     });
     setTimeout(()=>{ fl.style.opacity='0'; }, 200);
   }, 460);
@@ -1150,6 +1162,22 @@ app.ticker.add(tk=>{
 
   updateHUD(st,Math.floor(elapsed/DAY_SECONDS));
   springTick(dt);
+
+  // Seasonal Events integration
+  const currentDay = Math.floor(elapsed/DAY_SECONDS)+1;
+  if(window.updateSeasonalEvents) {
+    updateSeasonalEvents(currentDay);
+  }
+  // Update dock to reflect event state changes
+  if(entered && window.SeasonalEvents) {
+    const hasEvent = !!SeasonalEvents.currentEvent;
+    const eventBtn = $('eventBtn');
+    if(hasEvent && eventBtn.style.display === 'none') {
+      updateDock(); // Event just started
+    } else if(!hasEvent && eventBtn.style.display !== 'none') {
+      updateDock(); // Event just ended
+    }
+  }
 });
 
 /* ================= 11. HUD(DOM) ================= */
@@ -1304,10 +1332,18 @@ function interactFarm(key){
     toastHint('播种 星麦 · 静待生长');
   } else if(pc.mature){                           // 收获:质量继承产地肥力
     const meta=tileMeta[key];
+    const quantity = 1;
+    const quality = meta.fert / 100;
     (farm.inventory.crops.starwheat ??= []).push({
-      quality:+(meta.fert/100).toFixed(2), originFertility:meta.fert });
+      quality:+(quality).toFixed(2), originFertility:meta.fert });
     Terra.save(); updateDock();
     toastHint(`收获 星麦 · 产地肥力 ${meta.fert}`);
+
+    // Report harvest to Autumn Harvest event if active
+    if(window.onCropHarvested) {
+      window.onCropHarvested('starwheat', quantity, quality);
+    }
+
     overlayL.removeChild(pc.node);
     const ci=crops.indexOf(pc.node); if(ci>=0)crops.splice(ci,1);
     delete planted[key];
@@ -1348,10 +1384,24 @@ function updateDock(){
   $('invCards').textContent=farm.inventory.cards.length;
   $('craftBtn').disabled = !(wheat>=3 && (farm.inventory.materials.wood||0)>=2);
   $('craftBtn').textContent = forgeHot ? '锻造 · 熔炉灼热 🔥' : '锻造 · 新芽守卫';
+
+  // Show/hide event button based on active seasonal event
+  const eventBtn = $('eventBtn');
+  if(window.SeasonalEvents && SeasonalEvents.currentEvent) {
+    eventBtn.style.display = 'block';
+    eventBtn.textContent = SeasonalEvents.currentEvent.name;
+  } else {
+    eventBtn.style.display = 'none';
+  }
 }
 $('craftBtn').onclick=()=>{
   if(window.Alchemy) Alchemy.open();
   else toastHint('炼金工坊载入中…');
+};
+$('eventBtn').onclick=()=>{
+  if(window.SeasonalEvents && SeasonalEvents.currentEvent) {
+    window.openEventUI(SeasonalEvents.currentEvent.id);
+  }
 };
 $('cardReveal').onclick=()=>$('cardReveal').classList.remove('on');
 updateDock();
@@ -1390,6 +1440,21 @@ function enterWorld(){
   setTimeout(()=>{title.remove();
     $('whisper').style.opacity=1;
     setTimeout(()=>{$('whisper').style.opacity=0;},10000);},3200);
+
+  // Initialize seasonal events indicator click handler
+  const eventIndicator = $('eventIndicator');
+  if(eventIndicator) {
+    eventIndicator.addEventListener('click', () => {
+      if(window.SeasonalEvents && SeasonalEvents.currentEvent) {
+        window.openEventUI(SeasonalEvents.currentEvent.id);
+      }
+    });
+  }
+
+  // Initialize World Map Integration
+  if(window.WorldMapIntegration) {
+    WorldMapIntegration.init();
+  }
 }
 $('enter').onclick=enterWorld;
 

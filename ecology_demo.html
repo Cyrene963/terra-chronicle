@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terra Chronicle - Ecology System Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Arial', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #e0e0e0;
+      overflow: hidden;
+    }
+
+    #container {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #90ee90;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    .subtitle {
+      color: #aaa;
+      font-size: 14px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    #farm-grid {
+      display: grid;
+      grid-template-columns: repeat(10, 50px);
+      grid-template-rows: repeat(10, 50px);
+      gap: 2px;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .plot {
+      width: 50px;
+      height: 50px;
+      background: #4a5c3a;
+      border: 1px solid #6a7c5a;
+      border-radius: 4px;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .plot:hover {
+      transform: scale(1.1);
+      z-index: 10;
+      box-shadow: 0 0 10px rgba(144, 238, 144, 0.5);
+    }
+
+    .plot.has-crop {
+      background: #5a7c3a;
+      border-color: #7a9c5a;
+    }
+
+    .plot.has-pest {
+      border: 2px solid #ff5555;
+      box-shadow: 0 0 8px rgba(255, 85, 85, 0.6);
+    }
+
+    .plot.has-predator {
+      background: radial-gradient(circle, rgba(74, 222, 128, 0.4) 0%, transparent 70%);
+    }
+
+    .pest-indicator {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      font-size: 16px;
+      animation: wiggle 1s infinite;
+    }
+
+    .predator-indicator {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 24px;
+      animation: bounce 0.5s infinite alternate;
+    }
+
+    @keyframes wiggle {
+      0%, 100% { transform: rotate(-5deg); }
+      50% { transform: rotate(5deg); }
+    }
+
+    @keyframes bounce {
+      from { transform: translate(-50%, -50%) scale(1); }
+      to { transform: translate(-50%, -50%) scale(1.1); }
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    button {
+      padding: 10px 20px;
+      background: rgba(74, 222, 128, 0.2);
+      border: 2px solid #4ade80;
+      border-radius: 6px;
+      color: #4ade80;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.2s;
+    }
+
+    button:hover {
+      background: rgba(74, 222, 128, 0.4);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(74, 222, 128, 0.3);
+    }
+
+    button.danger {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: #ef4444;
+      color: #ef4444;
+    }
+
+    button.danger:hover {
+      background: rgba(239, 68, 68, 0.4);
+      box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+    }
+
+    button.warning {
+      background: rgba(251, 191, 36, 0.2);
+      border-color: #fbbf24;
+      color: #fbbf24;
+    }
+
+    button.warning:hover {
+      background: rgba(251, 191, 36, 0.4);
+      box-shadow: 0 4px 8px rgba(251, 191, 36, 0.3);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      width: 100%;
+      max-width: 600px;
+    }
+
+    .stat-card {
+      background: rgba(30, 30, 40, 0.8);
+      border: 2px solid rgba(100, 150, 200, 0.3);
+      border-radius: 8px;
+      padding: 15px;
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #aaa;
+      margin-bottom: 5px;
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    .balance-green { color: #4ade80; }
+    .balance-yellow { color: #fbbf24; }
+    .balance-red { color: #ef4444; }
+
+    .log {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      width: 300px;
+      max-height: 200px;
+      background: rgba(20, 20, 30, 0.95);
+      border: 2px solid rgba(100, 200, 150, 0.4);
+      border-radius: 8px;
+      padding: 10px;
+      overflow-y: auto;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .log-entry {
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(100, 100, 100, 0.2);
+    }
+
+    .log-entry:last-child {
+      border-bottom: none;
+    }
+
+    .log-warning {
+      color: #fbbf24;
+    }
+
+    .log-error {
+      color: #ef4444;
+    }
+
+    .log-success {
+      color: #4ade80;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <h1>🌿 Terra Chronicle - Ecology System Demo</h1>
+    <p class="subtitle">点击地块添加作物 | 掠食者自动巡逻</p>
+
+    <div id="farm-grid"></div>
+
+    <div class="controls">
+      <button onclick="plantAllCrops()">🌾 种植所有地块</button>
+      <button onclick="spawnPests()" class="danger">🐛 生成虫害</button>
+      <button onclick="addPredator()">🐱 添加掠食者</button>
+      <button onclick="removePredator()" class="warning">移除掠食者</button>
+      <button onclick="usePesticide()">💉 全局除虫剂</button>
+      <button onclick="reset()">🔄 重置</button>
+    </div>
+
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-label">生态平衡</div>
+        <div id="balance-value" class="stat-value balance-green">100%</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">🐛 虫害</div>
+        <div id="pest-count" class="stat-value">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">🐱 掠食者</div>
+        <div id="predator-count" class="stat-value">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">📉 今日损失</div>
+        <div id="damage-value" class="stat-value">0%</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="log" class="log">
+    <div class="log-entry log-success">✓ 生态系统已初始化</div>
+  </div>
+
+  <script src="src/ecology_system.js"></script>
+  <script>
+    // Demo Game State
+    const gameState = {
+      farm: {
+        plots: {},
+        beasts: [],
+        day: 1,
+      },
+    };
+
+    // Initialize ecology system
+    const ecology = new EcologySystem();
+
+    // Grid size
+    const GRID_SIZE = 10;
+
+    // Initialize farm grid
+    const farmGrid = document.getElementById('farm-grid');
+    const plotElements = new Map();
+
+    for (let y = 0; y < GRID_SIZE; y++) {
+      for (let x = 0; x < GRID_SIZE; x++) {
+        const plot = document.createElement('div');
+        plot.className = 'plot';
+        plot.dataset.x = x;
+        plot.dataset.y = y;
+        plot.addEventListener('click', () => togglePlot(x, y));
+        farmGrid.appendChild(plot);
+        plotElements.set(`${x},${y}`, plot);
+
+        // Initialize empty plot
+        gameState.farm.plots[`${x},${y}`] = {
+          fertility: 80,
+          moisture: 50,
+          crop: null,
+        };
+      }
+    }
+
+    // Add log entry
+    function addLog(message, type = 'normal') {
+      const log = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = `log-entry log-${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      log.appendChild(entry);
+      log.scrollTop = log.scrollHeight;
+
+      // Keep last 20 entries
+      while (log.children.length > 20) {
+        log.removeChild(log.children[0]);
+      }
+    }
+
+    // Toggle plot crop
+    function togglePlot(x, y) {
+      const key = `${x},${y}`;
+      const plot = gameState.farm.plots[key];
+
+      if (plot.crop) {
+        plot.crop = null;
+        addLog(`移除作物 (${x}, ${y})`);
+      } else {
+        plot.crop = {
+          species: 'starwheat',
+          growth: 0.8,
+          quality: 0.9,
+        };
+        addLog(`种植作物 (${x}, ${y})`, 'success');
+      }
+
+      updateVisuals();
+    }
+
+    // Plant all crops
+    function plantAllCrops() {
+      let count = 0;
+      for (const key in gameState.farm.plots) {
+        const plot = gameState.farm.plots[key];
+        if (!plot.crop) {
+          plot.crop = {
+            species: 'starwheat',
+            growth: 0.8,
+            quality: 0.9,
+          };
+          count++;
+        }
+      }
+      addLog(`种植了 ${count} 块地`, 'success');
+      updateVisuals();
+    }
+
+    // Spawn random pests
+    function spawnPests() {
+      let count = 0;
+      for (const key in gameState.farm.plots) {
+        const plot = gameState.farm.plots[key];
+        if (plot.crop && !ecology.pests.has(key) && Math.random() < 0.3) {
+          ecology.pests.set(key, {
+            type: 'locust',
+            severity: 0.3 + Math.random() * 0.5,
+            growthRate: 0.15,
+            lastDamageTime: Date.now(),
+            spawnTime: Date.now(),
+          });
+          count++;
+        }
+      }
+      addLog(`生成了 ${count} 处虫害`, 'warning');
+      updateVisuals();
+    }
+
+    // Add predator
+    function addPredator() {
+      const id = 'pred_' + Date.now();
+      const x = Math.floor(Math.random() * GRID_SIZE);
+      const y = Math.floor(Math.random() * GRID_SIZE);
+
+      const beast = {
+        id,
+        species: 'field_cat',
+        position: { x, y },
+        assignment: 'pest_control',
+        stamina: 100,
+      };
+
+      gameState.farm.beasts.push(beast);
+      addLog(`添加掠食者到 (${x}, ${y})`, 'success');
+      updateVisuals();
+    }
+
+    // Remove last predator
+    function removePredator() {
+      if (gameState.farm.beasts.length > 0) {
+        const removed = gameState.farm.beasts.pop();
+        addLog(`移除掠食者 ${removed.id}`, 'warning');
+        updateVisuals();
+      } else {
+        addLog('没有掠食者可移除', 'error');
+      }
+    }
+
+    // Use pesticide on all plots
+    function usePesticide() {
+      let count = 0;
+      for (const key of ecology.pests.keys()) {
+        ecology.treatWithPesticide(key);
+        count++;
+      }
+      addLog(`使用除虫剂清除 ${count} 处虫害`, 'success');
+      updateVisuals();
+    }
+
+    // Reset demo
+    function reset() {
+      // Clear all crops
+      for (const key in gameState.farm.plots) {
+        gameState.farm.plots[key].crop = null;
+      }
+
+      // Clear pests
+      ecology.pests.clear();
+
+      // Clear predators
+      gameState.farm.beasts = [];
+
+      addLog('重置完成', 'success');
+      updateVisuals();
+    }
+
+    // Update visuals
+    function updateVisuals() {
+      // Update plots
+      for (const [key, plotEl] of plotElements.entries()) {
+        const plot = gameState.farm.plots[key];
+        const hasCrop = plot && plot.crop;
+        const hasPest = ecology.pests.has(key);
+
+        // Update classes
+        plotEl.className = 'plot';
+        if (hasCrop) plotEl.classList.add('has-crop');
+        if (hasPest) plotEl.classList.add('has-pest');
+
+        // Clear indicators
+        plotEl.innerHTML = '';
+
+        // Add pest indicator
+        if (hasPest) {
+          const pestInfo = ecology.getPestInfo(key);
+          const indicator = document.createElement('div');
+          indicator.className = 'pest-indicator';
+          indicator.textContent = pestInfo.visual;
+          indicator.title = `${pestInfo.type.name} - ${pestInfo.severityPercent}%`;
+          plotEl.appendChild(indicator);
+        }
+
+        // Check predator coverage
+        const coverage = ecology.getPredatorCoverage(key);
+        if (coverage > 0) {
+          plotEl.classList.add('has-predator');
+        }
+      }
+
+      // Update predator positions
+      for (const beast of gameState.farm.beasts) {
+        const key = `${beast.position.x},${beast.position.y}`;
+        const plotEl = plotElements.get(key);
+        if (plotEl) {
+          const predType = PREDATOR_TYPES[beast.species];
+          const indicator = document.createElement('div');
+          indicator.className = 'predator-indicator';
+          indicator.textContent = predType.visual;
+          indicator.title = `${predType.name} - 狩猎力: ${predType.huntingPower}x`;
+          plotEl.appendChild(indicator);
+        }
+      }
+
+      // Update stats
+      updateStats();
+    }
+
+    // Update statistics
+    function updateStats() {
+      const balance = ecology.ecosystemBalance;
+      const status = ecology.getBalanceStatus();
+      const metrics = ecology.metrics;
+
+      // Balance
+      const balanceEl = document.getElementById('balance-value');
+      balanceEl.textContent = Math.round(balance * 100) + '%';
+      balanceEl.className = 'stat-value balance-' + status.level;
+
+      // Pest count
+      document.getElementById('pest-count').textContent = metrics.totalPests;
+
+      // Predator count
+      document.getElementById('predator-count').textContent = metrics.totalPredators;
+
+      // Damage
+      document.getElementById('damage-value').textContent =
+        Math.round(metrics.pestDamageToday * 100) + '%';
+
+      // Check warnings
+      if (ecology.warnings.length > 0) {
+        for (const warning of ecology.warnings) {
+          addLog(warning.message, 'warning');
+        }
+      }
+    }
+
+    // Game loop
+    let lastTime = Date.now();
+    function gameLoop() {
+      const now = Date.now();
+      const dt = (now - lastTime) / 1000;
+      lastTime = now;
+
+      // Update ecology
+      ecology.update(dt, gameState.farm.plots, gameState.farm.beasts, gameState.farm.day);
+
+      // Update visuals (throttled)
+      if (Math.random() < 0.1) {
+        updateVisuals();
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Start game loop
+    gameLoop();
+
+    // Initial update
+    updateVisuals();
+
+    // Auto-demo after 2 seconds
+    setTimeout(() => {
+      addLog('提示: 点击地块种植作物，然后添加虫害观察效果', 'success');
+    }, 2000);
+  </script>
+</body>
+</html>

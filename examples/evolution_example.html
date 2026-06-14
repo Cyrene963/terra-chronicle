@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>灵兽进化系统演示</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #0a0a0e;
+      font-family: 'Noto Sans SC', sans-serif;
+      color: #f6f1e7;
+    }
+    .demo-container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .demo-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .demo-header h1 {
+      font-size: 36px;
+      color: #ffd700;
+    }
+    .demo-controls {
+      background: rgba(255,255,255,0.05);
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 30px;
+    }
+    .demo-controls h2 {
+      margin-top: 0;
+      color: #4ecdc4;
+    }
+    .control-group {
+      margin: 15px 0;
+    }
+    .control-group label {
+      display: inline-block;
+      width: 150px;
+      font-weight: bold;
+    }
+    .control-group button {
+      padding: 8px 16px;
+      margin: 5px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      border-radius: 6px;
+      color: white;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .control-group button:hover {
+      transform: scale(1.05);
+    }
+    .beast-info {
+      background: rgba(255,255,255,0.05);
+      padding: 15px;
+      border-radius: 8px;
+      margin: 15px 0;
+    }
+    .beast-info h3 {
+      margin-top: 0;
+      color: #ffd700;
+    }
+  </style>
+</head>
+<body>
+  <div class="demo-container">
+    <div class="demo-header">
+      <h1>🐉 灵兽进化系统演示</h1>
+      <p>测试多路径进化、经验获取、进化重置等功能</p>
+    </div>
+
+    <div class="demo-controls">
+      <h2>测试控制面板</h2>
+
+      <div class="control-group">
+        <label>选择灵兽:</label>
+        <button onclick="selectBeast('woodland_sprite')">林地精灵</button>
+        <button onclick="selectBeast('shadow_fox')">影狐</button>
+        <button onclick="selectBeast('river_turtle')">河流龟</button>
+      </div>
+
+      <div class="control-group">
+        <label>添加经验:</label>
+        <button onclick="addExp('combat', 50)">战斗经验 +50</button>
+        <button onclick="addExp('work', 50)">工作经验 +50</button>
+        <button onclick="addExp('hybrid', 50)">混合经验 +50</button>
+      </div>
+
+      <div class="control-group">
+        <label>模拟活动:</label>
+        <button onclick="simulateBattle()">模拟战斗（胜利）</button>
+        <button onclick="simulateWork()">模拟工作（高质量）</button>
+      </div>
+
+      <div id="beast-info" class="beast-info" style="display:none;">
+        <h3>当前灵兽信息</h3>
+        <div id="beast-stats"></div>
+      </div>
+    </div>
+
+    <div id="evolution-ui"></div>
+  </div>
+
+  <script src="../src/evolution_tree.js"></script>
+  <script>
+    let currentBeast = null;
+
+    function selectBeast(speciesId) {
+      const species = {
+        woodland_sprite: { name: '林地精灵', base_hp: 45, base_atk: 12, base_def: 8 },
+        shadow_fox: { name: '影狐', base_hp: 38, base_atk: 18, base_def: 6 },
+        river_turtle: { name: '河流龟', base_hp: 68, base_atk: 6, base_def: 18 },
+      };
+
+      const data = species[speciesId];
+      currentBeast = {
+        id: 'demo_' + Date.now(),
+        species: speciesId,
+        name: data.name,
+        base_hp: data.base_hp,
+        base_atk: data.base_atk,
+        base_def: data.base_def,
+        hp: data.base_hp,
+        atk: data.base_atk,
+        def: data.base_def,
+      };
+
+      EvolutionSystem.initBeastEvolution(currentBeast);
+      refreshUI();
+      updateBeastInfo();
+    }
+
+    function addExp(type, amount) {
+      if (!currentBeast) {
+        alert('请先选择一只灵兽');
+        return;
+      }
+      EvolutionSystem.addEvolutionPoints(currentBeast, type + '_exp', amount);
+      refreshUI();
+      updateBeastInfo();
+    }
+
+    function simulateBattle() {
+      if (!currentBeast) {
+        alert('请先选择一只灵兽');
+        return;
+      }
+      const result = { victory: true, damage: 150, survived: true };
+      EvolutionSystem.gainCombatExp(currentBeast, result);
+      alert('战斗胜利！获得战斗经验');
+      refreshUI();
+      updateBeastInfo();
+    }
+
+    function simulateWork() {
+      if (!currentBeast) {
+        alert('请先选择一只灵兽');
+        return;
+      }
+      const result = { workType: 'farming', duration: 120, quality: 0.95 };
+      EvolutionSystem.gainWorkExp(currentBeast, result);
+      alert('完成高质量工作！获得工作经验');
+      refreshUI();
+      updateBeastInfo();
+    }
+
+    function refreshUI() {
+      const container = document.getElementById('evolution-ui');
+      container.innerHTML = '';
+      if (currentBeast) {
+        EvolutionTreeUI.render(currentBeast, container);
+      }
+    }
+
+    function updateBeastInfo() {
+      if (!currentBeast) return;
+
+      const info = document.getElementById('beast-info');
+      const stats = document.getElementById('beast-stats');
+      info.style.display = 'block';
+
+      const evo = currentBeast.evolution;
+      stats.innerHTML = `
+        <p><strong>名称:</strong> ${currentBeast.name}</p>
+        <p><strong>当前形态:</strong> ${evo.form}</p>
+        <p><strong>进化阶段:</strong> ${evo.stage}/3</p>
+        <p><strong>进化路径:</strong> ${evo.path ? evo.path : '未选择'}</p>
+        <p><strong>属性:</strong> HP=${currentBeast.hp} ATK=${currentBeast.atk} DEF=${currentBeast.def}</p>
+        <p><strong>战斗经验:</strong> ${evo.points.combat_exp}</p>
+        <p><strong>工作经验:</strong> ${evo.points.work_exp}</p>
+        <p><strong>混合经验:</strong> ${evo.points.hybrid_exp}</p>
+        ${evo.skills.length > 0 ? `<p><strong>技能:</strong> ${evo.skills.join(', ')}</p>` : ''}
+      `;
+    }
+
+    // 初始化
+    console.log('进化系统演示页面加载完成');
+    console.log('请先选择一只灵兽开始测试');
+  </script>
+</body>
+</html>

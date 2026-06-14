@@ -34,6 +34,36 @@ SPRITES = [
   ("fence", "one short rustic wooden fence segment with two posts and two horizontal rails, "
    "top-down three-quarter game view"),
   ("crop", "one young green wheat crop sprout cluster with a few leaves, top-down three-quarter game view"),
+  ("water_serpent", "one blue serpent-like beast with flowing snake body and graceful fins, "
+   "aquatic mystical creature, top-down three-quarter game view, full body visible"),
+  ("fire_fox", "one orange fox beast with flames trailing from tail and paws, fiery mystical creature, "
+   "top-down three-quarter game view, full body visible"),
+  ("wind_bird", "one cyan bird beast with flowing wind trails and air currents around wings, "
+   "aerial mystical creature, top-down three-quarter game view, full body visible"),
+  ("earth_golem", "one brown rock golem beast made of stacked boulders and moss, sturdy elemental creature, "
+   "top-down three-quarter game view, full body visible"),
+  ("light_fairy", "one golden glowing fairy beast with luminous wings and radiant aura, "
+   "ethereal mystical creature, top-down three-quarter game view, full body visible"),
+  ("shadow_wolf", "one dark purple wolf beast with shadowy wisps trailing from fur, mysterious creature, "
+   "top-down three-quarter game view, full body visible"),
+  ("forest_deer", "one green antlered deer beast with leafy antlers and vine patterns, nature spirit creature, "
+   "top-down three-quarter game view, full body visible"),
+  ("thunder_cat", "one yellow electric cat beast with lightning sparks and crackling energy, "
+   "storm mystical creature, top-down three-quarter game view, full body visible"),
+  ("ice_bear", "one white crystalline bear beast with icy frost patterns and frozen spikes, "
+   "glacial mystical creature, top-down three-quarter game view, full body visible"),
+  ("magma_lizard", "one red lava lizard beast with molten patterns and volcanic glow, "
+   "fire elemental creature, top-down three-quarter game view, full body visible"),
+  ("ranch_building", "one wooden barn with rustic timber walls, sloped hay-covered roof, "
+   "fenced yard with wooden posts around it, cozy livestock shelter, top-down three-quarter game view, whole building visible"),
+  ("warehouse", "one large stone storage building with thick grey brick walls, reinforced wooden door, "
+   "small barred windows, flat or low-pitched roof, sturdy merchant depot, top-down three-quarter game view, whole building visible"),
+  ("alchemy_tower", "one mystical tower with spiraling stone architecture, glowing crystal orbs embedded in walls, "
+   "arcane runes, pointed conical roof with magical aura, enchanted laboratory, top-down three-quarter game view, whole tower visible"),
+  ("workshop", "one craftsman shed with wooden plank walls, sloped roof, open shutters showing tools inside, "
+   "anvil or workbench visible, artisan workspace, top-down three-quarter game view, whole building visible"),
+  ("well", "one stone water well with circular brick rim, wooden crossbeam with rope and bucket, "
+   "moss growing on stones, village water source, top-down three-quarter game view, whole structure visible"),
 ]
 TILES = [
   ("tile_grass", "seamless tileable texture of lush painterly meadow grass viewed directly from above, "
