@@ -13,58 +13,49 @@ function injectStyle(){
   if(injected) return; injected=true;
   const css=`
   #dungeonMap{position:fixed;inset:0;z-index:85;display:none;opacity:0;
-    transition:opacity .45s cubic-bezier(.2,.8,.2,1);
-    background:url('assets/ui/dungeon_entrance_bg.jpg') center/cover,
-      linear-gradient(180deg, rgba(26,22,18,0.85) 0%, rgba(10,8,16,0.92) 100%);
-    font-family:'Cormorant Garamond',serif;color:#f4ecd8;overflow:auto;}
-  #dungeonMap.on{display:block;opacity:1;animation:mapIn .5s cubic-bezier(.34,1.56,.64,1);}
-  @keyframes mapIn{0%{transform:scale(.85);opacity:0}100%{transform:scale(1);opacity:1}}
-  #dungeonMap .header{padding:38px 40px;text-align:center;
-    border-bottom:2px solid rgba(212,175,55,.3);
-    background:linear-gradient(180deg, rgba(244,236,216,.08) 0%, transparent 100%);
-    position:relative;z-index:1;}
-  #dungeonMap .header h2{font-size:36px;letter-spacing:.28em;font-weight:400;margin-bottom:14px;
-    color:#f4d03f;text-shadow:0 3px 12px rgba(0,0,0,.9), 0 0 24px rgba(244,208,63,.5), 0 6px 20px rgba(0,0,0,.7);}
-  #dungeonMap .header .sub{font-size:13px;letter-spacing:.5em;opacity:.7;text-transform:uppercase;
-    font-style:italic;color:#c9a561;}
-  #dungeonMap .mapCanvas{position:relative;width:900px;height:600px;margin:0 auto 40px;padding:40px 0;z-index:1;}
-  #dungeonMap .node{position:absolute;width:120px;height:120px;border-radius:50%;cursor:pointer;
-    border:2px solid #d4af37;
-    background:linear-gradient(135deg, rgba(244,236,216,.12) 0%, rgba(232,220,191,.08) 100%);
-    box-shadow:0 10px 40px rgba(0,0,0,.7),inset 0 1px 0 rgba(244,236,216,.15),0 0 30px rgba(212,175,55,.2);
-    display:flex;align-items:center;justify-content:center;
-    transition:all .3s cubic-bezier(.34,1.56,.64,1);flex-direction:column;gap:4px;
-    position:relative;}
-  #dungeonMap .node::before{content:'';position:absolute;inset:-4px;border-radius:50%;
-    border:1px solid rgba(212,175,55,.4);opacity:0;transition:opacity .3s;}
-  #dungeonMap .node:hover{transform:scale(1.2);
-    box-shadow:0 12px 48px rgba(212,175,55,.4),inset 0 1px 0 rgba(244,236,216,.25),0 0 40px rgba(212,175,55,.5),0 6px 30px rgba(0,0,0,.8);}
-  #dungeonMap .node:hover::before{opacity:1;}
-  #dungeonMap .node.locked{opacity:.25;cursor:default;pointer-events:none;}
-  #dungeonMap .node.completed{opacity:.6;}
-  #dungeonMap .node.completed::after{content:'✓';position:absolute;top:8px;right:8px;
-    font-size:24px;color:#4ade80;font-weight:bold;
-    text-shadow:0 2px 8px rgba(0,0,0,.8),0 0 12px rgba(74,222,128,.6);}
-  #dungeonMap .node.current{border-color:#f4d03f;border-width:3px;
-    box-shadow:0 0 32px rgba(244,208,63,.8),0 10px 40px rgba(0,0,0,.7),inset 0 1px 0 rgba(244,236,216,.25);
-    animation:goldPulse 2s ease-in-out infinite;}
-  @keyframes goldPulse{0%,100%{box-shadow:0 0 32px rgba(244,208,63,.8),0 10px 40px rgba(0,0,0,.7)}
-    50%{box-shadow:0 0 48px rgba(244,208,63,1),0 10px 40px rgba(0,0,0,.7)}}
-  #dungeonMap .node .icon{width:48px;height:48px;filter:drop-shadow(0 3px 16px rgba(0,0,0,.8));}
-  #dungeonMap .node .label{font-size:11px;letter-spacing:.2em;opacity:.85;margin-top:3px;
-    font-family:'Noto Serif SC',serif;color:#e8dcbf;}
-  #dungeonMap .path{position:absolute;height:2px;
-    background:linear-gradient(90deg, transparent, rgba(244,208,63,0.7), transparent);
-    transform-origin:left center;
-    box-shadow:0 0 8px rgba(244,208,63,0.5);}
-  #dungeonMap .closeBtn{position:absolute;top:32px;right:40px;font-size:32px;cursor:pointer;
-    color:#d4af37;opacity:.6;transition:all .3s;
-    width:44px;height:44px;display:flex;align-items:center;justify-content:center;
-    border-radius:50%;border:2px solid rgba(212,175,55,.4);
-    background:linear-gradient(135deg, rgba(244,236,216,.08), rgba(232,220,191,.04));
-    box-shadow:0 4px 16px rgba(0,0,0,.3),inset 0 1px 0 rgba(244,236,216,.1);z-index:2;}
-  #dungeonMap .closeBtn:hover{opacity:1;transform:scale(1.12);
-    border-color:#d4af37;box-shadow:0 0 20px rgba(212,175,55,.4),0 4px 16px rgba(0,0,0,.4),0 6px 24px rgba(0,0,0,.6);}
+    transition:opacity .45s cubic-bezier(.2,.8,.2,1);font-family:'Noto Serif SC',serif;color:#f4ecd8;overflow:hidden;
+    background:url('assets/ui/dungeon_entrance_bg.jpg') center/cover,#100d12;}
+  #dungeonMap::before{content:'';position:absolute;inset:0;background:
+    radial-gradient(circle at 50% 18%,rgba(196,124,255,.18),transparent 30%),
+    radial-gradient(circle at 18% 78%,rgba(236,183,82,.16),transparent 28%),
+    linear-gradient(180deg,rgba(8,6,12,.58),rgba(6,6,10,.92));backdrop-filter:blur(5px) saturate(1.1);}
+  #dungeonMap::after{content:'';position:absolute;inset:22px;border:1px solid rgba(244,208,117,.18);border-radius:30px;pointer-events:none;box-shadow:inset 0 0 90px rgba(0,0,0,.5);}
+  #dungeonMap.on{display:block;opacity:1;animation:mapIn .55s cubic-bezier(.2,.9,.2,1);}
+  @keyframes mapIn{0%{transform:scale(1.04);filter:blur(8px);opacity:0}100%{transform:scale(1);filter:blur(0);opacity:1}}
+  #dungeonMap .header{position:absolute;left:44px;top:36px;z-index:2;max-width:420px;}
+  #dungeonMap .eyebrow{font-size:11px;letter-spacing:.5em;color:#d5b777;text-transform:uppercase;opacity:.78;margin-bottom:10px;}
+  #dungeonMap .header h2{font-size:clamp(42px,5vw,68px);line-height:.98;letter-spacing:.18em;font-weight:400;margin:0 0 14px;
+    color:#f8d891;text-shadow:0 18px 45px rgba(0,0,0,.7),0 0 28px rgba(244,208,117,.2);}
+  #dungeonMap .header .sub{font-size:13px;letter-spacing:.14em;line-height:1.9;opacity:.82;color:#e5d4b7;}
+  #dungeonMap .legend{position:absolute;left:44px;bottom:38px;z-index:2;display:flex;gap:10px;flex-wrap:wrap;max-width:430px;}
+  #dungeonMap .legend span{font-size:11px;letter-spacing:.12em;border:1px solid rgba(244,208,117,.24);border-radius:999px;padding:8px 12px;background:rgba(0,0,0,.24);backdrop-filter:blur(8px);}
+  #dungeonMap .mapWrap{position:absolute;inset:28px 28px 28px 420px;z-index:1;display:grid;place-items:center;}
+  #dungeonMap .mapCanvas{position:relative;width:min(760px,calc(100vw - 470px));height:min(650px,calc(100vh - 78px));min-width:460px;min-height:520px;
+    border-radius:34px;border:1px solid rgba(244,208,117,.22);background:
+    radial-gradient(circle at 50% 40%,rgba(244,208,117,.09),transparent 42%),linear-gradient(145deg,rgba(33,25,24,.48),rgba(11,10,15,.56));
+    box-shadow:0 28px 95px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.08);overflow:hidden;}
+  #dungeonMap .mapCanvas::before{content:'';position:absolute;inset:22px;border:1px dashed rgba(244,208,117,.12);border-radius:26px;}
+  #dungeonMap .path{position:absolute;height:3px;background:linear-gradient(90deg,transparent,rgba(166,111,255,.3),rgba(244,208,117,.8),transparent);
+    transform-origin:left center;box-shadow:0 0 16px rgba(244,208,117,.28);border-radius:999px;}
+  #dungeonMap .node{position:absolute;width:124px;height:124px;border-radius:28px;cursor:pointer;border:1px solid rgba(244,208,117,.45);
+    background:linear-gradient(155deg,rgba(255,239,198,.13),rgba(96,70,121,.1));box-shadow:0 18px 46px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.12);
+    display:flex;align-items:center;justify-content:center;transition:transform .28s ease,box-shadow .28s ease,border-color .28s ease;flex-direction:column;gap:7px;overflow:hidden;}
+  #dungeonMap .node::before{content:'';position:absolute;inset:-45% -30% auto auto;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,rgba(244,208,117,.22),transparent 68%);}
+  #dungeonMap .node:hover{transform:translateY(-8px) scale(1.04);border-color:#ffe0a0;box-shadow:0 28px 70px rgba(0,0,0,.58),0 0 32px rgba(244,208,117,.16);}
+  #dungeonMap .node.locked{opacity:.34;cursor:default;pointer-events:none;filter:saturate(.55);}
+  #dungeonMap .node.completed{opacity:.72;border-color:rgba(125,211,151,.5);}
+  #dungeonMap .node.completed::after{content:'✓';position:absolute;top:10px;right:12px;font-size:22px;color:#8ee5a4;text-shadow:0 0 14px rgba(74,222,128,.6);}
+  #dungeonMap .node.current{animation:nodePulse 2.2s ease-in-out infinite;border-color:#ffe0a0;}
+  @keyframes nodePulse{0%,100%{box-shadow:0 18px 46px rgba(0,0,0,.45),0 0 22px rgba(244,208,117,.24)}50%{box-shadow:0 24px 62px rgba(0,0,0,.56),0 0 44px rgba(244,208,117,.42)}}
+  #dungeonMap .node.elite{border-radius:50% 22% 50% 22%;} #dungeonMap .node.rest{border-radius:50%;} #dungeonMap .node.boss{width:148px;height:148px;border-radius:36px;border-width:2px;}
+  #dungeonMap .node .icon{position:relative;width:44px;height:44px;filter:drop-shadow(0 8px 18px rgba(0,0,0,.75));}
+  #dungeonMap .node .emoji{position:relative;font-size:42px;line-height:1;filter:drop-shadow(0 8px 18px rgba(0,0,0,.75));}
+  #dungeonMap .node .label{position:relative;font-size:13px;letter-spacing:.18em;color:#fff0ce;font-weight:600;}
+  #dungeonMap .node .reward{position:relative;font-size:10px;letter-spacing:.1em;color:#cfb58b;opacity:.85;}
+  #dungeonMap .closeBtn{position:absolute;top:36px;right:42px;font-size:32px;cursor:pointer;color:#f6d99d;opacity:.72;transition:all .25s;
+    width:46px;height:46px;display:grid;place-items:center;border-radius:50%;border:1px solid rgba(244,208,117,.28);background:rgba(0,0,0,.26);z-index:2;}
+  #dungeonMap .closeBtn:hover{opacity:1;transform:scale(1.08);background:rgba(244,208,117,.14);box-shadow:0 0 24px rgba(244,208,117,.18);}
+  @media (max-width:840px){#dungeonMap{overflow:auto;}#dungeonMap .header{position:relative;left:auto;top:auto;padding:28px 24px 0;}#dungeonMap .legend{display:none;}#dungeonMap .mapWrap{position:relative;inset:auto;padding:20px;}#dungeonMap .mapCanvas{width:100%;min-width:0;height:560px;}#dungeonMap .closeBtn{top:22px;right:22px;}}
   `;
   const s=$('style');s.textContent=css;document.head.appendChild(s);
 }
@@ -93,10 +84,12 @@ function buildDOM(){
   root=$('div','',document.body); root.id='dungeonMap';
   root.innerHTML=`
     <div class="header">
-      <h2>深渊路线图</h2>
-      <div class="sub">选择你的道路 · 每个节点都是考验</div>
+      <div class="eyebrow">Abyss Expedition</div>
+      <h2>深渊星图</h2>
+      <div class="sub">选择一条路线进入污染地脉。战斗奖励会带回农场，改变下一轮锻造、灵兽和工坊升级方向。</div>
     </div>
-    <div class="mapCanvas"></div>
+    <div class="legend"><span>⚔ 战斗</span><span>◆ 精英</span><span>🔥 休息</span><span>♛ 深渊核心</span></div>
+    <div class="mapWrap"><div class="mapCanvas"></div></div>
     <div class="closeBtn">×</div>
   `;
   root.querySelector('.closeBtn').onclick=()=>close();
@@ -105,20 +98,22 @@ function buildDOM(){
 function renderMap(){
   const canvas=root.querySelector('.mapCanvas');
   canvas.innerHTML='';
-  const centerX=450; // Center of 900px canvas
-  const startY=100;
-  const floorSpacing=200;
+  const w=canvas.clientWidth||760, h=canvas.clientHeight||620;
+  const positions={
+    '0_0':[.27,.25], '0_1':[.72,.25],
+    '1_0':[.50,.52],
+    '2_0':[.50,.78]
+  };
 
   mapData.forEach((floor,fi)=>{
-    floor.forEach((node,ni)=>{
-      const x=centerX;
-      const y=startY + fi * floorSpacing + (ni * 80); // Slight offset for multiple nodes on same floor
+    floor.forEach((node)=>{
+      const [px,py]=positions[node.id]||[.5,.22+fi*.28];
+      const x=px*w, y=py*h;
 
-      // Draw path to next floor nodes (only if not last floor)
       if(fi<mapData.length-1){
-        mapData[fi+1].forEach((nextNode,nni)=>{
-          const nx=centerX;
-          const ny=startY + (fi+1) * floorSpacing + (nni * 80);
+        mapData[fi+1].forEach((nextNode)=>{
+          const [npx,npy]=positions[nextNode.id]||[.5,.22+(fi+1)*.28];
+          const nx=npx*w, ny=npy*h;
           const dx=nx-x, dy=ny-y, len=Math.hypot(dx,dy), ang=Math.atan2(dy,dx)*180/Math.PI;
           const path=$('div','path',canvas);
           path.style.left=x+'px';
@@ -128,24 +123,26 @@ function renderMap(){
         });
       }
 
-      // Draw node
       const completed = progress.path.includes(node.id);
       const locked = fi>progress.floor || (fi===progress.floor && completed);
       const current = fi===progress.floor && !completed;
 
-      const nd=$('div','node',canvas);
+      const nd=$('div','node '+node.type,canvas);
       nd.classList.toggle('locked',locked);
       nd.classList.toggle('current',current);
       nd.classList.toggle('completed',completed);
-      nd.style.left=(x-60)+'px'; // Center 120px node
-      nd.style.top=(y-60)+'px';
+      const size=node.type==='boss'?148:124;
+      nd.style.left=(x-size/2)+'px';
+      nd.style.top=(y-size/2)+'px';
 
-      const icons={combat:'icon_combat.png',elite:'⚔️',rest:'🔥',boss:'icon_boss.png'};
-      const labels={combat:'战斗',elite:'精英',rest:'休息',boss:'BOSS'};
-      const iconHTML = (icons[node.type]||'?').endsWith('.png')
-        ? `<img src="assets/ui/${icons[node.type]}" class="icon" alt="${labels[node.type]||node.type}"/>`
-        : `<div class="icon" style="font-size:48px;">${icons[node.type]||'?'}</div>`;
-      nd.innerHTML=`${iconHTML}<div class="label">${labels[node.type]||node.type}</div>`;
+      const icons={combat:'icon_combat.png',elite:'◆',rest:'🔥',boss:'icon_boss.png'};
+      const labels={combat:'战斗',elite:'精英',rest:'篝火',boss:'深渊核心'};
+      const rewards={combat:'三选一战利品',elite:'高阶残响',rest:'恢复与整备',boss:'核心材料'};
+      const icon=icons[node.type]||'?';
+      const iconHTML = icon.endsWith?.('.png')
+        ? `<img src="assets/ui/${icon}" class="icon" alt="${labels[node.type]||node.type}"/>`
+        : `<div class="emoji">${icon}</div>`;
+      nd.innerHTML=`${iconHTML}<div class="label">${labels[node.type]||node.type}</div><div class="reward">${rewards[node.type]||''}</div>`;
 
       if(!locked) nd.onclick=()=>selectNode(node);
     });
@@ -189,8 +186,9 @@ function selectNode(node){
 function open(){
   buildDOM();
   if(!mapData){ mapData=generateMap(); progress={floor:0,path:[]}; }
+  root.style.display='block';
   renderMap();
-  root.classList.add('on');
+  requestAnimationFrame(()=>root.classList.add('on'));
 }
 
 function close(){
