@@ -194,18 +194,52 @@ const fxScreen = new PIXI.Container();           // 屏幕空间: 粒子/光/晕
 world.addChild(groundL, waterL, foamL, snowL, overlayL, objL);
 app.stage.addChild(world, fxScreen);
 
-/* DPR/视口加固: 画布撑满屏 + resize 时同步渲染器与滤镜区域(防止高分屏下视口缩进黑屏) */
+/* DPR/视口加固: 画布撑满屏 + resize/恢复可见时同步渲染器、滤镜与转场云幕画布 */
 app.canvas.style.width='100%'; app.canvas.style.height='100%';
 app.canvas.style.display='block';
-addEventListener('resize',()=>{
-  app.renderer.resize(window.innerWidth, window.innerHeight);
-  if(world.filters && world.filters.length) world.filterArea=new PIXI.Rectangle(0,0,app.screen.width,app.screen.height);
+function syncViewport(){
+  const vw=Math.max(1, Math.round(window.visualViewport?.width || window.innerWidth || document.documentElement.clientWidth || 1));
+  const vh=Math.max(1, Math.round(window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight || 1));
+  app.renderer.resize(vw, vh);
+  app.canvas.style.width=vw+'px';
+  app.canvas.style.height=vh+'px';
+  world.filterArea=null;
+  const clouds=document.getElementById('clouds');
+  if(clouds){
+    const dpr=Math.min(window.devicePixelRatio||1,2);
+    const cw=Math.max(1, Math.round(vw*dpr));
+    const ch=Math.max(1, Math.round(vh*dpr));
+    if(clouds.width!==cw || clouds.height!==ch){
+      clouds.width=cw; clouds.height=ch;
+    }
+    clouds.style.width=vw+'px';
+    clouds.style.height=vh+'px';
+  }
+  app.render();
+}
+let viewportSyncTimer=0;
+function scheduleViewportSync(){
+  cancelAnimationFrame(viewportSyncTimer);
+  viewportSyncTimer=requestAnimationFrame(()=>{
+    syncViewport();
+    requestAnimationFrame(syncViewport);
+  });
+}
+syncViewport();
+addEventListener('resize',scheduleViewportSync);
+addEventListener('orientationchange',scheduleViewportSync);
+addEventListener('pageshow',scheduleViewportSync);
+addEventListener('focus',scheduleViewportSync);
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden) scheduleViewportSync();
 });
+window.visualViewport?.addEventListener('resize',scheduleViewportSync);
+window.visualViewport?.addEventListener('scroll',scheduleViewportSync);
 
 /* —— 四季色彩分级: ColorMatrixFilter 对整个世界统一调色 —— */
 /* 春=高饱和清新 / 夏=明亮高对比 / 秋=金黄枫红色相偏移 / 冬=去饱和冷调 */
 const seasonFilter=new PIXI.ColorMatrixFilter();
-world.filters=[seasonFilter];
+world.filters=[];
 // world.filterArea=new PIXI.Rectangle(0,0,window.innerWidth,window.innerHeight); // 注释掉 - 不设置 filterArea，让 PIXI 自动处理
 function mkMat({s=1,br=1,rO=0,gO=0,bO=0}){        // 饱和度+亮度+RGB偏移 → 20格矩阵
   const lr=.2126,lg=.7152,lb=.0722,iv=1-s;
@@ -310,18 +344,10 @@ function swapSeason(idx){
 
 /* —— 视口剔除: 只渲染镜头附近的瓦片/物件(性能核心) —— */
 function cullWorld(){
-  const vw=app.screen.width, vh=app.screen.height, s=world.scale.x;
-  const wx0=(0-world.x)/s, wy0=(0-world.y)/s, wx1=(vw-world.x)/s, wy1=(vh-world.y)/s;
-  const tx0=Math.max(0,(wx0/TS|0)-2), ty0=Math.max(0,(wy0/TS|0)-2);
-  const tx1=Math.min(MAP-1,(wx1/TS|0)+2), ty1=Math.min(MAP-1,(wy1/TS|0)+2);
-  for(let y=0;y<MAP;y++){const rowV=y>=ty0&&y<=ty1;
-    for(let x=0;x<MAP;x++){
-      const v=rowV&&x>=tx0&&x<=tx1, i=y*MAP+x;
-      tileSprites[i].visible=v; const sn=snowAt[i]; if(sn)sn.visible=v;
-    }}
-  for(const o of OBJECTS){const n=o.node;
-    n.visible = !o.felled && n.x>wx0-220&&n.x<wx1+220&&n.y>wy0-300&&n.y<wy1+140;}
-  for(const c of crops) c.visible = c.x>wx0-60&&c.x<wx1+60&&c.y>wy0-70&&c.y<wy1+70;
+  for(const sp of tileSprites) sp.visible=true;
+  for(const sn of snowAt) if(sn) sn.visible=true;
+  for(const o of OBJECTS) o.node.visible = !o.felled;
+  for(const c of crops) c.visible = true;
 }
 
 /* ================= 6. 精灵节点工厂(占位符 ⇄ 贴图) ================= */
@@ -1083,11 +1109,8 @@ app.ticker.add(tk=>{
       else if(Math.hypot(o.node.x-player.x,o.node.y-player.y)>100) chopLoop.obj=null;
       else { chopLoop.t-=dt; if(chopLoop.t<=0){ chopLoop.t=.5; chop(o); } } }
   }
-  seasonFilterOn = quality>0;                      // 低端机彻底移除滤镜(不依赖 .enabled,确保省开销)
-  if(seasonFilterOn !== (world.filters && world.filters.length>0)){
-    world.filters = seasonFilterOn ? [seasonFilter] : [];
-  }
-  if(seasonFilterOn) world.filterArea=new PIXI.Rectangle(0,0,app.screen.width,app.screen.height);
+  seasonFilterOn = false;                      // world 级滤镜会触发 Pixi 离屏裁剪黑块,先关闭以保证全图稳定渲染
+  if(world.filters && world.filters.length>0) world.filters=[];
   cullClock-=dt;
   if(cullClock<=0){ cullClock=.12; cullWorld(); updateHint(); }
 
