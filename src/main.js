@@ -1425,9 +1425,10 @@ function enterWorld(){
   }
 
   // Initialize World Map Integration
-  if(window.WorldMapIntegration) {
-    WorldMapIntegration.init();
-  }
+  // DISABLED: User feedback - "大陆地图按钮很抽象" (continental map button is confusing and ugly)
+  // if(window.WorldMapIntegration) {
+  //   WorldMapIntegration.init();
+  // }
 }
 $('enter').onclick=enterWorld;
 
@@ -1444,6 +1445,12 @@ setTimeout(()=>{
 
   // NOW trigger resize after everything is built and on stage
   handleResize();
+
+  // Force browser resize event (fixes black screen on some systems)
+  window.dispatchEvent(new Event('resize'));
+
+  // Double-check after another frame
+  requestAnimationFrame(()=>handleResize());
 },100);
 
 });
