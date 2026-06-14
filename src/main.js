@@ -164,8 +164,8 @@ placeObjects();
 (async ()=>{
 const app = new PIXI.Application();
 await app.init({
-  width: window.innerWidth,
-  height: window.innerHeight,
+  width: window.innerWidth || 1920,
+  height: window.innerHeight || 1080,
   background: 0x0d0f12,
   antialias: false,
   resolution: Math.min(window.devicePixelRatio||1, 2),
@@ -173,6 +173,9 @@ await app.init({
   roundPixels: true
 });   // 手动指定尺寸，避免 resizeTo 初始化失败
 document.getElementById('stage').appendChild(app.canvas);
+
+// 强制立即同步实际窗口尺寸
+app.renderer.resize(window.innerWidth, window.innerHeight);
 
 /* ---- 通用纹理 ---- */
 function radialTex(size, inner, outer){
