@@ -59,7 +59,7 @@ function injectStyle(){
   const css=`
   #battle{position:fixed;inset:0;z-index:80;display:none;opacity:0;
     transition:opacity .6s cubic-bezier(.4,0,.2,1);
-    background:radial-gradient(ellipse at 50% 30%,#2a2340 0%,#15121f 60%,#0a0810 100%);
+    background:url('assets/ui/battle_bg.jpg') center/cover, radial-gradient(ellipse at 50% 30%,#2a2340 0%,#15121f 60%,#0a0810 100%);
     font-family:'Noto Serif SC',serif;color:#f6f1e7;overflow:hidden;}
   #battle.on{display:block;opacity:1;}
   #battle .arena{position:absolute;inset:0;display:flex;flex-direction:column;}
