@@ -76,7 +76,7 @@ Continuously improve Terra Chronicle public playable prototype at https://terra.
   - Public readback passed: terra.bz9.me serves `main.js?v=39` and anchors `normalizeBeasts`, `fireSpirit()) hatchFire`, `get beasts`, and `水灵兽 Lv`.
   - Browser smoke passed: `node tools/terra_visual_smoke.js` loaded public v39, entered world, rendered non-black/colored canvas 1350/1345 of 1350 samples, brewed a card reveal, and reported 0 console/page errors.
   - Targeted pet persistence smoke passed: seeded localStorage with water Lv.3 + fire Lv.2, reloaded public domain, confirmed one water spirit, one fire spirit, `fireRehydrated=true`, and HUD text `水灵兽 Lv.3 · 闲逛中 …`.
-  - GitHub commit: PENDING.
+  - GitHub commit: 01607e8ee848070645fa4f78e8e289e42cbe258c.
 
 ## Next best lanes
 - Pet system v1: persist `farm.beasts`, prevent repeated fire-spirit hatch after refresh, show water/fire spirit levels and make upgrades visible.
