@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>灵兽捕获系统测试 - Terra Chronicle</title>
+  <style>
+    body {
+      font-family: 'Noto Serif SC', serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #f6f1e7;
+      padding: 40px;
+      margin: 0;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      color: #2a2520;
+    }
+
+    h1 {
+      color: #667eea;
+      border-bottom: 3px solid #667eea;
+      padding-bottom: 12px;
+    }
+
+    h2 {
+      color: #764ba2;
+      margin-top: 32px;
+    }
+
+    .test-panel {
+      background: #f4ecd8;
+      border: 2px solid #8b7355;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 16px 0;
+    }
+
+    button {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 16px;
+      font-family: 'Noto Serif SC', serif;
+      cursor: pointer;
+      margin: 8px 4px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .output {
+      background: #2a2520;
+      color: #0f0;
+      font-family: 'Courier New', monospace;
+      padding: 16px;
+      border-radius: 6px;
+      margin-top: 12px;
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+
+    .beast-card {
+      display: inline-block;
+      background: white;
+      border: 2px solid #8b7355;
+      border-radius: 8px;
+      padding: 16px;
+      margin: 8px;
+      min-width: 280px;
+      vertical-align: top;
+    }
+
+    .beast-card .name {
+      font-size: 20px;
+      font-weight: bold;
+      color: #2a2520;
+    }
+
+    .beast-card .rarity {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      color: white;
+      font-size: 12px;
+      font-weight: bold;
+      margin: 4px 0;
+    }
+
+    .rarity.common { background: #9ca3af; }
+    .rarity.uncommon { background: #3b82f6; }
+    .rarity.rare { background: #8b5cf6; }
+    .rarity.epic { background: #f59e0b; }
+    .rarity.legendary { background: #ef4444; }
+
+    .stats {
+      margin-top: 8px;
+      font-size: 14px;
+    }
+
+    .success { color: #16a34a; font-weight: bold; }
+    .error { color: #dc2626; font-weight: bold; }
+    .warning { color: #f59e0b; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🐉 灵兽捕获系统测试工具</h1>
+    <p>Terra Chronicle - Beast Capture System v1.0</p>
+
+    <h2>📍 测试 1: 野外遭遇生成</h2>
+    <div class="test-panel">
+      <button onclick="testSpawnEncounter('forest')">森林遭遇</button>
+      <button onclick="testSpawnEncounter('river')">河流遭遇</button>
+      <button onclick="testSpawnEncounter('mountain')">山脉遭遇</button>
+      <button onclick="testSpawnEncounter('plains')">平原遭遇</button>
+      <button onclick="testSpawnEncounter('swamp')">沼泽遭遇</button>
+      <div id="output1" class="output"></div>
+    </div>
+
+    <h2>⚔️ 测试 2: 捕获战斗</h2>
+    <div class="test-panel">
+      <button onclick="testCaptureBattle()">开始捕获战斗</button>
+      <button onclick="testCaptureRates()">测试捕获率</button>
+      <div id="output2" class="output"></div>
+    </div>
+
+    <h2>🏠 测试 3: 牧场管理</h2>
+    <div class="test-panel">
+      <button onclick="testAddToRanch()">添加到牧场</button>
+      <button onclick="testAssignWork()">分配工作</button>
+      <button onclick="testRanchStatus()">查看牧场状态</button>
+      <button onclick="testReleaseBeast()">放生灵兽</button>
+      <div id="output3" class="output"></div>
+    </div>
+
+    <h2>🔍 测试 4: 查询功能</h2>
+    <div class="test-panel">
+      <button onclick="testQuerySpecies()">查询所有物种</button>
+      <button onclick="testQueryByBiome()">按生物群落查询</button>
+      <button onclick="testQueryByRarity()">按稀有度查询</button>
+      <div id="output4" class="output"></div>
+    </div>
+
+    <h2>📦 测试 5: 牧场可视化</h2>
+    <div class="test-panel">
+      <button onclick="visualizeRanch()">可视化牧场</button>
+      <div id="ranch-display"></div>
+    </div>
+  </div>
+
+  <!-- 加载核心系统 -->
+  <script src="src/state.js"></script>
+  <script src="src/capture_system.js"></script>
+
+  <script>
+    // 初始化测试环境
+    Terra.newGame('test_player');
+    Terra.farm.inventory.materials = {
+      soul_crystal_basic: 10,
+      soul_crystal_advanced: 5,
+      soul_crystal_perfect: 2
+    };
+
+    let currentEncounter = null;
+
+    function log(outputId, message, type = 'normal') {
+      const output = document.getElementById(outputId);
+      const timestamp = new Date().toLocaleTimeString();
+      const prefix = type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : '▶';
+      output.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+      output.scrollTop = output.scrollHeight;
+    }
+
+    function clear(outputId) {
+      document.getElementById(outputId).textContent = '';
+    }
+
+    // 测试 1: 野外遭遇
+    function testSpawnEncounter(biome) {
+      clear('output1');
+      log('output1', `尝试在 ${biome} 生成遭遇...`);
+
+      const encounter = CaptureSystem.trySpawnEncounter(
+        { x: 10, y: 10, biome },
+        1.0  // 100% 触发
+      );
+
+      if (encounter) {
+        currentEncounter = encounter;
+        const beast = encounter.beast;
+        log('output1', `发现野生灵兽: ${beast.name}`, 'success');
+        log('output1', `  稀有度: ${beast.rarity}`);
+        log('output1', `  元素: ${beast.element}`);
+        log('output1', `  HP: ${beast.currentHP}/${beast.maxHP}`);
+        log('output1', `  攻击: ${beast.atk}  防御: ${beast.def}`);
+        log('output1', `  性格: ${beast.personality.name} (效率 ${beast.personality.workEfficiency}x)`);
+        log('output1', `  捕获阻力: ${beast.captureResistance}x`);
+      } else {
+        log('output1', '未触发遭遇', 'warning');
+      }
+    }
+
+    // 测试 2: 捕获战斗
+    function testCaptureBattle() {
+      clear('output2');
+
+      if (!currentEncounter) {
+        log('output2', '请先生成一个遭遇！', 'error');
+        return;
+      }
+
+      const beast = currentEncounter.beast;
+      log('output2', `开始捕获 ${beast.name}...`);
+
+      // 模拟战斗削弱
+      beast.currentHP = Math.round(beast.maxHP * 0.25);
+      log('output2', `战斗后 HP: ${beast.currentHP}/${beast.maxHP} (25%)`);
+
+      // 尝试捕获
+      const result = CaptureSystem.attemptCapture(beast, 'basic');
+      log('output2', `捕获率: ${result.rate}%`);
+      log('output2', `掷骰: ${result.roll}%`);
+      log('output2', `摇晃次数: ${result.shakeCount}/4`);
+
+      if (result.success) {
+        log('output2', result.message, 'success');
+        const addResult = CaptureSystem.addBeastToRanch(Terra.farm, result.beast);
+        if (addResult.ok) {
+          log('output2', `${result.beast.name} 已加入牧场！`, 'success');
+        }
+      } else {
+        log('output2', result.message, 'error');
+      }
+    }
+
+    function testCaptureRates() {
+      clear('output2');
+
+      if (!currentEncounter) {
+        log('output2', '请先生成一个遭遇！', 'error');
+        return;
+      }
+
+      const beast = currentEncounter.beast;
+      log('output2', `测试 ${beast.name} 的捕获率:`);
+
+      const hpLevels = [0.5, 0.3, 0.2, 0.1, 0.05];
+      const crystals = ['basic', 'advanced', 'perfect'];
+
+      log('output2', '\nHP%  | 基础 | 高级 | 完美');
+      log('output2', '-----|------|------|------');
+
+      hpLevels.forEach(hp => {
+        beast.currentHP = Math.round(beast.maxHP * hp);
+        const rates = crystals.map(c => {
+          const rate = CaptureSystem.calculateCaptureRate(beast, c);
+          return `${(rate * 100).toFixed(1)}%`;
+        });
+        log('output2', `${(hp*100).toFixed(0).padStart(3)}% | ${rates[0].padStart(5)} | ${rates[1].padStart(5)} | ${rates[2].padStart(5)}`);
+      });
+    }
+
+    // 测试 3: 牧场管理
+    function testAddToRanch() {
+      clear('output3');
+
+      const species = CaptureSystem.getAllSpecies()[Math.floor(Math.random() * CaptureSystem.getAllSpecies().length)];
+      const wildBeast = CaptureSystem._createWildBeast(species, { x: 10, y: 10, biome: species.biome });
+      const tamedBeast = CaptureSystem._convertToTamed(wildBeast);
+
+      const result = CaptureSystem.addBeastToRanch(Terra.farm, tamedBeast);
+
+      if (result.ok) {
+        log('output3', `${tamedBeast.name} 加入牧场！`, 'success');
+        log('output3', `牧场占用: ${Terra.farm.beasts.length}/20`);
+      } else {
+        log('output3', result.reason, 'error');
+      }
+    }
+
+    function testAssignWork() {
+      clear('output3');
+
+      if (!Terra.farm.beasts || Terra.farm.beasts.length === 0) {
+        log('output3', '牧场中没有灵兽！', 'error');
+        return;
+      }
+
+      const beast = Terra.farm.beasts[0];
+      const species = CaptureSystem.getSpecies(beast.speciesId);
+      const workType = species.workTypes[0];
+
+      const result = CaptureSystem.assignWork(Terra.farm, beast.id, workType);
+
+      if (result.ok) {
+        log('output3', `${beast.name} 开始工作: ${workType}`, 'success');
+        log('output3', `工作效率: ${beast.personality.workEfficiency}x`);
+      } else {
+        log('output3', result.reason, 'error');
+      }
+    }
+
+    function testRanchStatus() {
+      clear('output3');
+
+      const status = CaptureSystem.getRanchStatus(Terra.farm);
+
+      log('output3', '=== 牧场状态 ===');
+      log('output3', `容量: ${status.occupied}/${status.capacity}`);
+      log('output3', `可用槽位: ${status.available}`);
+      log('output3', `工作中: ${status.workingBeasts}`);
+      log('output3', `休息中: ${status.restingBeasts}`);
+
+      if (status.beasts.length > 0) {
+        log('output3', '\n=== 灵兽列表 ===');
+        status.beasts.forEach((beast, i) => {
+          log('output3', `${i+1}. ${beast.name} (${beast.rarity}) - ${beast.assignment || '休息中'}`);
+          log('output3', `   HP: ${beast.currentHP}/${beast.maxHP}, 体力: ${beast.stamina}/100`);
+        });
+      }
+    }
+
+    function testReleaseBeast() {
+      clear('output3');
+
+      if (!Terra.farm.beasts || Terra.farm.beasts.length === 0) {
+        log('output3', '牧场中没有灵兽！', 'error');
+        return;
+      }
+
+      const beast = Terra.farm.beasts[Terra.farm.beasts.length - 1];
+
+      if (beast.assignment) {
+        CaptureSystem.unassignWork(Terra.farm, beast.id);
+      }
+
+      const result = CaptureSystem.releaseBeast(Terra.farm, beast.id);
+
+      if (result.ok) {
+        log('output3', `${result.beast.name} 回归自然了...`, 'success');
+        log('output3', `牧场占用: ${Terra.farm.beasts.length}/20`);
+      } else {
+        log('output3', result.reason, 'error');
+      }
+    }
+
+    // 测试 4: 查询
+    function testQuerySpecies() {
+      clear('output4');
+
+      const allSpecies = CaptureSystem.getAllSpecies();
+      log('output4', `共有 ${allSpecies.length} 种灵兽:`);
+
+      const byRarity = {};
+      allSpecies.forEach(s => {
+        if (!byRarity[s.rarity.tier]) byRarity[s.rarity.tier] = [];
+        byRarity[s.rarity.tier].push(s.name);
+      });
+
+      Object.entries(byRarity).forEach(([rarity, names]) => {
+        log('output4', `\n${rarity.toUpperCase()}: ${names.join(', ')}`);
+      });
+    }
+
+    function testQueryByBiome() {
+      clear('output4');
+
+      const biomes = Object.values(BIOMES);
+
+      biomes.forEach(biome => {
+        const species = CaptureSystem.getSpeciesByBiome(biome);
+        log('output4', `${biome}: ${species.map(s => s.name).join(', ') || '(无)'}`);
+      });
+    }
+
+    function testQueryByRarity() {
+      clear('output4');
+
+      const rarities = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+
+      rarities.forEach(rarity => {
+        const species = CaptureSystem.getSpeciesByRarity(rarity);
+        log('output4', `${rarity.toUpperCase()}: ${species.length} 种`);
+        species.forEach(s => {
+          log('output4', `  - ${s.name} (${s.element}, ${s.biome})`);
+        });
+      });
+    }
+
+    // 测试 5: 可视化
+    function visualizeRanch() {
+      const display = document.getElementById('ranch-display');
+      display.innerHTML = '';
+
+      const status = CaptureSystem.getRanchStatus(Terra.farm);
+
+      if (status.beasts.length === 0) {
+        display.innerHTML = '<p style="text-align:center;color:#999;">牧场是空的。点击上方按钮添加灵兽。</p>';
+        return;
+      }
+
+      status.beasts.forEach(beast => {
+        const card = document.createElement('div');
+        card.className = 'beast-card';
+
+        card.innerHTML = `
+          <div class="name">${beast.name}</div>
+          <div class="rarity ${beast.rarity}">${beast.rarity}</div>
+          <div style="color:#666;font-size:12px;margin:4px 0;">
+            ${beast.element} | ${beast.personality.name}
+          </div>
+          <div class="stats">
+            HP: ${beast.currentHP}/${beast.maxHP}<br>
+            攻击: ${beast.atk} | 防御: ${beast.def}<br>
+            体力: ${beast.stamina}/100<br>
+            ${beast.assignment ? `<span class="warning">工作中: ${beast.assignment}</span>` : '<span style="color:#999;">休息中</span>'}
+          </div>
+        `;
+
+        display.appendChild(card);
+      });
+    }
+
+    // 初始化提示
+    log('output1', '系统已就绪。点击按钮开始测试。');
+    log('output2', '系统已就绪。点击按钮开始测试。');
+    log('output3', '系统已就绪。点击按钮开始测试。');
+    log('output4', '系统已就绪。点击按钮开始测试。');
+  </script>
+</body>
+</html>

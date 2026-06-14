@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Terra Chronicle · 世界地图</title>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #0a0d12;
+    font-family: 'Noto Serif SC', serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: #f6f1e7;
+  }
+
+  #worldMapCanvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: grab;
+  }
+
+  #worldMapCanvas:active {
+    cursor: grabbing;
+  }
+
+  /* 控制面板 */
+  #controls {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(10, 13, 18, 0.85);
+    border: 1px solid rgba(246, 241, 231, 0.2);
+    border-radius: 8px;
+    padding: 16px;
+    min-width: 200px;
+    backdrop-filter: blur(10px);
+    z-index: 10;
+  }
+
+  #controls h3 {
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    margin-bottom: 12px;
+    color: #c9a24b;
+    border-bottom: 1px solid rgba(201, 162, 75, 0.3);
+    padding-bottom: 8px;
+  }
+
+  #controls .control-group {
+    margin-bottom: 12px;
+  }
+
+  #controls label {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+    opacity: 0.8;
+  }
+
+  #controls input[type="text"] {
+    width: 100%;
+    background: rgba(246, 241, 231, 0.1);
+    border: 1px solid rgba(246, 241, 231, 0.2);
+    border-radius: 4px;
+    padding: 6px 8px;
+    color: #f6f1e7;
+    font-size: 12px;
+    font-family: inherit;
+  }
+
+  #controls input[type="text"]:focus {
+    outline: none;
+    border-color: #c9a24b;
+  }
+
+  #controls button {
+    width: 100%;
+    background: rgba(201, 162, 75, 0.2);
+    border: 1px solid rgba(201, 162, 75, 0.5);
+    border-radius: 4px;
+    padding: 8px 12px;
+    color: #f6f1e7;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.1em;
+  }
+
+  #controls button:hover {
+    background: rgba(201, 162, 75, 0.35);
+    border-color: #c9a24b;
+  }
+
+  #controls button:active {
+    transform: scale(0.98);
+  }
+
+  #controls .stats {
+    font-size: 11px;
+    line-height: 1.6;
+    opacity: 0.7;
+    margin-top: 8px;
+  }
+
+  /* 图例 */
+  #legend {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background: rgba(10, 13, 18, 0.85);
+    border: 1px solid rgba(246, 241, 231, 0.2);
+    border-radius: 8px;
+    padding: 12px 16px;
+    backdrop-filter: blur(10px);
+    z-index: 10;
+  }
+
+  #legend h4 {
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: #c9a24b;
+  }
+
+  #legend .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    font-size: 11px;
+  }
+
+  #legend .legend-color {
+    width: 20px;
+    height: 20px;
+    border-radius: 3px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+
+  /* 提示信息 */
+  #hint {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(10, 13, 18, 0.85);
+    border: 1px solid rgba(246, 241, 231, 0.2);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 11px;
+    opacity: 0.6;
+    backdrop-filter: blur(10px);
+    z-index: 10;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="worldMapCanvas"></canvas>
+
+<!-- 控制面板 -->
+<div id="controls">
+  <h3>世界地图控制</h3>
+
+  <div class="control-group">
+    <label>玩家名称</label>
+    <input type="text" id="playerName" placeholder="输入名称">
+  </div>
+
+  <div class="control-group">
+    <button id="addPlayerBtn">添加玩家</button>
+  </div>
+
+  <div class="control-group">
+    <button id="addRandomBtn">添加随机玩家</button>
+  </div>
+
+  <div class="control-group">
+    <button id="centerMapBtn">回到中心</button>
+  </div>
+
+  <div class="stats">
+    <div>地图尺寸: 100×100</div>
+    <div id="playerCount">玩家数量: 0</div>
+  </div>
+</div>
+
+<!-- 图例 -->
+<div id="legend">
+  <h4>地形</h4>
+  <div class="legend-item">
+    <div class="legend-color" style="background: #1a3a52;"></div>
+    <span>水域</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background: #3a5a3a;"></div>
+    <span>平原</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background: #2a4a2a;"></div>
+    <span>森林</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background: #5a5a6a;"></div>
+    <span>山脉</span>
+  </div>
+</div>
+
+<!-- 操作提示 -->
+<div id="hint">
+  拖拽移动 · 滚轮缩放 · 点击查看详情
+</div>
+
+<script src="src/world_map.js"></script>
+<script>
+  // 初始化世界地图
+  WorldMap.init('worldMapCanvas');
+
+  // 添加一些示例玩家
+  const demoPlayers = [
+    { id: 'player_1', name: '左灏', level: 15 },
+    { id: 'player_2', name: '春田守护者', level: 8 },
+    { id: 'player_3', name: '战斗法师', level: 22 },
+    { id: 'player_4', name: '灵兽牧者', level: 12 },
+    { id: 'player_5', name: '炼金术士', level: 18 },
+    { id: 'player_6', name: '大地之子', level: 10 },
+    { id: 'player_7', name: '虚空行者', level: 25 },
+    { id: 'player_8', name: '河谷农夫', level: 6 }
+  ];
+
+  demoPlayers.forEach(p => {
+    WorldMap.assignPlayerLocation(p.id, p.name, p.level);
+  });
+
+  // 更新玩家计数
+  function updatePlayerCount() {
+    document.getElementById('playerCount').textContent = `玩家数量: ${WorldMap.players.size}`;
+  }
+  updatePlayerCount();
+
+  // 添加玩家按钮
+  document.getElementById('addPlayerBtn').addEventListener('click', () => {
+    const nameInput = document.getElementById('playerName');
+    const name = nameInput.value.trim();
+
+    if (!name) {
+      alert('请输入玩家名称');
+      return;
+    }
+
+    const playerId = 'player_' + Date.now();
+    const level = Math.floor(Math.random() * 20) + 1;
+
+    WorldMap.assignPlayerLocation(playerId, name, level);
+    nameInput.value = '';
+    updatePlayerCount();
+
+    console.log(`添加玩家: ${name} (等级 ${level})`);
+  });
+
+  // 添加随机玩家按钮
+  document.getElementById('addRandomBtn').addEventListener('click', () => {
+    const names = [
+      '旅行者', '探险家', '守护者', '开拓者', '冒险家',
+      '术士', '游侠', '骑士', '贤者', '先知',
+      '收获者', '铁匠', '商人', '学者', '吟游诗人'
+    ];
+
+    const randomName = names[Math.floor(Math.random() * names.length)] +
+                       Math.floor(Math.random() * 999);
+    const playerId = 'player_' + Date.now();
+    const level = Math.floor(Math.random() * 30) + 1;
+
+    WorldMap.assignPlayerLocation(playerId, randomName, level);
+    updatePlayerCount();
+
+    console.log(`添加随机玩家: ${randomName} (等级 ${level})`);
+  });
+
+  // 回到中心按钮
+  document.getElementById('centerMapBtn').addEventListener('click', () => {
+    WorldMap.centerCamera();
+  });
+
+  // 监听窗口焦点 (模拟实时更新)
+  let updateInterval;
+
+  function startRealtimeUpdates() {
+    updateInterval = setInterval(() => {
+      // 随机更新一个玩家的等级
+      const playerArray = Array.from(WorldMap.players.values());
+      if (playerArray.length > 0) {
+        const randomPlayer = playerArray[Math.floor(Math.random() * playerArray.length)];
+        const newLevel = Math.min(99, randomPlayer.level + Math.floor(Math.random() * 2));
+
+        if (newLevel > randomPlayer.level) {
+          WorldMap.updatePlayer(randomPlayer.playerId, { level: newLevel });
+          console.log(`[实时更新] ${randomPlayer.name} 升级到 ${newLevel}`);
+        }
+      }
+    }, 5000); // 每5秒更新一次
+  }
+
+  window.addEventListener('focus', () => {
+    if (!updateInterval) {
+      startRealtimeUpdates();
+    }
+  });
+
+  window.addEventListener('blur', () => {
+    if (updateInterval) {
+      clearInterval(updateInterval);
+      updateInterval = null;
+    }
+  });
+
+  // 启动实时更新
+  startRealtimeUpdates();
+
+  // 键盘快捷键
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      WorldMap.selectedHex = null;
+    } else if (e.key === 'c' || e.key === 'C') {
+      WorldMap.centerCamera();
+    }
+  });
+
+  console.log('[WorldMap Demo] 已加载');
+  console.log('- 添加了', demoPlayers.length, '个示例玩家');
+  console.log('- 拖拽地图移动视角');
+  console.log('- 滚轮缩放');
+  console.log('- 点击玩家六边形查看详情');
+  console.log('- 按 C 键回到中心');
+</script>
+
+</body>
+</html>
