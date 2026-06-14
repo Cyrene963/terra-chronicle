@@ -33,7 +33,26 @@ SPRITES = [
    "three-quarter game view, whole structure visible"),
   ("fence", "one short rustic wooden fence segment with two posts and two horizontal rails, "
    "top-down three-quarter game view"),
-  ("crop", "one young green wheat crop sprout cluster with a few leaves, top-down three-quarter game view"),
+  # Crop growth stages: 5 crops × 3 stages = 15 sprites
+  ("wheat_seedling", "one tiny wheat seedling sprout with 2-3 thin green leaves just emerging from soil, very small, top-down view"),
+  ("wheat_growing", "one medium-sized wheat plant with fuller green stalks and leaves, about half grown, top-down view"),
+  ("wheat_mature", "one fully grown golden wheat plant with ripe grain heads bending gracefully, tall and complete, top-down view"),
+
+  ("corn_seedling", "one tiny corn seedling sprout with 2-3 small pointed green leaves just emerging from soil, very small, top-down view"),
+  ("corn_growing", "one medium-sized corn plant with broader green leaves and developing stalk, about half grown, top-down view"),
+  ("corn_mature", "one fully grown tall corn plant with large leaves and golden corn cob visible, complete and ripe, top-down view"),
+
+  ("tomato_seedling", "one tiny tomato seedling sprout with 2-3 small rounded green leaves just emerging from soil, very small, top-down view"),
+  ("tomato_growing", "one medium-sized tomato plant with fuller green foliage and small yellow flowers, about half grown, top-down view"),
+  ("tomato_mature", "one fully grown bushy tomato plant with lush green leaves and bright red ripe tomatoes visible, complete harvest-ready, top-down view"),
+
+  ("rice_seedling", "one tiny rice seedling sprout with 2-3 thin blade-like green leaves just emerging from flooded soil, very small, top-down view"),
+  ("rice_growing", "one medium-sized rice plant with fuller green grass-like stalks in shallow water, about half grown, top-down view"),
+  ("rice_mature", "one fully grown golden rice plant with drooping grain panicles heavy with rice, tall and ready to harvest, top-down view"),
+
+  ("magic_herb_seedling", "one tiny magical herb seedling with 2-3 small glowing leaves just emerging from soil, faint mystical sparkles, very small, top-down view"),
+  ("magic_herb_growing", "one medium-sized magical herb plant with glowing foliage and gentle arcane shimmer, about half grown, top-down view"),
+  ("magic_herb_mature", "one fully grown mystical herb plant with luminous leaves and bright magical aura, ethereal glow, complete and potent, top-down view"),
   ("water_serpent", "one blue serpent-like beast with flowing snake body and graceful fins, "
    "aquatic mystical creature, top-down three-quarter game view, full body visible"),
   ("fire_fox", "one orange fox beast with flames trailing from tail and paws, fiery mystical creature, "

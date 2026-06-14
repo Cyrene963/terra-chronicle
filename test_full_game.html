@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terra Chronicle - Full Game Test</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: linear-gradient(135deg, #0d0f12 0%, #1a1d24 100%);
+      color: #e8e8e8;
+      overflow: hidden;
+    }
+    #container {
+      display: flex;
+      height: 100vh;
+    }
+    #gameArea {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+    #stage {
+      width: 100%;
+      height: 100%;
+    }
+    #controlPanel {
+      width: 380px;
+      background: rgba(20, 24, 32, 0.95);
+      border-left: 1px solid rgba(212, 175, 55, 0.3);
+      padding: 20px;
+      overflow-y: auto;
+      box-shadow: -4px 0 20px rgba(0, 0, 0, 0.5);
+    }
+    #controlPanel::-webkit-scrollbar {
+      width: 8px;
+    }
+    #controlPanel::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+    }
+    #controlPanel::-webkit-scrollbar-thumb {
+      background: rgba(212, 175, 55, 0.4);
+      border-radius: 4px;
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      color: #d4af37;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+    h2 {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: #c9a24b;
+      margin: 24px 0 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+    }
+    .section {
+      margin-bottom: 20px;
+    }
+    .btn {
+      width: 100%;
+      padding: 12px 16px;
+      margin: 6px 0;
+      background: linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(201, 162, 75, 0.1));
+      border: 1px solid rgba(212, 175, 55, 0.4);
+      border-radius: 6px;
+      color: #e8e8e8;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      text-align: left;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .btn:hover {
+      background: linear-gradient(135deg, rgba(212, 175, 55, 0.25), rgba(201, 162, 75, 0.15));
+      border-color: rgba(212, 175, 55, 0.7);
+      transform: translateX(-3px);
+      box-shadow: 0 0 16px rgba(212, 175, 55, 0.3);
+    }
+    .btn:active {
+      transform: translateX(-1px);
+    }
+    .btn-icon {
+      font-size: 16px;
+      opacity: 0.7;
+    }
+    .debug-display {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(212, 175, 55, 0.2);
+      border-radius: 6px;
+      padding: 14px;
+      font-size: 12px;
+      font-family: 'Courier New', monospace;
+      line-height: 1.6;
+      margin-top: 12px;
+    }
+    .debug-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .debug-row:last-child {
+      border-bottom: none;
+    }
+    .debug-label {
+      color: #9fadbc;
+      font-weight: 600;
+    }
+    .debug-value {
+      color: #d4af37;
+      font-weight: 500;
+    }
+    .status-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+    .status-active {
+      background: #4ade80;
+      box-shadow: 0 0 8px #4ade80;
+    }
+    .status-inactive {
+      background: #6b7280;
+    }
+    .input-group {
+      display: flex;
+      gap: 8px;
+      margin: 8px 0;
+    }
+    .input-group input {
+      flex: 1;
+      padding: 8px 12px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      border-radius: 4px;
+      color: #e8e8e8;
+      font-size: 13px;
+    }
+    .input-group input:focus {
+      outline: none;
+      border-color: rgba(212, 175, 55, 0.6);
+      box-shadow: 0 0 8px rgba(212, 175, 55, 0.2);
+    }
+    .subtitle {
+      font-size: 11px;
+      color: #9fadbc;
+      margin-top: 4px;
+      letter-spacing: 0.05em;
+    }
+    #loadingOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(13, 15, 18, 0.95);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      font-size: 18px;
+      color: #d4af37;
+      letter-spacing: 0.1em;
+    }
+    #loadingOverlay.hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="loadingOverlay">Loading Terra Chronicle...</div>
+
+  <div id="container">
+    <div id="gameArea">
+      <div id="stage"></div>
+    </div>
+
+    <div id="controlPanel">
+      <h1>🎮 Game Test Panel</h1>
+      <div class="subtitle">Terra Chronicle - Full System Integration</div>
+
+      <h2>🐉 Encounters & Capture</h2>
+      <div class="section">
+        <button class="btn" onclick="TestPanel.spawnBeastEncounter()">
+          <span>Spawn Beast Encounter</span>
+          <span class="btn-icon">⚔️</span>
+        </button>
+        <button class="btn" onclick="TestPanel.openCaptureUI()">
+          <span>Open Capture UI (Debug)</span>
+          <span class="btn-icon">🎯</span>
+        </button>
+      </div>
+
+      <h2>🌸 Seasonal Events</h2>
+      <div class="section">
+        <button class="btn" onclick="TestPanel.triggerSpringBloom()">
+          <span>Trigger Spring Bloom</span>
+          <span class="btn-icon">🌺</span>
+        </button>
+        <button class="btn" onclick="TestPanel.triggerAutumnHarvest()">
+          <span>Trigger Autumn Harvest</span>
+          <span class="btn-icon">🍂</span>
+        </button>
+        <button class="btn" onclick="TestPanel.triggerVoidTide()">
+          <span>Trigger Void Tide</span>
+          <span class="btn-icon">🌑</span>
+        </button>
+        <button class="btn" onclick="TestPanel.openEventUI()">
+          <span>Open Active Event UI</span>
+          <span class="btn-icon">📋</span>
+        </button>
+      </div>
+
+      <h2>🗺️ World Map</h2>
+      <div class="section">
+        <button class="btn" onclick="TestPanel.openWorldMap()">
+          <span>Open World Map</span>
+          <span class="btn-icon">🗺️</span>
+        </button>
+        <button class="btn" onclick="TestPanel.unlockAllRegions()">
+          <span>Unlock All Regions</span>
+          <span class="btn-icon">🔓</span>
+        </button>
+      </div>
+
+      <h2>⏰ Time Control</h2>
+      <div class="section">
+        <div class="input-group">
+          <input type="number" id="fastForwardDays" placeholder="Days" value="7" min="1" max="100">
+          <button class="btn" onclick="TestPanel.fastForward()" style="width: auto; padding: 8px 16px;">
+            Fast Forward ⏩
+          </button>
+        </div>
+        <button class="btn" onclick="TestPanel.advanceToSpring()">
+          <span>Advance to Spring</span>
+          <span class="btn-icon">🌱</span>
+        </button>
+        <button class="btn" onclick="TestPanel.advanceToSummer()">
+          <span>Advance to Summer</span>
+          <span class="btn-icon">☀️</span>
+        </button>
+        <button class="btn" onclick="TestPanel.advanceToAutumn()">
+          <span>Advance to Autumn</span>
+          <span class="btn-icon">🍁</span>
+        </button>
+        <button class="btn" onclick="TestPanel.advanceToWinter()">
+          <span>Advance to Winter</span>
+          <span class="btn-icon">❄️</span>
+        </button>
+      </div>
+
+      <h2>🌾 Farming</h2>
+      <div class="section">
+        <button class="btn" onclick="TestPanel.plantAllPlots()">
+          <span>Plant All Crop Plots</span>
+          <span class="btn-icon">🌱</span>
+        </button>
+        <button class="btn" onclick="TestPanel.matureCrops()">
+          <span>Mature All Crops Instantly</span>
+          <span class="btn-icon">⚡</span>
+        </button>
+        <button class="btn" onclick="TestPanel.harvestAll()">
+          <span>Harvest All Mature Crops</span>
+          <span class="btn-icon">🌾</span>
+        </button>
+      </div>
+
+      <h2>🏠 Neighbors</h2>
+      <div class="section">
+        <button class="btn" onclick="TestPanel.spawnNeighbor()">
+          <span>Spawn Neighbor Visit</span>
+          <span class="btn-icon">👤</span>
+        </button>
+        <button class="btn" onclick="TestPanel.openGiftUI()">
+          <span>Open Gift Exchange</span>
+          <span class="btn-icon">🎁</span>
+        </button>
+      </div>
+
+      <h2>🔬 Alchemy & Crafting</h2>
+      <div class="section">
+        <button class="btn" onclick="TestPanel.openAlchemy()">
+          <span>Open Alchemy Workshop</span>
+          <span class="btn-icon">⚗️</span>
+        </button>
+        <button class="btn" onclick="TestPanel.addResources()">
+          <span>Add Resources (+50 each)</span>
+          <span class="btn-icon">💎</span>
+        </button>
+      </div>
+
+      <h2>📊 Debug Display</h2>
+      <div class="debug-display" id="debugDisplay">
+        <div class="debug-row">
+          <span class="debug-label">Current Day:</span>
+          <span class="debug-value" id="debugDay">-</span>
+        </div>
+        <div class="debug-row">
+          <span class="debug-label">Season:</span>
+          <span class="debug-value" id="debugSeason">-</span>
+        </div>
+        <div class="debug-row">
+          <span class="debug-label">Active Events:</span>
+          <span class="debug-value" id="debugEvents">-</span>
+        </div>
+        <div class="debug-row">
+          <span class="debug-label">Beast Count:</span>
+          <span class="debug-value" id="debugBeasts">-</span>
+        </div>
+        <div class="debug-row">
+          <span class="debug-label">Neighbor Status:</span>
+          <span class="debug-value" id="debugNeighbors">-</span>
+        </div>
+        <div class="debug-row">
+          <span class="debug-label">Crops Planted:</span>
+          <span class="debug-value" id="debugCrops">-</span>
+        </div>
+        <div class="debug-row">
+          <span class="debug-label">Player Position:</span>
+          <span class="debug-value" id="debugPlayerPos">-</span>
+        </div>
+        <div class="debug-row">
+          <span class="debug-label">Capture System:</span>
+          <span class="debug-value" id="debugCapture">
+            <span class="status-indicator status-inactive"></span> Loading...
+          </span>
+        </div>
+        <div class="debug-row">
+          <span class="debug-label">Ecology System:</span>
+          <span class="debug-value" id="debugEcology">
+            <span class="status-indicator status-inactive"></span> Loading...
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Load PixiJS v8 -->
+  <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+
+  <!-- Load all game systems -->
+  <script src="src/state.js"></script>
+  <script src="src/capture_system.js"></script>
+  <script src="src/capture_integration.js"></script>
+  <script src="src/capture_main_integration.js"></script>
+  <script src="src/neighbor_system.js"></script>
+  <script src="src/ecology_system.js"></script>
+  <script src="src/ecology_integration.js"></script>
+  <script src="src/ecology_usage_example.js"></script>
+  <script src="src/seasonal_events.js"></script>
+  <script src="src/world_map.js"></script>
+  <script src="src/world_map_integration.js"></script>
+  <script src="src/alchemy.js"></script>
+  <script src="src/battle.js"></script>
+  <script src="src/dungeon.js"></script>
+  <script src="src/upgrade.js"></script>
+  <script src="src/farming_enhanced.js"></script>
+  <script src="src/evolution_tree.js"></script>
+  <script src="src/websocket_client.js"></script>
+
+  <!-- Load main game -->
+  <script src="src/main.js"></script>
+
+  <script>
+    // Test Panel API
+    const TestPanel = {
+      // Wait for game to load
+      waitForGame() {
+        return new Promise((resolve) => {
+          const check = () => {
+            if (window.__dbg && window.__dbg.player) {
+              resolve();
+            } else {
+              setTimeout(check, 100);
+            }
+          };
+          check();
+        });
+      },
+
+      // Capture & Encounters
+      spawnBeastEncounter() {
+        if (!window.CaptureIntegration) {
+          alert('Capture system not loaded');
+          return;
+        }
+        // Manually trigger an encounter near player
+        const player = window.__dbg.player;
+        const wx = player.x + 100;
+        const wy = player.y + 100;
+        const grid = window.__dbg ? window.__dbg.planted : [];
+
+        if (CaptureIntegration.tryTriggerEncounter(wx, wy, grid)) {
+          console.log('[TEST] Beast encounter spawned!');
+        } else {
+          console.log('[TEST] Failed to spawn encounter, trying forced spawn...');
+          // Force spawn by directly calling the encounter system
+          if (window.CaptureSystem) {
+            const encounter = CaptureSystem.generateEncounter();
+            if (window.openEncounterUI) {
+              window.openEncounterUI(encounter);
+            }
+          }
+        }
+      },
+
+      openCaptureUI() {
+        if (window.CaptureSystem) {
+          const encounter = CaptureSystem.generateEncounter();
+          if (window.openEncounterUI) {
+            window.openEncounterUI(encounter);
+          } else {
+            alert('Encounter UI not available');
+          }
+        } else {
+          alert('Capture system not loaded');
+        }
+      },
+
+      // Seasonal Events
+      triggerSpringBloom() {
+        if (window.SeasonalEvents) {
+          SeasonalEvents.forceEvent('spring_bloom');
+          console.log('[TEST] Spring Bloom event triggered');
+          this.updateDebug();
+        } else {
+          alert('Seasonal events system not loaded');
+        }
+      },
+
+      triggerAutumnHarvest() {
+        if (window.SeasonalEvents) {
+          SeasonalEvents.forceEvent('autumn_harvest');
+          console.log('[TEST] Autumn Harvest event triggered');
+          this.updateDebug();
+        } else {
+          alert('Seasonal events system not loaded');
+        }
+      },
+
+      triggerVoidTide() {
+        if (window.SeasonalEvents) {
+          SeasonalEvents.forceEvent('void_tide');
+          console.log('[TEST] Void Tide event triggered');
+          this.updateDebug();
+        } else {
+          alert('Seasonal events system not loaded');
+        }
+      },
+
+      openEventUI() {
+        if (window.SeasonalEvents && SeasonalEvents.currentEvent) {
+          if (window.openEventUI) {
+            window.openEventUI(SeasonalEvents.currentEvent.id);
+          } else {
+            alert('Event UI not available');
+          }
+        } else {
+          alert('No active seasonal event');
+        }
+      },
+
+      // World Map
+      openWorldMap() {
+        if (window.WorldMap) {
+          WorldMap.open();
+        } else {
+          alert('World map not loaded');
+        }
+      },
+
+      unlockAllRegions() {
+        if (window.Terra && Terra.farm) {
+          Terra.farm.unlockedRegions = ['home', 'forest', 'mountains', 'desert', 'ocean', 'void'];
+          Terra.save();
+          console.log('[TEST] All regions unlocked');
+          alert('All regions unlocked! Open world map to see them.');
+        }
+      },
+
+      // Time Control
+      fastForward() {
+        const days = parseInt(document.getElementById('fastForwardDays').value) || 7;
+        if (window.__dbg) {
+          const DAY_SECONDS = 30;
+          window.elapsed = (window.elapsed || 0) + (days * DAY_SECONDS);
+          console.log(`[TEST] Fast-forwarded ${days} days`);
+          this.updateDebug();
+        }
+      },
+
+      advanceToSpring() {
+        this.advanceToSeason(0);
+      },
+
+      advanceToSummer() {
+        this.advanceToSeason(1);
+      },
+
+      advanceToAutumn() {
+        this.advanceToSeason(2);
+      },
+
+      advanceToWinter() {
+        this.advanceToSeason(3);
+      },
+
+      advanceToSeason(seasonIndex) {
+        if (window.__dbg) {
+          const DAY_SECONDS = 30;
+          const SEASON_DAYS = 7;
+          const currentDay = Math.floor((window.elapsed || 0) / DAY_SECONDS);
+          const currentSeason = Math.floor(currentDay / SEASON_DAYS) % 4;
+
+          let daysToAdd = 0;
+          if (seasonIndex > currentSeason) {
+            daysToAdd = (seasonIndex - currentSeason) * SEASON_DAYS;
+          } else {
+            daysToAdd = (4 - currentSeason + seasonIndex) * SEASON_DAYS;
+          }
+
+          window.elapsed = (window.elapsed || 0) + (daysToAdd * DAY_SECONDS);
+          console.log(`[TEST] Advanced to season ${seasonIndex}, added ${daysToAdd} days`);
+          this.updateDebug();
+        }
+      },
+
+      // Farming
+      plantAllPlots() {
+        if (window.__dbg && window.__dbg.interactFarm) {
+          const grid = window.__dbg.planted || {};
+          const tileMeta = {};
+
+          // Find all plot tiles
+          const plots = [[22,28,8,5],[14,36,7,4]];
+          let planted = 0;
+
+          for (const [px, py, pw, ph] of plots) {
+            for (let y = py; y < py + ph; y++) {
+              for (let x = px; x < px + pw; x++) {
+                const key = x + ',' + y;
+                if (!grid[key]) {
+                  window.__dbg.interactFarm(key);
+                  planted++;
+                }
+              }
+            }
+          }
+
+          console.log(`[TEST] Planted ${planted} crop plots`);
+          this.updateDebug();
+        }
+      },
+
+      matureCrops() {
+        if (window.__dbg && window.__dbg.planted) {
+          const planted = window.__dbg.planted;
+          let matured = 0;
+
+          for (const key in planted) {
+            const pc = planted[key];
+            if (!pc.mature) {
+              pc.grown = 99999;
+              pc.mature = true;
+              matured++;
+            }
+          }
+
+          console.log(`[TEST] Matured ${matured} crops`);
+          this.updateDebug();
+        }
+      },
+
+      harvestAll() {
+        if (window.__dbg && window.__dbg.planted && window.__dbg.interactFarm) {
+          const planted = window.__dbg.planted;
+          const keys = Object.keys(planted).filter(key => planted[key].mature);
+
+          keys.forEach(key => {
+            window.__dbg.interactFarm(key);
+          });
+
+          console.log(`[TEST] Harvested ${keys.length} crops`);
+          this.updateDebug();
+        }
+      },
+
+      // Neighbors
+      spawnNeighbor() {
+        if (window.NeighborSystem) {
+          const neighbor = NeighborSystem.spawnVisitor();
+          console.log('[TEST] Neighbor spawned:', neighbor);
+          this.updateDebug();
+        } else {
+          alert('Neighbor system not loaded');
+        }
+      },
+
+      openGiftUI() {
+        if (window.NeighborSystem && NeighborSystem.currentVisitor) {
+          if (window.openGiftUI) {
+            window.openGiftUI(NeighborSystem.currentVisitor);
+          } else {
+            alert('Gift UI not available');
+          }
+        } else {
+          alert('No neighbor currently visiting');
+        }
+      },
+
+      // Alchemy
+      openAlchemy() {
+        if (window.Alchemy) {
+          Alchemy.open();
+        } else {
+          alert('Alchemy system not loaded');
+        }
+      },
+
+      addResources() {
+        if (window.Terra && Terra.farm) {
+          const materials = Terra.farm.inventory.materials;
+          materials.wood = (materials.wood || 0) + 50;
+          materials.beast_soul = (materials.beast_soul || 0) + 50;
+          materials.blight_seed = (materials.blight_seed || 0) + 50;
+
+          const crops = Terra.farm.inventory.crops.starwheat || [];
+          for (let i = 0; i < 50; i++) {
+            crops.push({ quality: 0.8, originFertility: 80 });
+          }
+          Terra.farm.inventory.crops.starwheat = crops;
+
+          Terra.save();
+          if (window.updateDock) updateDock();
+
+          console.log('[TEST] Added resources');
+          this.updateDebug();
+        }
+      },
+
+      // Debug display update
+      updateDebug() {
+        if (!window.__dbg) return;
+
+        const DAY_SECONDS = 30;
+        const SEASON_DAYS = 7;
+        const elapsed = window.elapsed || 0;
+        const currentDay = Math.floor(elapsed / DAY_SECONDS) + 1;
+        const seasonIndex = Math.floor(currentDay / SEASON_DAYS) % 4;
+        const seasons = ['Spring', 'Summer', 'Autumn', 'Winter'];
+
+        document.getElementById('debugDay').textContent = currentDay;
+        document.getElementById('debugSeason').textContent = seasons[seasonIndex];
+
+        // Active events
+        if (window.SeasonalEvents && SeasonalEvents.currentEvent) {
+          document.getElementById('debugEvents').textContent = SeasonalEvents.currentEvent.name;
+        } else {
+          document.getElementById('debugEvents').textContent = 'None';
+        }
+
+        // Beast count
+        if (window.Terra && Terra.farm && Terra.farm.beasts) {
+          document.getElementById('debugBeasts').textContent = Terra.farm.beasts.length;
+        } else {
+          document.getElementById('debugBeasts').textContent = '0';
+        }
+
+        // Neighbor status
+        if (window.NeighborSystem && NeighborSystem.currentVisitor) {
+          document.getElementById('debugNeighbors').textContent =
+            `${NeighborSystem.currentVisitor.name} visiting`;
+        } else {
+          document.getElementById('debugNeighbors').textContent = 'None';
+        }
+
+        // Crops planted
+        const planted = window.__dbg.planted || {};
+        const plantedCount = Object.keys(planted).length;
+        const matureCount = Object.values(planted).filter(p => p.mature).length;
+        document.getElementById('debugCrops').textContent =
+          `${plantedCount} (${matureCount} mature)`;
+
+        // Player position
+        if (window.__dbg.player) {
+          const x = Math.floor(window.__dbg.player.x);
+          const y = Math.floor(window.__dbg.player.y);
+          document.getElementById('debugPlayerPos').textContent = `(${x}, ${y})`;
+        }
+
+        // System status
+        const captureStatus = window.CaptureSystem ?
+          '<span class="status-indicator status-active"></span> Active' :
+          '<span class="status-indicator status-inactive"></span> Not loaded';
+        document.getElementById('debugCapture').innerHTML = captureStatus;
+
+        const ecologyStatus = window.EcologySystem ?
+          '<span class="status-indicator status-active"></span> Active' :
+          '<span class="status-indicator status-inactive"></span> Not loaded';
+        document.getElementById('debugEcology').innerHTML = ecologyStatus;
+      }
+    };
+
+    // Auto-update debug display
+    setInterval(() => {
+      TestPanel.updateDebug();
+    }, 500);
+
+    // Hide loading overlay when game loads
+    TestPanel.waitForGame().then(() => {
+      document.getElementById('loadingOverlay').classList.add('hidden');
+      console.log('[TEST PANEL] Game loaded successfully');
+      TestPanel.updateDebug();
+
+      // Auto-enter world for testing
+      setTimeout(() => {
+        if (window.enterWorld && !window.entered) {
+          const enterBtn = document.getElementById('enter');
+          if (enterBtn) enterBtn.click();
+        }
+      }, 1000);
+    });
+
+    // Expose test panel globally
+    window.TestPanel = TestPanel;
+  </script>
+</body>
+</html>
