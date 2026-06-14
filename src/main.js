@@ -183,9 +183,15 @@ placeObjects();
 /* ================= 4. PIXI 启动 ================= */
 (async ()=>{
 const app = new PIXI.Application();
-await app.init({ resizeTo: window, background: 0x0d0f12, antialias: false,
-  resolution: Math.min(window.devicePixelRatio||1, 2), autoDensity: true,
-  roundPixels: true });   // 全 DPR 原生分辨率渲染(视网膜清晰) + 坐标取整消除移动发糊
+await app.init({
+  width: window.innerWidth,
+  height: window.innerHeight,
+  background: 0x0d0f12,
+  antialias: false,
+  resolution: Math.min(window.devicePixelRatio||1, 2),
+  autoDensity: true,
+  roundPixels: true
+});   // 手动指定尺寸，避免 resizeTo 初始化失败
 document.getElementById('stage').appendChild(app.canvas);
 
 /* ---- 通用纹理 ---- */
