@@ -59,11 +59,17 @@ Continuously improve Terra Chronicle public playable prototype at https://terra.
   - Syntax gates passed: `node --check src/alchemy.js`, `src/main.js`.
   - Deterministic anchors passed: local and remote alchemy contain no `alert(`; remote serves `wheat_icon.png`, `wood_icon.png`, `revealCard`, `alchemyStatus`, `spawnWorldRipple`, and `__dbg.ready` anchors.
   - Public readback passed: terra.bz9.me HTTP 200 and serves v38 scripts.
-  - Browser/visual smoke degraded: CloakBrowser Chrome path missing and project lacks Puppeteer/Playwright packages, so no real browser screenshot was produced in this run. This is a test-infrastructure blocker, not a claimed game pass.
+  - Browser/visual smoke initially degraded: CloakBrowser Chrome path missing and project lacked Puppeteer/Playwright packages.
+- 05:49 browser verification lane repaired and passed.
+  - Added repo-local Playwright/Chromium smoke path plus `tools/terra_visual_smoke.js`.
+  - Public visual smoke passed against https://terra.bz9.me/: loaded alchemy.js?v=38 and main.js?v=38, entered world, verified `window.__dbg.ready`, sampled screenshot pixels with 1346/1350 non-black and 1328/1350 colored points, opened alchemy UI, brewed `新芽守卫`, and showed in-game card reveal.
+  - Console/page errors: 0.
+  - Local evidence path: `/root/terra-chronicle-game/dogfood-output/terra-visual-smoke/report.json` plus screenshots `01_title.png` through `04_card_reveal.png`.
+  - Repro command: `node tools/terra_visual_smoke.js`.
 
 ## Next best lanes
-- Restore reliable browser visual smoke tooling or add a lightweight repo-local Playwright/Puppeteer setup so UI claims can be screenshot-backed again.
 - Pet system v1: persist `farm.beasts`, prevent repeated fire-spirit hatch after refresh, show water/fire spirit levels and make upgrades visible.
 - Dungeon reward v1: add temporary blessings that affect next fights, not just farm materials.
 - Farming v2: crop variants and visible choice between high-yield/low-quality vs low-yield/high-quality plots.
 - Combat v2: boss phase loop and reward preview before node selection.
+- Keep `node tools/terra_visual_smoke.js` as the public visual gate after every UI/rendering change.
