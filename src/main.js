@@ -1490,6 +1490,15 @@ setTimeout(()=>{
   setTimeout(() => {
     handleResize();
     console.log('[Terra] Resize trigger 2: +100ms');
+
+    // NUCLEAR: Force canvas repaint by hiding/showing
+    const canvas = app.canvas;
+    canvas.style.visibility = 'hidden';
+    setTimeout(() => {
+      canvas.style.visibility = 'visible';
+      handleResize();
+      console.log('[Terra] Forced canvas repaint');
+    }, 10);
   }, 100);
 
   // FALLBACK 6: After 500ms (second safety net)

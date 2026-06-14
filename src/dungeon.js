@@ -14,7 +14,8 @@ function injectStyle(){
   const css=`
   #dungeonMap{position:fixed;inset:0;z-index:85;display:none;opacity:0;
     transition:opacity .45s cubic-bezier(.2,.8,.2,1);
-    background:linear-gradient(180deg, #1a1612 0%, #0a0810 100%);
+    background:url('assets/ui/dungeon_entrance_bg.jpg') center/cover,
+      linear-gradient(180deg, rgba(26,22,18,0.85) 0%, rgba(10,8,16,0.92) 100%);
     font-family:'Cormorant Garamond',serif;color:#f4ecd8;overflow:auto;}
   #dungeonMap.on{display:block;opacity:1;animation:mapIn .5s cubic-bezier(.34,1.56,.64,1);}
   @keyframes mapIn{0%{transform:scale(.85);opacity:0}100%{transform:scale(1);opacity:1}}
