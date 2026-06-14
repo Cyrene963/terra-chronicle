@@ -204,10 +204,9 @@ addEventListener('resize',()=>{
 
 /* —— 四季色彩分级: ColorMatrixFilter 对整个世界统一调色 —— */
 /* 春=高饱和清新 / 夏=明亮高对比 / 秋=金黄枫红色相偏移 / 冬=去饱和冷调 */
-// DISABLED: ColorMatrixFilter 导致黑屏问题，暂时禁用
-// const seasonFilter=new PIXI.ColorMatrixFilter();
-// world.filters=[seasonFilter];
-const seasonFilterOn = false;  // 禁用季节滤镜
+const seasonFilter=new PIXI.ColorMatrixFilter();
+world.filters=[seasonFilter];
+// world.filterArea=new PIXI.Rectangle(0,0,window.innerWidth,window.innerHeight); // 注释掉 - 不设置 filterArea，让 PIXI 自动处理
 function mkMat({s=1,br=1,rO=0,gO=0,bO=0}){        // 饱和度+亮度+RGB偏移 → 20格矩阵
   const lr=.2126,lg=.7152,lb=.0722,iv=1-s;
   return [(lr*iv+s)*br, lg*iv*br, lb*iv*br, 0, rO,
