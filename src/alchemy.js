@@ -13,12 +13,12 @@ const cauldron={starwheat:[], wood:0};  // 当前投入的材料,星麦保留产
 
 // 配方表 (玩家不知道,需要试验)
 const RECIPES=[
-  {starwheat:3,wood:2, recipeId:'card_sprout_guard', result:{name:'新芽守卫',atk:18,def:26,elem:'earth'}},
-  {starwheat:1,wood:3, recipeId:'alchemy_bulwark', result:{name:'巨盾',atk:6,def:28,elem:'earth'}},
-  {starwheat:2,wood:2, recipeId:'alchemy_balanced_blade', result:{name:'平衡刃',atk:16,def:14,elem:'metal'}},
-  {starwheat:4,wood:0, recipeId:'alchemy_life_bread', result:{name:'生命之粮',atk:0,def:0,heal:24,elem:'light'}},
-  {starwheat:0,wood:4, recipeId:'alchemy_thorn_wall', result:{name:'荆棘壁',atk:12,def:22,elem:'earth'}},
-  {starwheat:5,wood:1, recipeId:'alchemy_harvest_sickle', result:{name:'收割镰',atk:22,def:8,elem:'fire'}},
+  {starwheat:3,wood:2, recipeId:'card_sprout_guard', archetype:'thorn', effectText:'守势流派 · 格挡会蓄积荆棘反伤', result:{name:'新芽守卫',atk:18,def:26,elem:'earth'}},
+  {starwheat:1,wood:3, recipeId:'alchemy_bulwark', archetype:'thorn', effectText:'守势流派 · 格挡会蓄积荆棘反伤', result:{name:'巨盾',atk:6,def:28,elem:'earth'}},
+  {starwheat:2,wood:2, recipeId:'alchemy_balanced_blade', archetype:'harvest', effectText:'丰收流派 · 攻击后抽牌,高品质返还能量', result:{name:'平衡刃',atk:16,def:14,elem:'metal'}},
+  {starwheat:4,wood:0, recipeId:'alchemy_life_bread', archetype:'sprout', effectText:'新芽流派 · 治疗会转化为护甲', result:{name:'生命之粮',atk:0,def:0,heal:24,elem:'light'}},
+  {starwheat:0,wood:4, recipeId:'alchemy_thorn_wall', archetype:'thorn', effectText:'守势流派 · 格挡会蓄积荆棘反伤', result:{name:'荆棘壁',atk:12,def:22,elem:'earth'}},
+  {starwheat:5,wood:1, recipeId:'alchemy_harvest_sickle', archetype:'harvest', effectText:'丰收流派 · 攻击后抽牌,高品质返还能量', result:{name:'收割镰',atk:22,def:8,elem:'fire'}},
 ];
 
 function injectStyle(){
@@ -174,6 +174,8 @@ function makeAlchemyCard(recipe){
   return {
     id:'card_'+Date.now().toString(36)+(Math.random()*1e4|0),
     recipeId:recipe.recipeId,
+    archetype:recipe.archetype||'plain',
+    effectText:recipe.effectText||'',
     name:recipe.result.name,
     element:recipe.result.elem,
     atk:Math.round((recipe.result.atk||0)*scale),
@@ -211,7 +213,7 @@ function brew(){
   setTimeout(()=>{
     $('#alchemyDiscovery',root).classList.remove('on');
     const aff=card.affixes.length?`\n词条 · ${card.affixes.join(' / ')}`:'';
-    alert(`✨ 成功炼制: ${card.name}\n产地等级 ${(card.quality*100).toFixed(0)} · 工艺 ${(card.craftsmanship*100).toFixed(0)}\n攻${card.atk} 防${card.def}${card.heal?' 治疗'+card.heal:''}${aff}`);
+    alert(`✨ 成功炼制: ${card.name}\n产地等级 ${(card.quality*100).toFixed(0)} · 工艺 ${(card.craftsmanship*100).toFixed(0)}\n攻${card.atk} 防${card.def}${card.heal?' 治疗'+card.heal:''}\n${card.effectText}${aff}`);
     cauldron.starwheat=[]; cauldron.wood=0;
     updateDisplay();
     if(window.updateDock) window.updateDock();

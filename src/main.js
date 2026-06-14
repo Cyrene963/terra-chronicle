@@ -1058,7 +1058,7 @@ app.ticker.add(tk=>{
     for(const key in planted){                                         // 作物视觉(生长累计见每帧块)
       const pc=planted[key];
       const g=Math.min(1,(pc.grown||0)/GROW_SECONDS);
-      pc.node._body.tint=pc.mature?0xffe9b0:0xffffff;                  // 成熟泛金
+      pc.node._body.tint=pc.mature?(pc.grade==='灵脉'?0xd9a8ff:pc.grade==='珍品'?0xffd56a:0xffe9b0):(pc.watered?0xb8f7d3:0xffffff);                  // 成熟/浇水品质反馈
       if(!pc.mature) pc.node.scale.set(.32+g*.72);
     }
   }
@@ -1272,23 +1272,32 @@ function interactFarm(key){
     const [tx,ty]=key.split(',').map(Number);
     c.x=tx*TS+TS/2; c.y=ty*TS+TS/2+16; c._shadow.visible=false; c.scale.set(.32);
     overlayL.addChild(c); crops.push(c);
-    planted[key]={node:c, grown:0, mature:false, watered:false, boost:false};
+    planted[key]={node:c, grown:0, mature:false, watered:false, boost:false, species:'starwheat'};
     toastHint('播种 星麦 · 静待生长');
-  } else if(pc.mature){                           // 收获:质量继承产地肥力
+  } else if(pc.mature){                           // 收获:质量继承土壤四维与灵兽灌溉
     const meta=tileMeta[key];
+    const q=calcHarvestQuality(meta, pc);
+    pc.grade=harvestGrade(q);
     const bonus=farm.upgrades?.includes('farmland_2') ? 1 : 0;
     const total=1+bonus;
     for(let i=0;i<total;i++){
       (farm.inventory.crops.starwheat ??= []).push({
-        quality:+(meta.fert/100).toFixed(2), originFertility:meta.fert });
+        species:'starwheat', quality:+(q/100).toFixed(2), originFertility:q,
+        grade:pc.grade, watered:!!pc.watered,
+        soil:{fert:meta.fert,moist:meta.moist,pest:meta.pest,mana:meta.mana} });
     }
     Terra.save(); updateDock();
-    toastHint(`收获 星麦 ×${total} · 产地肥力 ${meta.fert}${bonus?' · 扩建加成':''}`);
+    toastHint(`收获 ${pc.grade}星麦 ×${total} · 品质 ${q}${pc.watered?' · 灵兽灌溉':''}${bonus?' · 扩建加成':''}`);
     overlayL.removeChild(pc.node);
     const ci=crops.indexOf(pc.node); if(ci>=0)crops.splice(ci,1);
     delete planted[key];
   } else toastHint('成长中 · 再等等');
 }
+function calcHarvestQuality(meta, pc){
+  const raw=meta.fert*.65 + meta.moist*.15 + meta.mana*.12 - meta.pest*.18 + (pc.watered?10:0) + (pc.boost?4:0);
+  return Math.round(Math.max(35, Math.min(110, raw)));
+}
+function harvestGrade(q){ return q>=92?'灵脉':q>=80?'珍品':q>=65?'良品':'粗麦'; }
 function interact(){                              // 空格:在当前位置就近交互
   const key=playerTileKey();
   if(tileMeta[key]){ interactFarm(key); return; }
@@ -1306,7 +1315,8 @@ function updateHint(){
   const key=playerTileKey();
   if(tileMeta[key]){
     const pc=planted[key];
-    txt.textContent = !pc? '播种 · 体力×1' : pc.mature? '收获星麦' : '成长中 …';
+    if(pc&&pc.mature){ const q=calcHarvestQuality(tileMeta[key],pc); pc.grade=harvestGrade(q); }
+    txt.textContent = !pc? '播种 · 体力×1' : pc.mature? `收获${pc.grade||'成熟'}星麦` : (pc.watered?'已灌溉 · 成长加速':'成长中 · 等待灌溉');
     el.style.opacity = (!pc||pc.mature)? 1 : .55;
     return;
   }

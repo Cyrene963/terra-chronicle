@@ -40,20 +40,43 @@ function buildDeck(crafted){
     const qualityTag=c.quality?` · 产地${Math.round(c.quality*100)}`:'';
     const affixTag=c.affixes?.length?` · ${c.affixes.join('/')}`:'';
     if(c.heal>0) return {name:c.name,type:'heal',val:c.heal,cost:c.heal>=24?2:1,
-      desc:`恢复 ${c.heal} 点生命${qualityTag}${affixTag}`,elem:c.element,quality:c.quality,affixes:c.affixes||[]};
+      desc:`恢复 ${c.heal} 点生命${qualityTag}${affixTag}${c.effectText?' · '+c.effectText:''}`,elem:c.element,quality:c.quality,affixes:c.affixes||[],archetype:c.archetype||'plain',effectText:c.effectText||''};
     if(c.def>=c.atk) return {name:c.name,type:'def',val:c.def,cost:c.def>=24?2:1,
-      desc:`获得 ${c.def} 点护甲${qualityTag}${affixTag}`,elem:c.element,quality:c.quality,affixes:c.affixes||[]};
+      desc:`获得 ${c.def} 点护甲${qualityTag}${affixTag}${c.effectText?' · '+c.effectText:''}`,elem:c.element,quality:c.quality,affixes:c.affixes||[],archetype:c.archetype||'plain',effectText:c.effectText||''};
     return {name:c.name,type:'atk',val:c.atk,cost:c.atk>=22?2:1,
-      desc:`造成 ${c.atk} 点伤害${qualityTag}${affixTag}`,elem:c.element,quality:c.quality,affixes:c.affixes||[]};
+      desc:`造成 ${c.atk} 点伤害${qualityTag}${affixTag}${c.effectText?' · '+c.effectText:''}`,elem:c.element,quality:c.quality,affixes:c.affixes||[],archetype:c.archetype||'plain',effectText:c.effectText||''};
   });
   return [...base,...made];
 }
 
 /* ---- 敌人意图 ---- */
-function rollIntent(turn){
-  // 前期偏攻击,偶尔防御
-  if(Math.random()<0.28) return {kind:'def',val:6};
-  return {kind:'atk',val:8+((Math.random()*5)|0)+Math.floor(turn/3)};  // 随回合渐强
+function intentFor(turn, enemy){
+  const type=enemy?.type||'normal';
+  const weakCycle=['earth','fire','metal','light'];
+  const weak=weakCycle[turn%weakCycle.length];
+  if(type==='boss'){
+    const cycle=[
+      {kind:'charge',val:0,weak:'earth',hint:'聚瘴:下回合重击'},
+      {kind:'heavy',val:18+Math.floor(turn/3),weak:'fire',hint:'深渊重击'},
+      {kind:'def',val:12,weak:'metal',hint:'结壳蓄防'},
+      {kind:'atk',val:12+Math.floor(turn/4),weak:'light',hint:'污染藤鞭'}
+    ];
+    return cycle[(turn-1)%cycle.length];
+  }
+  if(type==='elite'){
+    const cycle=[
+      {kind:'atk',val:11+Math.floor(turn/3),weak,hint:'精英突刺'},
+      {kind:'debuff',val:1,weak:'light',hint:'瘴气压制:下回合能量-1'},
+      {kind:'def',val:10,weak:'fire',hint:'硬化甲壳'}
+    ];
+    return cycle[(turn-1)%cycle.length];
+  }
+  const cycle=[
+    {kind:'atk',val:8+Math.floor(turn/4),weak,hint:'污染藤鞭'},
+    {kind:'def',val:6+Math.floor(turn/5),weak:'fire',hint:'结壳'},
+    {kind:'charge',val:0,weak:'earth',hint:'聚瘴:下回合攻击增强'}
+  ];
+  return cycle[(turn-1)%cycle.length];
 }
 
 let S=null, cb=null, root=null, injected=false;
@@ -252,6 +275,9 @@ function startMiasma(){ stopMiasma();
   }, 300);
 }
 function stopMiasma(){ if(miasmaTimer){ clearInterval(miasmaTimer); miasmaTimer=null; } }
+function elemName(e){ return ({earth:'土',fire:'火',metal:'金',light:'光',water:'水'})[e]||e||'—'; }
+function hasAffix(c, name){ return (c.affixes||[]).includes(name); }
+function cardTag(c){ return c.archetype||'plain'; }
 function spawnSlashes(){                                 // 在敌人身上划出 2-3 道斜斩剑气
   const img=root.querySelector('#b_eimg'); if(!img) return;
   const r=img.getBoundingClientRect();
@@ -276,7 +302,12 @@ function render(){
   r('#b_ehptxt').textContent=`${Math.max(0,S.enemy.hp)} / ${S.enemy.max}`;
   const it=S.enemy.intent, iEl=r('#b_intent');
   if(it){ iEl.className='intent'+(it.kind==='def'?' def':'');
-    iEl.innerHTML = it.kind==='atk' ? `⚔ 即将攻击 ${it.val}` : `🛡 即将格挡 ${it.val}`;
+    const weak=it.weak?`<span class="eblock">弱点:${elemName(it.weak)}</span>`:'';
+    if(it.kind==='atk') iEl.innerHTML=`⚔ ${it.hint||'即将攻击'} ${it.val}${weak}`;
+    else if(it.kind==='heavy') iEl.innerHTML=`☄ ${it.hint||'重击'} ${it.val}${weak}`;
+    else if(it.kind==='charge') iEl.innerHTML=`☄ ${it.hint||'聚瘴'}${weak}`;
+    else if(it.kind==='debuff') iEl.innerHTML=`✧ ${it.hint||'瘴气压制'}${weak}`;
+    else iEl.innerHTML=`🛡 ${it.hint||'即将格挡'} ${it.val}${weak}`;
     if(S.enemy.block>0) iEl.innerHTML+=`<span class="eblock">🛡${S.enemy.block}</span>`;
   } else iEl.textContent='';
   r('#b_hpbar').style.transform=`scaleX(${Math.max(0,S.pHP/S.pMax)})`;
@@ -304,24 +335,31 @@ function drawCards(n){
   }
 }
 function startPlayerTurn(){
-  S.phase='player'; S.energy=S.energyMax; S.shield=0;
-  S.enemy.intent=S.enemy.intent||rollIntent(S.turn);
+  S.phase='player'; S.energy=Math.max(2,S.energyMax-(S.energyPenalty||0)); S.energyPenalty=0; S.shield=0;
+  S.playedTypes=[]; S.refinedUsed=false;
+  S.enemy.intent=S.enemy.intent||intentFor(S.turn,S.enemy);
   drawCards(5); render();
 }
 function playCard(i, el){
   const c=S.hand[i]; if(!c||S.energy<c.cost||S.phase!=='player'||S.over) return;
   S.energy-=c.cost; S.discard.push(c); S.hand.splice(i,1);
   if(window.TerraSound) TerraSound.play('whoosh', 0.8);
+  S.playedTypes.push(c.type);
+  if(hasAffix(c,'工坊精炼')&&!S.refinedUsed){ S.refinedUsed=true; S.energy=Math.min(S.energyMax,S.energy+1); floatNum('+1能量','#f4d03f', innerWidth/2, innerHeight-220); }
   if(c.type==='atk'){
-    projectile(el); const dmgRaw=c.val;
+    projectile(el); let dmgRaw=c.val;
+    if(c.elem&&S.enemy.intent?.weak===c.elem) dmgRaw=Math.ceil(dmgRaw*1.5);
+    if(hasAffix(c,'丰饶产地')&&S.playedTypes.includes('def')) dmgRaw+=4;
+    if(hasAffix(c,'大师铭刻')) dmgRaw+=3;
     setTimeout(()=>{                               // 命中:斩击剑气+闪白+色差+震屏+抛物线伤害数字
       if(!S||S.over) return;
       let dmg=dmgRaw; const blk=Math.min(S.enemy.block,dmg); S.enemy.block-=blk; dmg-=blk;
+      if(hasAffix(c,'熔炉灼痕')){ S.enemy.hp-=3; floatNum('灼痕-3','#ffcf70', innerWidth/2+70, innerHeight*.36); }
       S.enemy.hp-=dmg;
       if(window.TerraSound) TerraSound.play('hit');
       spawnSlashes(); hitFlash(); chromaticAberration(); screenShake(dmg>=10?22:15, 280);
       const b=root.querySelector('#b_eimg').getBoundingClientRect();
-      floatNum('-'+dmg,'#ff9b7a', b.left+b.width/2, b.top+b.height*0.4);
+      floatNum('-'+dmg+(c.elem&&S.enemy.intent?.weak===c.elem?' 破绽!':''),'#ff9b7a', b.left+b.width/2, b.top+b.height*0.4);
       const e=root.querySelector('#b_enemy'); e.classList.add('hit'); setTimeout(()=>e.classList.remove('hit'),300);
       if(S.enemy.hp<=0){ render(); return finish(true); }
       render();
@@ -329,10 +367,19 @@ function playCard(i, el){
   } else if(c.type==='heal'){
     const before=S.pHP;
     S.pHP=Math.min(S.pMax, S.pHP+c.val);
-    floatNum('+'+(S.pHP-before),'#b6e08a', innerWidth/2, innerHeight-180);
+    const healed=S.pHP-before;
+    const sprout=Math.ceil(c.val*(S.pHP>=S.pMax?0.7:0.35));
+    if(cardTag(c)==='sprout'||hasAffix(c,'同季共鸣')){ S.shield+=sprout; floatNum('新芽护甲+'+sprout,'#bcd8ee', innerWidth/2+80, innerHeight-210); }
+    floatNum('+'+healed,'#b6e08a', innerWidth/2, innerHeight-180);
   } else {
     if(window.TerraSound) TerraSound.play('click', 0.7);
     S.shield+=c.val;
+    if(cardTag(c)==='thorn'){
+      const th=Math.ceil(c.val*.28);
+      S.thorns=(S.thorns||0)+th;
+      floatNum('荆棘+'+th,'#c7ff9b', innerWidth/2+80, innerHeight-215);
+    }
+    if(hasAffix(c,'稳定工艺')) S.shield+=2;
     floatNum('+'+c.val,'#bcd8ee', innerWidth/2, innerHeight-180);
   }
   render();
@@ -345,15 +392,23 @@ function endTurn(){
   setTimeout(()=>{
     if(!S) return;
     const it=S.enemy.intent;
-    if(it.kind==='atk'){
+    if(it.kind==='atk'||it.kind==='heavy'){
       if(window.TerraSound) TerraSound.play('hit', 0.9);
       let dmg=it.val; const blk=Math.min(S.shield,dmg); S.shield-=blk; dmg-=blk;
       S.pHP-=dmg;
-      if(dmg>0){ screenShake(20,300); playerHurtFx(); }
+      if((S.thorns||0)>0){ S.enemy.hp-=S.thorns; floatNum('荆棘-'+S.thorns,'#c7ff9b', innerWidth/2+70, innerHeight*.34); S.thorns=0; }
+      if(dmg>0){ screenShake(it.kind==='heavy'?28:20,300); playerHurtFx(); }
       floatNum('-'+dmg,'#ff8a8a', innerWidth/2, innerHeight-180);
+    } else if(it.kind==='debuff'){
+      S.energyPenalty=it.val||1;
+      floatNum('能量-'+S.energyPenalty,'#d9a8ff', innerWidth/2, innerHeight-190);
+    } else if(it.kind==='charge'){
+      S.enemy.block+=2;
+      floatNum('聚瘴','#d9a8ff', innerWidth/2, innerHeight*.32);
     } else { S.enemy.block+=it.val; }
+    if(S.enemy.hp<=0){ render(); return finish(true); }
     if(S.pHP<=0){ render(); return finish(false); }
-    S.turn++; S.enemy.intent=rollIntent(S.turn);
+    S.turn++; S.enemy.intent=intentFor(S.turn,S.enemy);
     startPlayerTurn();
   }, 720);
 }
@@ -417,9 +472,10 @@ const Battle={
       injectStyle(); buildDOM();
       cb=opts||{};
       const deck=shuffle(buildDeck(cb.deck));
-      S={ pHP:60, pMax:60, shield:0, energy:3, energyMax:3,
+      S={ pHP:60, pMax:60, shield:0, thorns:0, energy:3, energyMax:3,
           draw:deck, hand:[], discard:[], turn:1, phase:'player', over:false,
-          enemy:{ hp:48, max:48, block:0, intent:rollIntent(1) } };
+          enemy:{ hp:48, max:48, block:0, type:cb.isBoss?'boss':cb.isElite?'elite':'normal', intent:null } };
+      S.enemy.intent=intentFor(1,S.enemy);
       if(cb.isBoss){ S.pMax=80; S.pHP=80; S.enemy.max=S.enemy.hp=90; }
       else if(cb.isElite){ S.enemy.max=S.enemy.hp=70; }
       root.style.display='block'; root.querySelector('#b_result').classList.remove('on');
