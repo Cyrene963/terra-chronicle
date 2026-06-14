@@ -10,6 +10,13 @@
    ========================================================= */
 'use strict';
 
+/* ================= ENHANCED FARMING IMPORT ================= */
+// Enhanced farming system with multiple crop types, soil fertility, weather, pests, and quality grades
+let EnhancedFarming = null;
+if (typeof window !== 'undefined' && window.EnhancedFarming) {
+  EnhancedFarming = window.EnhancedFarming;
+}
+
 /* 资产版本号: 内容更新时 +1,绕过浏览器/CDN 旧缓存 */
 const ASSET_V="?v=9";
 /* 贴图加载: mode='tile' → NEAREST+CLAMP(消除瓦片接缝+锐利);
@@ -121,29 +128,39 @@ function genMap(){
   // 小路:屋前向东过桥到果园 + 向南
   for(let x=24;x<=46;x++){const y=26+Math.round(Math.sin(x*.3)*1.2); grid[y][x]='b'===grid[y][x]?'b':(grid[y][x]==='w'?grid[y][x]:'s'); grid[y+1][x]=grid[y+1][x]==='w'?'w':'s';}
   for(let y=14;y<=26;y++){ if(grid[y][21]!=='w')grid[y][21]='s'; }
+
+  // 检测河流边缘并标记为对角线过渡（针对正弦曲线河流）
+  for(let y=1;y<MAP-1;y++){
+    for(let x=1;x<MAP-1;x++){
+      const k = grid[y][x];
+      // 只处理水域边缘（至少有一个非水邻居）
+      if(k==='w'){
+        const n = grid[y-1]?.[x], s = grid[y+1]?.[x], e = grid[y]?.[x+1], w = grid[y]?.[x-1];
+        const ne = grid[y-1]?.[x+1], nw = grid[y-1]?.[x-1], se = grid[y+1]?.[x+1], sw = grid[y+1]?.[x-1];
+
+        // 检查是否是边缘水块（有陆地邻居）
+        const hasLandNeighbor = [n,s,e,w,ne,nw,se,sw].some(neighbor => neighbor && neighbor!=='w');
+        if(!hasLandNeighbor) continue; // 内部水块跳过
+
+        // 统计对角线方向的陆地
+        const landNW = nw && nw!=='w';
+        const landNE = ne && ne!=='w';
+        const landSW = sw && sw!=='w';
+        const landSE = se && se!=='w';
+
+        // 对角线过渡条件：对角有陆地，且该方向的两个正交邻居至少一个是陆地
+        if(landNW && (n!=='w' || w!=='w')) grid[y][x]='wtl';
+        else if(landNE && (n!=='w' || e!=='w')) grid[y][x]='wtr';
+        else if(landSW && (s!=='w' || w!=='w')) grid[y][x]='wbl';
+        else if(landSE && (s!=='w' || e!=='w')) grid[y][x]='wbr';
+      }
+    }
+  }
+
   // 水域阻挡（对角线水岸贴图不阻挡，它们是陆地）
   for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
     const k = grid[y][x];
     if(k==='w') blocked.add(x+','+y);
-  }
-
-  // 检测河流对角线转角并标记为特殊类型
-  for(let y=1;y<MAP-1;y++){
-    for(let x=1;x<MAP-1;x++){
-      if(grid[y][x]==='w'){
-        const n = grid[y-1][x], s = grid[y+1][x], e = grid[y][x+1], w = grid[y][x-1];
-        const ne = grid[y-1][x+1], nw = grid[y-1][x-1], se = grid[y+1][x+1], sw = grid[y+1][x-1];
-
-        // 左上角是陆地,右下角是水 → tl (top-left land, bottom-right water)
-        if(nw!=='w' && se==='w' && n!=='w' && w!=='w') grid[y][x]='wtl';
-        // 右上角是陆地,左下角是水 → tr
-        else if(ne!=='w' && sw==='w' && n!=='w' && e!=='w') grid[y][x]='wtr';
-        // 左下角是陆地,右上角是水 → bl
-        else if(sw!=='w' && ne==='w' && s!=='w' && w!=='w') grid[y][x]='wbl';
-        // 右下角是陆地,左上角是水 → br
-        else if(se!=='w' && nw==='w' && s!=='w' && e!=='w') grid[y][x]='wbr';
-      }
-    }
   }
 }
 genMap();
@@ -1019,6 +1036,9 @@ function updateParticles(dt,curSeason){
 let elapsed=0, timeScale=1, entered=false;
 let recolorClock=0, cullClock=0, curWaterBase=[84,150,164], curCrop=0x96be64;
 
+/* ================= ENHANCED FARMING INTEGRATION ================= */
+let enhancedFarmingAPI = null;
+
 /* —— 自适应画质: FPS 不足时逐级降载(软渲染/低端机自救) —— */
 let quality=2, fpsN=0, fpsT0=performance.now(), seasonFilterOn=true;
 function setQuality(q){
@@ -1110,6 +1130,13 @@ app.ticker.add(tk=>{
   /* 玩家与镜头 */
   if(entered && !(window.Battle&&Battle.active)){ movePlayer(dt); }
   updateCamera(dt);
+
+  /* ================= ENHANCED FARMING UPDATE ================= */
+  // Update enhanced farming system (weather, pests, soil, crop growth)
+  if (enhancedFarmingAPI) {
+    enhancedFarmingAPI.update(dt, elapsed, timeScale);
+  }
+
   /* 作物生长累计(浇水 boost 加速) + 灵兽 AI + 连续伐木 */
   for(const key in planted){ const pc=planted[key];
     if(!pc.mature){ pc.grown=(pc.grown||0)+dt*timeScale*(pc.boost?1.8:1);
@@ -1165,10 +1192,32 @@ function updateHUD(st,day){
   $('dialDot').setAttribute('cx',54+50*Math.cos((ang-90)*Math.PI/180));
   $('dialDot').setAttribute('cy',54+50*Math.sin((ang-90)*Math.PI/180));
   for(let i=0;i<4;i++)$('arc'+i).setAttribute('stroke',i===si?'#c9a24b':'rgba(246,241,231,.35)');
-  if(si!==lastSI){lastSI=si;$('seasonName').textContent=SEASONS[si].name;$('seasonLatin').textContent=SEASONS[si].latin;
-    $('weatherTag').textContent='— '+WEATHER[si][(Math.random()*3)|0]+' —';}
+
+  // Enhanced farming weather display
+  if (enhancedFarmingAPI) {
+    const weather = enhancedFarmingAPI.getWeather();
+    const weatherNames = { rain: '降雨', drought: '干旱', normal: '晴朗' };
+    const weatherEmoji = { rain: '🌧️', drought: '☀️', normal: '☁️' };
+    const weatherText = `${weatherEmoji[weather.type] || ''} ${weatherNames[weather.type] || weather.name}`;
+
+    if(si!==lastSI){
+      lastSI=si;
+      $('seasonName').textContent=SEASONS[si].name;
+      $('seasonLatin').textContent=SEASONS[si].latin;
+      $('weatherTag').textContent=`— ${weatherText} —`;
+    }
+  } else {
+    // Original weather display
+    if(si!==lastSI){
+      lastSI=si;
+      $('seasonName').textContent=SEASONS[si].name;
+      $('seasonLatin').textContent=SEASONS[si].latin;
+      $('weatherTag').textContent='— '+WEATHER[si][(Math.random()*3)|0]+' —';
+    }
+  }
+
   if(day!==lastDay){lastDay=day;$('dayNum').textContent=String(day%28+1).padStart(2,'0');
-    if(day%3===0)$('weatherTag').textContent='— '+WEATHER[si][(Math.random()*3)|0]+' —';
+    if(day%3===0 && !enhancedFarmingAPI) $('weatherTag').textContent='— '+WEATHER[si][(Math.random()*3)|0]+' —';
     staminaUsed=0; syncLeaves();                                       // 新一天体力恢复
     for(let i=fellQueue.length-1;i>=0;i--){                            // 伐倒的树次日重生
       const f=fellQueue[i];
@@ -1201,6 +1250,37 @@ function openPanel(meta){
   };
   set('vFert','bFert',meta.fert,120);set('vMoist','bMoist',meta.moist,240);
   set('vPest','bPest',meta.pest,360);set('vMana','bMana',meta.mana,480);
+
+  // Enhanced farming: show pest warnings and crop quality
+  if (enhancedFarmingAPI) {
+    const key = Object.keys(tileMeta).find(k => tileMeta[k] === meta);
+    if (key) {
+      const status = enhancedFarmingAPI.getStatus(key);
+      let statusText = '';
+
+      if (status.infested) {
+        const severity = Math.round(status.pestSeverity * 100);
+        statusText += `⚠️ 虫害侵扰 (严重度: ${severity}%)\n`;
+      }
+
+      if (status.crop && status.crop.mature) {
+        const qualityNames = {
+          poor: '粗劣', common: '普通', good: '良品',
+          excellent: '精良', legendary: '传奇'
+        };
+        statusText += `🌾 成熟作物 · 预计品质: ${qualityNames[status.crop.quality] || '未知'}\n`;
+      } else if (status.crop) {
+        const progress = Math.round((status.crop.grown / (EnhancedFarming.CROP_TYPES[status.crop.type].growDays * 30)) * 100);
+        statusText += `🌱 生长中 (${progress}%)\n`;
+      }
+
+      if (statusText) {
+        $('whisper').textContent = statusText.trim();
+        $('whisper').style.opacity = 1;
+      }
+    }
+  }
+
   $('whisper').style.opacity=0;
 }
 /* 点击/触摸 = 寻路移动 + 上下文交互;右键 = 查看地籍档案 */
@@ -1234,6 +1314,12 @@ if(!Terra.load()) Terra.newGame('local');
 const farm=Terra.farm;
 farm.inventory.materials.wood ??= 8;           // 初始木材(伐木系统未上线前)
 
+/* ================= INITIALIZE ENHANCED FARMING SYSTEM ================= */
+if (EnhancedFarming && EnhancedFarming.integrateWithMainGame) {
+  enhancedFarmingAPI = EnhancedFarming.integrateWithMainGame(Terra, objL, overlayL, crops);
+  console.info('[Terra] Enhanced Farming System initialized');
+}
+
 let whisperTimer;
 function toastHint(t){ const w=$('whisper'); w.textContent=t; w.style.opacity=1;
   clearTimeout(whisperTimer); whisperTimer=setTimeout(()=>w.style.opacity=0,2600); }
@@ -1266,6 +1352,43 @@ function chop(o){
 
 function interactFarm(key){
   if(!tileMeta[key]) return;
+
+  // Use enhanced farming system if available
+  if (enhancedFarmingAPI) {
+    const status = enhancedFarmingAPI.getStatus(key);
+
+    if (!status.crop) {
+      // Planting with enhanced system
+      if(staminaUsed>=6){ toastHint('体力耗尽 · 待明日恢复'); return; }
+      staminaUsed++; syncLeaves();
+
+      // Default to starwheat for now
+      const result = Terra.plantCrop(key, 'starwheat');
+      if (result.ok) {
+        toastHint('播种 星麦 · 静待生长');
+      } else {
+        toastHint(result.reason || '播种失败');
+      }
+    } else if (status.crop.mature) {
+      // Harvesting with enhanced system
+      const result = Terra.harvestCrop(key);
+      if (result.ok) {
+        const quality = result.harvest.quality;
+        const qualityNames = {
+          poor: '粗劣', common: '普通', good: '良品',
+          excellent: '精良', legendary: '传奇'
+        };
+        toastHint(`收获 星麦 · 品质: ${qualityNames[quality] || quality}`);
+      } else {
+        toastHint('收获失败');
+      }
+    } else {
+      toastHint('成长中 · 再等等');
+    }
+    return;
+  }
+
+  // Fallback to original farming logic
   const pc=planted[key];
   if(!pc){                                        // 播种
     if(staminaUsed>=6){ toastHint('体力耗尽 · 待明日恢复'); return; }
@@ -1303,9 +1426,35 @@ function updateHint(){
   if(!entered){ el.style.opacity=0; return; }
   const key=playerTileKey();
   if(tileMeta[key]){
-    const pc=planted[key];
-    txt.textContent = !pc? '播种 · 体力×1' : pc.mature? '收获星麦' : '成长中 …';
-    el.style.opacity = (!pc||pc.mature)? 1 : .55;
+    // Enhanced farming: show pest warnings and crop info
+    if (enhancedFarmingAPI) {
+      const status = enhancedFarmingAPI.getStatus(key);
+
+      if (!status.crop) {
+        txt.textContent = '播种 · 体力×1';
+        el.style.opacity = 1;
+      } else if (status.crop.mature) {
+        const qualityNames = {
+          poor: '粗劣', common: '普通', good: '良品',
+          excellent: '精良', legendary: '传奇'
+        };
+        txt.textContent = status.infested
+          ? `收获 (⚠️ 虫害 ${Math.round(status.pestSeverity * 100)}%)`
+          : '收获星麦';
+        el.style.opacity = 1;
+      } else {
+        const progress = Math.round((status.crop.grown / (EnhancedFarming.CROP_TYPES[status.crop.type].growDays * 30)) * 100);
+        txt.textContent = status.infested
+          ? `生长中 ${progress}% (⚠️ 虫害)`
+          : `成长中 ${progress}% …`;
+        el.style.opacity = .55;
+      }
+    } else {
+      // Original hint display
+      const pc=planted[key];
+      txt.textContent = !pc? '播种 · 体力×1' : pc.mature? '收获星麦' : '成长中 …';
+      el.style.opacity = (!pc||pc.mature)? 1 : .55;
+    }
     return;
   }
   if(nearestIncubator()){ txt.textContent='灵兽孵化阵'; el.style.opacity=1; return; }
@@ -1371,7 +1520,7 @@ $('enter').onclick=enterWorld;
 window.__dbg={app,world,groundL,waterL,snowL,overlayL,objL,fxScreen,player,cam,beast,beastAI,
   seasonFilter, findPath, planted, commandTo, interactFarm,
   beastStep, get quality(){return quality}, get fireBeast(){return fireBeast}, get forgeHot(){return forgeHot}, openBreed,
-  get parts(){return parts.length}};
+  get parts(){return parts.length}, enhancedFarmingAPI, EnhancedFarming};
 
 /* Loading screen fade-out (after first successful frame) */
 setTimeout(()=>{
