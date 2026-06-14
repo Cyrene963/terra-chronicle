@@ -39,14 +39,14 @@ async function visibleNonBlackPixels(page, screenshotPath) {
   page.on('console', msg => { if (badConsole(msg)) consoleErrors.push(`${msg.type()}: ${msg.text()}`); });
   page.on('pageerror', err => consoleErrors.push(`pageerror: ${err.message}`));
 
-  await page.goto('https://terra.bz9.me/?smoke=v38-visual', { waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.goto('https://terra.bz9.me/?smoke=v39-visual', { waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.waitForSelector('#enter', { timeout: 20000 });
   await page.waitForTimeout(1200);
   await page.screenshot({ path: path.join(OUT, '01_title.png'), fullPage: false });
 
   const scripts = await page.evaluate(() => [...document.scripts].map(s => s.src).filter(Boolean));
   if (!scripts.some(src => src.includes('alchemy.js?v=38'))) throw new Error('public page did not load alchemy.js?v=38');
-  if (!scripts.some(src => src.includes('main.js?v=38'))) throw new Error('public page did not load main.js?v=38');
+  if (!scripts.some(src => src.includes('main.js?v=39'))) throw new Error('public page did not load main.js?v=39');
 
   await page.click('#enter');
   await page.waitForFunction(() => window.__dbg && window.__dbg.ready, null, { timeout: 12000 });

@@ -67,6 +67,17 @@ Continuously improve Terra Chronicle public playable prototype at https://terra.
   - Local evidence path: `/root/terra-chronicle-game/dogfood-output/terra-visual-smoke/report.json` plus screenshots `01_title.png` through `04_card_reveal.png`.
   - Repro command: `node tools/terra_visual_smoke.js`.
 
+- 06:05 fourth implementation lane: Pet system v1 persistence shipped.
+  - `src/main.js`: migrated old saves into `farm.beasts`, guarantees one starter water spirit, de-duplicates starter fire/water spirits, rehydrates saved fire spirit after refresh, and exposes `__dbg.beasts`.
+  - Water spirit evolution now persists as `level`; level is visible in the beast HUD/breeding panel and shortens irrigation time.
+  - Fire spirit hatching no longer repeats after refresh; saved fire spirit returns to the furnace, level is visible, and higher level extends forge-hot duration.
+  - Public version bumped to `main.js?v=39`; synced `index.html` and `src/main.js` to `/var/www/terra-pixijs`.
+  - Syntax gates passed: `node --check src/main.js`, `src/alchemy.js`, `src/battle.js`, `src/dungeon.js`, `src/upgrade.js`, `src/state.js`, and `tools/terra_visual_smoke.js`.
+  - Public readback passed: terra.bz9.me serves `main.js?v=39` and anchors `normalizeBeasts`, `fireSpirit()) hatchFire`, `get beasts`, and `水灵兽 Lv`.
+  - Browser smoke passed: `node tools/terra_visual_smoke.js` loaded public v39, entered world, rendered non-black/colored canvas 1350/1345 of 1350 samples, brewed a card reveal, and reported 0 console/page errors.
+  - Targeted pet persistence smoke passed: seeded localStorage with water Lv.3 + fire Lv.2, reloaded public domain, confirmed one water spirit, one fire spirit, `fireRehydrated=true`, and HUD text `水灵兽 Lv.3 · 闲逛中 …`.
+  - GitHub commit: PENDING.
+
 ## Next best lanes
 - Pet system v1: persist `farm.beasts`, prevent repeated fire-spirit hatch after refresh, show water/fire spirit levels and make upgrades visible.
 - Dungeon reward v1: add temporary blessings that affect next fights, not just farm materials.

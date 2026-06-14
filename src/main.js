@@ -787,14 +787,15 @@ function beastStep(dt){
     const pc=planted[beastAI.target];                          // 到达(无路径了)
     if(pc && !pc.watered){
       const habitat=farm.upgrades?.includes('beast_capacity');
-      beastAI.state='water'; beastAI.t=habitat ? 0.85 : waterEvolved?1.2:2.0; setBeastStatus('water');
+      const waterLevel=beastLevel('water_spirit');
+      beastAI.state='water'; beastAI.t=Math.max(0.65, (habitat ? 1.05 : 2.0) - (waterLevel-1)*0.35); setBeastStatus('water');
     }
     else { beastAI.state='idle'; beastAI.t=.3; }
   } else if(beastAI.state==='water'){
     if((beastAI.t*4|0)!==((beastAI.t+dt)*4|0)) spawnSplash(beastAI.target);  // 周期水花爆发
     if(beastAI.t<=0){
       const pc=planted[beastAI.target];
-      if(pc){ pc.watered=true; pc.boost=true; toastHint(`水灵兽灌溉了一块田 · 生长加速${farm.upgrades?.includes('beast_capacity')?' · 栖地加成':''}`); }
+      if(pc){ pc.watered=true; pc.boost=true; toastHint(`水灵兽 Lv.${beastLevel('water_spirit')} 灌溉 · 生长加速${farm.upgrades?.includes('beast_capacity')?' · 栖地加成':''}`); }
       beastAI.state='idle'; beastAI.t=.5; setBeastStatus('idle');
     }
   }
@@ -823,7 +824,7 @@ function stepWaterDrops(dt){
 }
 
 /* ================= 8.7 灵兽繁育 + 火灵兽(工坊熔炉增益) ================= */
-let fireBeast=null, fireAI=null, forgeHot=false, waterEvolved=false;
+let fireBeast=null, fireAI=null, forgeHot=false;
 const embers=[];
 function furnacePos(){ const o=OBJECTS.find(o=>o.kind==='furnace'); return o?{x:o.node.x,y:o.node.y}:{x:25*TS,y:22*TS}; }
 function spawnEmber(x,y){
@@ -841,7 +842,8 @@ function hatchFire(){
   const fp=furnacePos(); fireBeast.x=fp.x+TS; fireBeast.y=fp.y+TS*1.2; fireBeast.zIndex=fireBeast.y;
   objL.addChild(fireBeast);
   fireAI={state:'idle',t:1.2,path:null,bob:0,hop:0};
-  (farm.beasts ??= []).push({species:'fire_spirit',element:'fire'}); Terra.save();
+  if(!fireSpirit()) farm.beasts.push({id:'fire_spirit_ember',species:'fire_spirit',element:'fire',level:1,xp:0,stamina:100,evolution:{diet:{},laborHistory:{}},assignment:'forge'});
+  Terra.save();
 }
 function fireGoto(tx,ty){ const sx=Math.floor(fireBeast.x/TS),sy=Math.floor(fireBeast.y/TS);
   const p=tilePath(sx,sy,tx,ty); if(!p) return false; fireAI.path=p; return true; }
@@ -870,7 +872,8 @@ function fireStep(dt){
       rebuildSolidTiles(); const nw=nearestWalkable(tx,ty);
       if(nw && fireGoto(nw.x,nw.y)) fireAI.state='seekForge'; else fireAI.t=2; }
   } else if(fireAI.state==='seekForge'){           // 到达熔炉
-    fireAI.state='work'; fireAI.t=6; forgeHot=true; toastHint('火灵兽点燃了工坊熔炉 · 锻造品质提升'); updateDock();
+    const fireLevel=beastLevel('fire_spirit');
+    fireAI.state='work'; fireAI.t=6+fireLevel*1.5; forgeHot=true; toastHint(`火灵兽 Lv.${fireLevel} 点燃熔炉 · 锻造品质提升`); updateDock();
   } else if(fireAI.state==='work'){
     forgeHot=true;
     if(Math.random()<0.5) spawnEmber(fireBeast.x, fireBeast.y-12);
@@ -920,21 +923,22 @@ function breedBtn(label,sub,enabled,onClick){
 function openBreed(){
   buildBreedPanel();
   const soul=farm.inventory.materials.beast_soul||0, seed=farm.inventory.materials.blight_seed||0;
-  breedEl.querySelector('#breedLoot').textContent=`库存战利品 · 灵兽灵魂 ${soul} · 污染种子 ${seed}`;
+  const water=waterSpirit(), fire=fireSpirit();
+  breedEl.querySelector('#breedLoot').textContent=`库存战利品 · 灵兽灵魂 ${soul} · 污染种子 ${seed} · 水灵兽 Lv.${water?.level||1}${fire?` · 火灵兽 Lv.${fire.level}`:''}`;
   const opts=breedEl.querySelector('#breedOpts'); opts.innerHTML='';
   opts.appendChild(breedBtn(
-    fireBeast?'火灵兽 · 已孵化':'孵化 火灵兽 🔥',
-    fireBeast?'它正在工坊为你升温熔炉':'消耗 灵兽灵魂×1 + 污染种子×1 · 自动为锻造加热熔炉',
-    !fireBeast && soul>=1 && seed>=1,
+    fire?'火灵兽 · 已孵化':'孵化 火灵兽 🔥',
+    fire?`Lv.${fire.level} · 熔炉高温持续更久，刷新后仍会回到工坊`:'消耗 灵兽灵魂×1 + 污染种子×1 · 自动为锻造加热熔炉',
+    !fire && soul>=1 && seed>=1,
     ()=>{ farm.inventory.materials.beast_soul--; farm.inventory.materials.blight_seed--;
       hatchFire(); Terra.save(); updateDock(); toastHint('火灵兽破壳而出!'); openBreed(); }));
   opts.appendChild(breedBtn(
-    waterEvolved?'水灵兽 · 已进化':'进化 水灵兽 💧',
-    waterEvolved?'体型更大,灌溉更勤':'消耗 灵兽灵魂×1 · 体型更大、灌溉更快',
-    !waterEvolved && soul>=1,
-    ()=>{ farm.inventory.materials.beast_soul--; waterEvolved=true;
-      if(beast._bw){ beast._bw*=1.22; beast._bh*=1.22; }
-      Terra.save(); updateDock(); toastHint('水灵兽进化了 · 更强的丰饶之灵'); openBreed(); }));
+    `进化 水灵兽 💧 Lv.${water?.level||1} → Lv.${(water?.level||1)+1}`,
+    `消耗 灵兽灵魂×1 · 灌溉施法更快，收获提示显示等级`,
+    soul>=1,
+    ()=>{ farm.inventory.materials.beast_soul--; const w=waterSpirit(); w.level=Math.min(9,(w.level||1)+1); w.xp=(w.xp||0)+1;
+      if(beast._bw){ beast._bw*=1.08; beast._bh*=1.08; }
+      Terra.save(); updateDock(); toastHint(`水灵兽进化至 Lv.${w.level} · 灌溉更快`); openBreed(); }));
   breedEl.style.opacity='1'; breedEl.style.pointerEvents='auto'; breedEl.style.transform='translate(-50%,-50%) scale(1)';
 }
 function closeBreed(){ if(!breedEl)return; breedEl.style.opacity='0'; breedEl.style.pointerEvents='none'; breedEl.style.transform='translate(-50%,-50%) scale(.88)'; }
@@ -1245,7 +1249,35 @@ farm.inventory.cards ??= [];
 farm.tech ??= { agriculture:0, military:0, magic:0, unlockedRecipes:['card_sprout_guard'] };
 farm.tech.unlockedRecipes ??= ['card_sprout_guard'];
 farm.upgrades ??= [];
+farm.beasts ??= [];
+function normalizeBeasts(){
+  farm.beasts = (farm.beasts||[]).map((b,i)=>({
+    id:b.id || `${b.species||'beast'}_${i}`,
+    species:b.species || 'water_spirit',
+    element:b.element || (b.species==='fire_spirit'?'fire':'water'),
+    level:Math.max(1, b.level||1),
+    xp:b.xp||0,
+    stamina:b.stamina??100,
+    evolution:b.evolution||{diet:{},laborHistory:{}},
+    assignment:b.assignment||null,
+  }));
+  if(!farm.beasts.some(b=>b.species==='water_spirit')){
+    farm.beasts.unshift({id:'water_spirit_starter',species:'water_spirit',element:'water',level:1,xp:0,stamina:100,evolution:{diet:{},laborHistory:{}},assignment:'irrigate'});
+  }
+  const seen=new Set();
+  farm.beasts=farm.beasts.filter(b=>{
+    const key=b.species;
+    if((key==='water_spirit'||key==='fire_spirit') && seen.has(key)) return false;
+    seen.add(key); return true;
+  });
+}
+normalizeBeasts();
+const beastBySpecies=species=>farm.beasts.find(b=>b.species===species);
+const beastLevel=species=>beastBySpecies(species)?.level||1;
+const waterSpirit=()=>beastBySpecies('water_spirit');
+const fireSpirit=()=>beastBySpecies('fire_spirit');
 farm.inventory.materials.wood ??= 8;           // 初始木材(伐木系统未上线前)
+if(fireSpirit()) hatchFire();
 
 let whisperTimer;
 function toastHint(t){ const w=$('whisper'); w.textContent=t; w.style.opacity=1;
@@ -1348,7 +1380,8 @@ function updateDock(){
   $('invWood').textContent=farm.inventory.materials.wood||0;
   $('invCards').textContent=farm.inventory.cards.length;
   $('craftBtn').disabled = !(wheat>=3 && (farm.inventory.materials.wood||0)>=2);
-  $('craftBtn').textContent = forgeHot ? '锻造 · 熔炉灼热 🔥' : '锻造 · 新芽守卫';
+  const fire=fireSpirit();
+  $('craftBtn').textContent = forgeHot ? `锻造 · 熔炉灼热 Lv.${fire?.level||1} 🔥` : '锻造 · 新芽守卫';
 }
 $('craftBtn').onclick=()=>{
   if(window.Alchemy) Alchemy.open();
@@ -1359,7 +1392,7 @@ updateDock();
 
 /* 灵兽状态面板 */
 const BEAST_STATE={idle:'闲逛中 …',seek:'前往灌溉 …',water:'正在浇水 …'};
-function setBeastStatus(s){ const el=$('beastState'); if(el) el.textContent=BEAST_STATE[s]||'—'; }
+function setBeastStatus(s){ const el=$('beastState'); if(el) el.textContent=`水灵兽 Lv.${beastLevel('water_spirit')} · ${BEAST_STATE[s]||'—'}`; }
 setBeastStatus('idle');
 
 /* ================= 12. 标题 → 世界 转场 ================= */
@@ -1398,6 +1431,7 @@ $('enter').onclick=enterWorld;
 window.__dbg={app,world,groundL,waterL,snowL,overlayL,objL,fxScreen,player,cam,beast,beastAI,
   seasonFilter, findPath, planted, commandTo, interactFarm, enterWorld,
   beastStep, get quality(){return quality}, get fireBeast(){return fireBeast}, get forgeHot(){return forgeHot}, openBreed,
+  get beasts(){return farm.beasts},
   get ready(){return entered && !!app?.renderer && app.screen.width>0 && app.screen.height>0},
   get farm(){return Terra.farm},
   get scripts(){return [...document.scripts].map(s=>s.src).filter(Boolean)},
