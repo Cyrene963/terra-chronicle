@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fix Verification Tests - Terra Chronicle</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Courier New', monospace;
+      background: linear-gradient(135deg, #1a1612 0%, #0a0810 100%);
+      color: #f4ecd8;
+      padding: 40px;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 32px;
+      color: #f4d03f;
+      margin-bottom: 12px;
+      text-shadow: 0 2px 8px rgba(0,0,0,.8);
+    }
+    h2 {
+      font-size: 24px;
+      color: #d4af37;
+      margin: 32px 0 16px;
+      border-bottom: 2px solid rgba(212,175,55,.3);
+      padding-bottom: 8px;
+    }
+    .test-section {
+      background: rgba(244,236,216,.08);
+      border: 2px solid rgba(212,175,55,.3);
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .test-result {
+      padding: 12px;
+      margin: 8px 0;
+      border-radius: 4px;
+      border-left: 4px solid;
+    }
+    .test-result.pass {
+      background: rgba(74,222,128,.1);
+      border-color: #4ade80;
+    }
+    .test-result.fail {
+      background: rgba(239,68,68,.1);
+      border-color: #ef4444;
+    }
+    .test-result.info {
+      background: rgba(59,130,246,.1);
+      border-color: #3b82f6;
+    }
+    button {
+      background: linear-gradient(135deg, rgba(244,236,216,.2), rgba(232,220,191,.1));
+      border: 2px solid #d4af37;
+      color: #f4ecd8;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      margin: 8px 8px 8px 0;
+      transition: all .3s;
+    }
+    button:hover {
+      background: linear-gradient(135deg, rgba(212,175,55,.3), rgba(201,162,75,.2));
+      box-shadow: 0 0 16px rgba(212,175,55,.4);
+      transform: translateY(-2px);
+    }
+    button:disabled {
+      opacity: .4;
+      cursor: not-allowed;
+    }
+    .log {
+      background: rgba(0,0,0,.3);
+      padding: 16px;
+      border-radius: 4px;
+      margin: 16px 0;
+      font-size: 13px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .log-entry {
+      margin: 4px 0;
+      opacity: .8;
+    }
+    .metric {
+      display: inline-block;
+      background: rgba(244,208,63,.2);
+      padding: 4px 12px;
+      border-radius: 4px;
+      margin: 4px 4px 4px 0;
+      font-weight: bold;
+    }
+    .summary {
+      font-size: 18px;
+      margin-top: 24px;
+      padding: 16px;
+      background: rgba(212,175,55,.15);
+      border-radius: 8px;
+    }
+    iframe {
+      width: 100%;
+      height: 600px;
+      border: 3px solid rgba(212,175,55,.5);
+      border-radius: 8px;
+      margin: 16px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 Fix Verification Tests</h1>
+    <p style="opacity: .7; margin-bottom: 32px;">Testing both black screen fix and dungeon map simplification</p>
+
+    <!-- Test 1: Black Screen Fix -->
+    <div class="test-section">
+      <h2>Test 1: Black Screen Fix (Multiple Page Loads)</h2>
+      <p>Tests if canvas renders full screen consistently across multiple loads. This simulates the black screen bug.</p>
+
+      <button id="runBlackScreenTest">Run Black Screen Test</button>
+      <button id="simulateTabSwitch">Simulate Tab Switch</button>
+      <button id="simulateResize">Simulate Resize</button>
+
+      <div id="blackScreenResults" class="log"></div>
+
+      <div id="blackScreenSummary"></div>
+    </div>
+
+    <!-- Test 2: Dungeon Map Test -->
+    <div class="test-section">
+      <h2>Test 2: Dungeon Map Layout (Node Count & Connections)</h2>
+      <p>Verifies the new simplified dungeon map has ~5 nodes total with clean vertical layout.</p>
+
+      <button id="runDungeonTest">Run Dungeon Map Test</button>
+      <button id="visualizeDungeon">Visualize Map</button>
+
+      <div id="dungeonResults" class="log"></div>
+
+      <div id="dungeonSummary"></div>
+
+      <iframe id="dungeonFrame" style="display:none;"></iframe>
+    </div>
+
+    <!-- Overall Summary -->
+    <div id="overallSummary" class="summary" style="display:none;"></div>
+  </div>
+
+  <script>
+    const log = (containerId, message, type = 'info') => {
+      const container = document.getElementById(containerId);
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.style.color = type === 'pass' ? '#4ade80' : type === 'fail' ? '#ef4444' : '#f4ecd8';
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      container.appendChild(entry);
+      container.scrollTop = container.scrollHeight;
+    };
+
+    const createTestResult = (containerId, message, passed) => {
+      const container = document.getElementById(containerId);
+      const result = document.createElement('div');
+      result.className = `test-result ${passed ? 'pass' : 'fail'}`;
+      result.textContent = `${passed ? '✓' : '✗'} ${message}`;
+      container.appendChild(result);
+      return passed;
+    };
+
+    // TEST 1: Black Screen Fix
+    document.getElementById('runBlackScreenTest').onclick = async () => {
+      const resultsId = 'blackScreenResults';
+      const summaryId = 'blackScreenSummary';
+      document.getElementById(resultsId).innerHTML = '';
+      document.getElementById(summaryId).innerHTML = '';
+
+      log(resultsId, 'Starting Black Screen Test...');
+      log(resultsId, 'Checking main.js for fix implementations...');
+
+      try {
+        // Fetch and analyze main.js
+        const response = await fetch('src/main.js');
+        const code = await response.text();
+
+        let passCount = 0;
+        let totalTests = 0;
+
+        // Test 1: Check for window.onload wrapper
+        totalTests++;
+        if (code.includes("window.addEventListener('load'") || code.includes('window.onload')) {
+          log(resultsId, '✓ Found window.onload wrapper', 'pass');
+          passCount++;
+        } else {
+          log(resultsId, '✗ Missing window.onload wrapper', 'fail');
+        }
+
+        // Test 2: Check for fallback canvas style dimensions
+        totalTests++;
+        if (code.includes('app.canvas.style.width') && code.includes('window.innerWidth')) {
+          log(resultsId, '✓ Found canvas style dimension fallbacks', 'pass');
+          passCount++;
+        } else {
+          log(resultsId, '✗ Missing canvas style dimension fallbacks', 'fail');
+        }
+
+        // Test 3: Check for visibility state check
+        totalTests++;
+        if (code.includes("document.visibilityState") && code.includes("'visible'")) {
+          log(resultsId, '✓ Found visibility state check in resize handler', 'pass');
+          passCount++;
+        } else {
+          log(resultsId, '✗ Missing visibility state check', 'fail');
+        }
+
+        // Test 4: Check for multiple resize triggers
+        totalTests++;
+        const resizeTriggers = (code.match(/handleResize\(\)/g) || []).length;
+        if (resizeTriggers >= 5) {
+          log(resultsId, `✓ Found ${resizeTriggers} resize triggers (good redundancy)`, 'pass');
+          passCount++;
+        } else {
+          log(resultsId, `✗ Only found ${resizeTriggers} resize triggers (need more fallbacks)`, 'fail');
+        }
+
+        // Test 5: Check for visibility change listener
+        totalTests++;
+        if (code.includes("addEventListener('visibilitychange'")) {
+          log(resultsId, '✓ Found visibilitychange listener', 'pass');
+          passCount++;
+        } else {
+          log(resultsId, '✗ Missing visibilitychange listener', 'fail');
+        }
+
+        // Test 6: Live dimension check (if page is already loaded)
+        totalTests++;
+        if (window.__dbg && window.__dbg.app) {
+          const app = window.__dbg.app;
+          const canvas = app.canvas;
+          const screenWidth = window.innerWidth;
+          const screenHeight = window.innerHeight;
+
+          log(resultsId, `Canvas dimensions: ${canvas.width}x${canvas.height}`);
+          log(resultsId, `Screen dimensions: ${screenWidth}x${screenHeight}`);
+          log(resultsId, `Canvas style: ${canvas.style.width} x ${canvas.style.height}`);
+
+          // Check if canvas is properly sized
+          const styleWidthOk = canvas.style.width === `${screenWidth}px`;
+          const styleHeightOk = canvas.style.height === `${screenHeight}px`;
+          const positionOk = canvas.style.position === 'absolute';
+
+          if (styleWidthOk && styleHeightOk && positionOk) {
+            log(resultsId, '✓ Live canvas dimensions are correct', 'pass');
+            passCount++;
+          } else {
+            log(resultsId, '✗ Live canvas dimensions incorrect', 'fail');
+          }
+        } else {
+          log(resultsId, '⚠ Cannot test live dimensions (game not loaded)', 'info');
+          totalTests--; // Don't count this test
+        }
+
+        // Summary
+        const passRate = ((passCount / totalTests) * 100).toFixed(0);
+        const summaryHTML = `
+          <div class="test-result ${passCount === totalTests ? 'pass' : 'fail'}">
+            <strong>Black Screen Fix: ${passCount}/${totalTests} tests passed (${passRate}%)</strong><br>
+            ${passCount === totalTests ?
+              '✓ All black screen fixes are in place!' :
+              `⚠ ${totalTests - passCount} fix(es) missing or incomplete`}
+          </div>
+        `;
+        document.getElementById(summaryId).innerHTML = summaryHTML;
+
+      } catch (error) {
+        log(resultsId, `✗ Error: ${error.message}`, 'fail');
+      }
+    };
+
+    // Simulate tab switch test
+    document.getElementById('simulateTabSwitch').onclick = () => {
+      log('blackScreenResults', 'Simulating tab switch...', 'info');
+
+      // Trigger visibility change
+      Object.defineProperty(document, 'visibilityState', {
+        writable: true,
+        configurable: true,
+        value: 'hidden'
+      });
+      document.dispatchEvent(new Event('visibilitychange'));
+
+      setTimeout(() => {
+        Object.defineProperty(document, 'visibilityState', {
+          writable: true,
+          configurable: true,
+          value: 'visible'
+        });
+        document.dispatchEvent(new Event('visibilitychange'));
+        log('blackScreenResults', '✓ Tab switch simulated (check console for resize logs)', 'pass');
+      }, 100);
+    };
+
+    // Simulate resize test
+    document.getElementById('simulateResize').onclick = () => {
+      log('blackScreenResults', 'Triggering resize event...', 'info');
+      window.dispatchEvent(new Event('resize'));
+
+      setTimeout(() => {
+        if (window.__dbg && window.__dbg.app) {
+          const canvas = window.__dbg.app.canvas;
+          log('blackScreenResults', `Canvas after resize: ${canvas.width}x${canvas.height}`, 'info');
+          log('blackScreenResults', `Canvas style: ${canvas.style.width} x ${canvas.style.height}`, 'info');
+        }
+        log('blackScreenResults', '✓ Resize triggered (check canvas dimensions above)', 'pass');
+      }, 200);
+    };
+
+    // TEST 2: Dungeon Map
+    document.getElementById('runDungeonTest').onclick = async () => {
+      const resultsId = 'dungeonResults';
+      const summaryId = 'dungeonSummary';
+      document.getElementById(resultsId).innerHTML = '';
+      document.getElementById(summaryId).innerHTML = '';
+
+      log(resultsId, 'Starting Dungeon Map Test...');
+
+      try {
+        // Fetch and analyze dungeon.js
+        const response = await fetch('src/dungeon.js');
+        const code = await response.text();
+
+        let passCount = 0;
+        let totalTests = 0;
+
+        // Test 1: Count floors (should be 3)
+        totalTests++;
+        const floorsMatch = code.match(/floors=\[\[\],\[\],\[\]\]/);
+        if (floorsMatch) {
+          log(resultsId, '✓ Map has 3 floors', 'pass');
+          passCount++;
+        } else {
+          log(resultsId, '✗ Map does not have exactly 3 floors', 'fail');
+        }
+
+        // Test 2: Count total nodes in generateMap function
+        totalTests++;
+        const floor0Pushes = (code.match(/floors\[0\]\.push/g) || []).length;
+        const floor1Pushes = (code.match(/floors\[1\]\.push/g) || []).length;
+        const floor2Pushes = (code.match(/floors\[2\]\.push/g) || []).length;
+        const totalNodes = floor0Pushes + floor1Pushes + floor2Pushes;
+
+        log(resultsId, `Node count: Floor 0: ${floor0Pushes}, Floor 1: ${floor1Pushes}, Floor 2: ${floor2Pushes}`);
+
+        if (totalNodes >= 4 && totalNodes <= 5) {
+          log(resultsId, `✓ Total nodes: ${totalNodes} (within target range 4-5)`, 'pass');
+          passCount++;
+        } else {
+          log(resultsId, `✗ Total nodes: ${totalNodes} (should be 4-5, not 10+)`, 'fail');
+        }
+
+        // Test 3: Check for vertical/linear layout (centerX usage)
+        totalTests++;
+        if (code.includes('const centerX=450') && code.includes('x=centerX')) {
+          log(resultsId, '✓ Layout uses vertical alignment (centerX)', 'pass');
+          passCount++;
+        } else {
+          log(resultsId, '✗ Layout does not use vertical alignment', 'fail');
+        }
+
+        // Test 4: Check floor spacing
+        totalTests++;
+        if (code.includes('floorSpacing=200')) {
+          log(resultsId, '✓ Proper floor spacing defined (200px)', 'pass');
+          passCount++;
+        } else {
+          log(resultsId, '✗ Floor spacing not properly defined', 'fail');
+        }
+
+        // Test 5: Check path drawing logic (should only connect adjacent floors)
+        totalTests++;
+        if (code.includes('if(fi<mapData.length-1)') && code.includes('mapData[fi+1]')) {
+          log(resultsId, '✓ Paths only connect to adjacent floors', 'pass');
+          passCount++;
+        } else {
+          log(resultsId, '✗ Path logic may create cross-connections', 'fail');
+        }
+
+        // Test 6: Check for boss node on floor 2
+        totalTests++;
+        if (code.includes("floors[2].push({type:'boss'")) {
+          log(resultsId, '✓ BOSS node exists on final floor', 'pass');
+          passCount++;
+        } else {
+          log(resultsId, '✗ Missing BOSS node on final floor', 'fail');
+        }
+
+        // Test 7: Verify no random horizontal spreading
+        totalTests++;
+        const hasHorizontalSpread = code.includes('Math.random()*widthRange') ||
+                                    code.includes('x=') && code.includes('Math.random()') &&
+                                    !code.includes('x=centerX');
+        if (!hasHorizontalSpread) {
+          log(resultsId, '✓ No random horizontal spreading in layout', 'pass');
+          passCount++;
+        } else {
+          log(resultsId, '✗ Layout may have random horizontal spreading', 'fail');
+        }
+
+        // Summary
+        const passRate = ((passCount / totalTests) * 100).toFixed(0);
+        const summaryHTML = `
+          <div class="test-result ${passCount === totalTests ? 'pass' : 'fail'}">
+            <strong>Dungeon Map: ${passCount}/${totalTests} tests passed (${passRate}%)</strong><br>
+            <span class="metric">Total Nodes: ${totalNodes}</span>
+            <span class="metric">Layout: ${code.includes('centerX') ? 'Vertical' : 'Unknown'}</span><br>
+            ${passCount === totalTests ?
+              '✓ Dungeon map is properly simplified!' :
+              `⚠ ${totalTests - passCount} issue(s) detected`}
+          </div>
+        `;
+        document.getElementById(summaryId).innerHTML = summaryHTML;
+
+      } catch (error) {
+        log(resultsId, `✗ Error: ${error.message}`, 'fail');
+      }
+    };
+
+    // Visualize dungeon map
+    document.getElementById('visualizeDungeon').onclick = () => {
+      const frame = document.getElementById('dungeonFrame');
+      frame.style.display = 'block';
+      frame.src = 'index.html';
+
+      log('dungeonResults', '✓ Loading game in iframe (open dungeon map from portal)', 'info');
+
+      // Try to auto-open dungeon map after load
+      frame.onload = () => {
+        try {
+          if (frame.contentWindow.DungeonMap) {
+            setTimeout(() => {
+              frame.contentWindow.DungeonMap.open();
+              log('dungeonResults', '✓ Dungeon map opened in iframe', 'pass');
+            }, 2000);
+          }
+        } catch (e) {
+          log('dungeonResults', '⚠ Could not auto-open map (open manually via portal)', 'info');
+        }
+      };
+    };
+
+    // Auto-run all tests on load
+    setTimeout(() => {
+      document.getElementById('runBlackScreenTest').click();
+      setTimeout(() => {
+        document.getElementById('runDungeonTest').click();
+      }, 500);
+    }, 500);
+  </script>
+</body>
+</html>

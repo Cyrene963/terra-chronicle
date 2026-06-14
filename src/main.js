@@ -161,8 +161,9 @@ function placeObjects(){
 placeObjects();
 
 /* ================= 4. PIXI 启动 ================= */
-// Wrap entire initialization in DOMContentLoaded to ensure DOM is ready
-window.addEventListener('DOMContentLoaded', async ()=>{
+// NUCLEAR FIX: Multiple fallbacks to prevent black screen
+// Wrap entire initialization in window.onload (stronger than DOMContentLoaded)
+window.addEventListener('load', async ()=>{
 const app = new PIXI.Application();
 await app.init({
   width: window.innerWidth || 1920,
@@ -173,7 +174,20 @@ await app.init({
   autoDensity: true,
   roundPixels: true
 });
-document.getElementById('stage').appendChild(app.canvas);
+
+const stage = document.getElementById('stage');
+stage.appendChild(app.canvas);
+
+// FALLBACK 1: Force canvas style dimensions immediately after append
+app.canvas.style.width = window.innerWidth + 'px';
+app.canvas.style.height = window.innerHeight + 'px';
+app.canvas.style.display = 'block';
+app.canvas.style.position = 'absolute';
+app.canvas.style.top = '0';
+app.canvas.style.left = '0';
+
+console.log('[Terra] Canvas dimensions:', app.canvas.width, app.canvas.height);
+console.log('[Terra] Renderer size:', app.renderer.width, app.renderer.height);
 
 /* ---- 通用纹理 ---- */
 function radialTex(size, inner, outer){
@@ -204,15 +218,39 @@ world.addChild(groundL, waterL, foamL, snowL, overlayL, objL);
 app.stage.addChild(world, fxScreen);
 
 /* DPR/视口加固: 画布撑满屏 + resize 时同步渲染器与滤镜区域(防止高分屏下视口缩进黑屏) */
-app.canvas.style.width='100%'; app.canvas.style.height='100%';
-app.canvas.style.display='block';
+// NUCLEAR FIX: Enhanced resize handler with visibility check and multiple triggers
 function handleResize(){
-  app.renderer.resize(window.innerWidth, window.innerHeight);
-  if(world.filters && world.filters.length) world.filterArea=new PIXI.Rectangle(0,0,app.screen.width,app.screen.height);
+  // Only resize when document is visible (prevents black screen on tab switch)
+  if(document.visibilityState !== 'visible') {
+    console.log('[Terra] Skipping resize - document not visible');
+    return;
+  }
+
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+
+  console.log('[Terra] handleResize called:', w, 'x', h);
+
+  app.renderer.resize(w, h);
+
+  // FALLBACK 2: Force canvas dimensions again after renderer resize
+  app.canvas.style.width = w + 'px';
+  app.canvas.style.height = h + 'px';
+
+  if(world.filters && world.filters.length) {
+    world.filterArea = new PIXI.Rectangle(0, 0, w, h);
+  }
+
+  console.log('[Terra] Resize complete. Canvas:', app.canvas.width, app.canvas.height, 'Screen:', app.screen.width, app.screen.height);
 }
+
+// FALLBACK 3: Multiple resize triggers at different intervals
 addEventListener('resize', handleResize);
-// CRITICAL: Delay initial resize until after world is fully built and added to stage
-// This ensures full-screen rendering from the start
+addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible') {
+    setTimeout(handleResize, 50);
+  }
+});
 
 /* —— 四季色彩分级: ColorMatrixFilter 对整个世界统一调色 —— */
 /* 春=高饱和清新 / 夏=明亮高对比 / 秋=金黄枫红色相偏移 / 冬=去饱和冷调 */
@@ -1443,14 +1481,43 @@ setTimeout(()=>{
   const loader=document.getElementById('loading');
   if(loader){ loader.classList.add('ready'); setTimeout(()=>loader.remove(),800); }
 
-  // NOW trigger resize after everything is built and on stage
+  // FALLBACK 4: Staggered resize triggers after everything is built
+  // Immediate
   handleResize();
+  console.log('[Terra] Resize trigger 1: immediate');
 
-  // Force browser resize event (fixes black screen on some systems)
+  // FALLBACK 5: After 100ms (canvas might not be fully attached yet)
+  setTimeout(() => {
+    handleResize();
+    console.log('[Terra] Resize trigger 2: +100ms');
+  }, 100);
+
+  // FALLBACK 6: After 500ms (second safety net)
+  setTimeout(() => {
+    handleResize();
+    console.log('[Terra] Resize trigger 3: +500ms');
+  }, 500);
+
+  // FALLBACK 7: After 1000ms (third safety net for slow systems)
+  setTimeout(() => {
+    handleResize();
+    console.log('[Terra] Resize trigger 4: +1000ms');
+  }, 1000);
+
+  // FALLBACK 8: Force browser resize event (fixes black screen on some systems)
   window.dispatchEvent(new Event('resize'));
 
-  // Double-check after another frame
-  requestAnimationFrame(()=>handleResize());
+  // FALLBACK 9: Double-check after another animation frame
+  requestAnimationFrame(() => {
+    handleResize();
+    console.log('[Terra] Resize trigger 5: RAF');
+
+    // FALLBACK 10: Triple-check after second animation frame
+    requestAnimationFrame(() => {
+      handleResize();
+      console.log('[Terra] Resize trigger 6: RAF+1');
+    });
+  });
 },100);
 
 });
