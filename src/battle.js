@@ -37,10 +37,14 @@ function buildDeck(crafted){
     {name:'蓄能',type:'atk',val:9,cost:2,desc:'造成 9 点伤害'},
   ];
   const made=(crafted||[]).map(c=>{
+    const qualityTag=c.quality?` · 产地${Math.round(c.quality*100)}`:'';
+    const affixTag=c.affixes?.length?` · ${c.affixes.join('/')}`:'';
+    if(c.heal>0) return {name:c.name,type:'heal',val:c.heal,cost:c.heal>=24?2:1,
+      desc:`恢复 ${c.heal} 点生命${qualityTag}${affixTag}`,elem:c.element,quality:c.quality,affixes:c.affixes||[]};
     if(c.def>=c.atk) return {name:c.name,type:'def',val:c.def,cost:c.def>=24?2:1,
-      desc:`获得 ${c.def} 点护甲`,elem:c.element,quality:c.quality};
+      desc:`获得 ${c.def} 点护甲${qualityTag}${affixTag}`,elem:c.element,quality:c.quality,affixes:c.affixes||[]};
     return {name:c.name,type:'atk',val:c.atk,cost:c.atk>=22?2:1,
-      desc:`造成 ${c.atk} 点伤害`,elem:c.element,quality:c.quality};
+      desc:`造成 ${c.atk} 点伤害${qualityTag}${affixTag}`,elem:c.element,quality:c.quality,affixes:c.affixes||[]};
   });
   return [...base,...made];
 }
@@ -143,9 +147,13 @@ function injectStyle(){
   #battle .result h2{font-size:46px;font-weight:300;letter-spacing:.3em;text-indent:.3em;}
   #battle .result .loot{font-size:15px;letter-spacing:.16em;line-height:2;opacity:.9;}
   #battle .result .gold{color:#c9a24b;}
-  #battle .result button{margin-top:10px;border:1px solid rgba(246,241,231,.5);background:none;color:#f6f1e7;cursor:pointer;
-    font-family:'Noto Serif SC',serif;font-size:13px;letter-spacing:.4em;text-indent:.4em;padding:13px 40px;border-radius:999px;}
-  #battle .result button:hover{background:#f6f1e7;color:#2b2722;}
+  #battle .rewardChoices{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;max-width:760px;}
+  #battle .rewardChoice{width:190px;min-height:120px;border:1px solid rgba(201,162,75,.55);border-radius:14px;
+    background:linear-gradient(150deg,rgba(244,236,216,.1),rgba(201,162,75,.08));padding:18px;cursor:pointer;
+    box-shadow:0 14px 36px rgba(0,0,0,.35);transition:transform .25s,box-shadow .25s,border-color .25s;}
+  #battle .rewardChoice:hover{transform:translateY(-6px);border-color:#f4d03f;box-shadow:0 20px 48px rgba(0,0,0,.48),0 0 26px rgba(244,208,63,.25);}
+  #battle .rewardChoice .rname{font-size:16px;letter-spacing:.16em;color:#f4d03f;margin-bottom:12px;}
+  #battle .rewardChoice .rdesc{font-size:12px;line-height:1.75;letter-spacing:.05em;opacity:.86;}
   `;
   const st=document.createElement('style'); st.textContent=css; document.head.appendChild(st);
 }
@@ -181,11 +189,10 @@ function buildDOM(){
     <div class="result" id="b_result">
       <h2 id="b_rtitle"></h2>
       <div class="loot" id="b_loot"></div>
-      <button id="b_back">返 回 农 场</button>
+      <div class="rewardChoices" id="b_rewards"></div>
     </div>`;
   document.body.appendChild(root);
   root.querySelector('#b_end').onclick=endTurn;
-  root.querySelector('#b_back').onclick=exit;
 }
 
 function floatNum(text,color,x,y){                 // 抛物线弹跳伤害数字(FCT)
@@ -283,8 +290,9 @@ function render(){
   S.hand.forEach((c,i)=>{
     const playable = S.turn>0 && !S.over && S.phase==='player' && S.energy>=c.cost;
     const el=$('div','card '+c.type+(playable?'':' disabled'),hand);
+    const icon=c.type==='atk'?'⚔':c.type==='heal'?'✦':'🛡';
     el.innerHTML=`<div class="cost">${c.cost}</div><div class="cname">${c.name}</div>
-      <div class="cart">${c.type==='atk'?'⚔':'🛡'}</div><div class="cdesc">${c.desc}</div>`;
+      <div class="cart">${icon}</div><div class="cdesc">${c.desc}</div>`;
     if(playable) el.onclick=(ev)=>playCard(i, ev.currentTarget);
   });
 }
@@ -318,6 +326,10 @@ function playCard(i, el){
       if(S.enemy.hp<=0){ render(); return finish(true); }
       render();
     },175);
+  } else if(c.type==='heal'){
+    const before=S.pHP;
+    S.pHP=Math.min(S.pMax, S.pHP+c.val);
+    floatNum('+'+(S.pHP-before),'#b6e08a', innerWidth/2, innerHeight-180);
   } else {
     if(window.TerraSound) TerraSound.play('click', 0.7);
     S.shield+=c.val;
@@ -345,16 +357,43 @@ function endTurn(){
     startPlayerTurn();
   }, 720);
 }
+function rewardChoices(){
+  const base=[
+    {name:'污染种子', loot:{blight_seed:1}, desc:'灵兽孵化与后续防御科技材料'},
+    {name:'灵兽灵魂', loot:{beast_soul:1}, desc:'升级工坊、进化灵兽的核心资源'},
+    {name:'远征木箱', loot:{wood:4}, desc:'直接补足锻造与农场扩建木材'}
+  ];
+  if(cb?.isElite) base.push({name:'精英残响', loot:{beast_soul:1, blight_seed:1}, desc:'少量双资源,更快进入升级路线'});
+  if(cb?.isBoss) base.push({name:'深渊核心', loot:{beast_soul:2, blight_seed:2}, desc:'Boss 战利品,可连续推动工坊升级'});
+  return base;
+}
+
+function pickReward(loot){
+  if(!S||!S.over) return;
+  S._loot=loot;
+  exit();
+}
+
 function finish(win){
   S.over=true; render();
   const res=root.querySelector('#b_result');
+  const rewards=root.querySelector('#b_rewards');
+  rewards.innerHTML='';
   root.querySelector('#b_rtitle').textContent = win?'胜 利':'败 退';
   if(win){
     root.querySelector('#b_loot').innerHTML=
-      `深渊退散，你拾得：<br><span class="gold">污染种子 ×1</span> · <span class="gold">灵兽灵魂 ×1</span><br>
-       <span style="opacity:.6;font-size:12px">可带回农场培育更强的作物与灵兽</span>`;
+      `深渊退散，选择一份带回农场的战利品：<br>
+       <span style="opacity:.6;font-size:12px">奖励会直接影响下一轮锻造、灵兽与升级路线</span>`;
+    rewardChoices().forEach(r=>{
+      const el=$('div','rewardChoice',rewards);
+      el.innerHTML=`<div class="rname">${r.name}</div><div class="rdesc">${r.desc}</div>`;
+      el.onclick=()=>pickReward(r.loot);
+    });
   } else {
     root.querySelector('#b_loot').innerHTML=`你被击退回农场，休养生息后再战。<br><span style="opacity:.6;font-size:12px">未获得战利品</span>`;
+    const el=$('div','rewardChoice',rewards);
+    el.innerHTML='<div class="rname">返回农场</div><div class="rdesc">调整卡组与农场产出后再来。</div>';
+    el.onclick=()=>exit();
   }
   setTimeout(()=>res.classList.add('on'),520);
   S._win=win;
@@ -366,7 +405,7 @@ function exit(){
   fadeToBlack(()=>{
     root.classList.remove('on');
     setTimeout(()=>{ root.style.display='none'; S=null; fadeFromBlack(); }, 200);
-    if(win&&c&&c.onWin) c.onWin({ blight_seed:1, beast_soul:1 });
+    if(win&&c&&c.onWin) c.onWin(S?S._loot||{}:{});
     else if(!win&&c&&c.onLose) c.onLose();
   });
 }

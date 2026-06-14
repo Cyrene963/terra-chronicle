@@ -692,8 +692,10 @@ function enterBattle(){
   setTimeout(()=>{
     Battle.enter({
       deck: farm.inventory.cards,
-      onWin(loot){ for(const k in loot) farm.inventory.materials[k]=(farm.inventory.materials[k]||0)+loot[k];
-        Terra.save(); updateDock(); toastHint('凯旋 · 获得 污染种子×1 灵兽灵魂×1'); fl.style.opacity='0'; },
+      onWin(loot){
+        for(const k in loot) farm.inventory.materials[k]=(farm.inventory.materials[k]||0)+loot[k];
+        const label=Object.entries(loot||{}).map(([k,v])=>`${k}×${v}`).join(' · ')||'无';
+        Terra.save(); updateDock(); toastHint(`凯旋 · 带回 ${label}`); fl.style.opacity='0'; },
       onLose(){ toastHint('败退 · 已退回农场'); fl.style.opacity='0'; },
     });
     setTimeout(()=>{ fl.style.opacity='0'; }, 200);
@@ -1218,6 +1220,13 @@ addEventListener('mousemove',e=>{
    → Dock 显示背包 → 锻造按钮调用 Terra.craftCard → 卡牌翻面揭示 */
 if(!Terra.load()) Terra.newGame('local');
 const farm=Terra.farm;
+farm.inventory ??= { crops:{}, materials:{}, cards:[] };
+farm.inventory.crops ??= {};
+farm.inventory.materials ??= {};
+farm.inventory.cards ??= [];
+farm.tech ??= { agriculture:0, military:0, magic:0, unlockedRecipes:['card_sprout_guard'] };
+farm.tech.unlockedRecipes ??= ['card_sprout_guard'];
+farm.upgrades ??= [];
 farm.inventory.materials.wood ??= 8;           // 初始木材(伐木系统未上线前)
 
 let whisperTimer;

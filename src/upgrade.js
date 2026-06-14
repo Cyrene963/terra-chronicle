@@ -103,8 +103,9 @@ const UPGRADES=[
 function render(){
   const f=window.Terra?.farm;
   if(!f){ close(); return; }
-  const wood=f.inventory.materials.wood||0, soul=f.inventory.materials.beast_soul||0;
-  root.querySelector('.res').textContent=`库存 · 木材 ${wood} · 灵兽灵魂 ${soul}`;
+  const wood=f.inventory.materials.wood||0, soul=f.inventory.materials.beast_soul||0, seed=f.inventory.materials.blight_seed||0;
+  f.upgrades ??= [];
+  root.querySelector('.res').textContent=`库存 · 木材 ${wood} · 灵兽灵魂 ${soul} · 污染种子 ${seed}`;
   const upgs=root.querySelector('.upgrades'); upgs.innerHTML='';
   UPGRADES.forEach(u=>{
     const owned=f.upgrades?.includes(u.id);

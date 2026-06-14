@@ -163,13 +163,11 @@ function selectNode(node){
       isBoss, isElite,
       onWin(loot){
         if(!loot) loot={};
-        if(isBoss){ loot.blight_seed=(loot.blight_seed||0)+3; loot.beast_soul=(loot.beast_soul||0)+2; }
-        else if(isElite){ loot.blight_seed=(loot.blight_seed||0)+2; loot.beast_soul=(loot.beast_soul||0)+1; }
-        else { loot.blight_seed=(loot.blight_seed||0)+1; }
         if(window.Terra && window.Terra.farm){
           const f=window.Terra.farm;
-          f.inventory.materials.blight_seed=(f.inventory.materials.blight_seed||0)+(loot.blight_seed||0);
-          f.inventory.materials.beast_soul=(f.inventory.materials.beast_soul||0)+(loot.beast_soul||0);
+          for(const [k,v] of Object.entries(loot)){
+            f.inventory.materials[k]=(f.inventory.materials[k]||0)+v;
+          }
           window.Terra.save();
         }
         progress.floor++;

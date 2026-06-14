@@ -9,16 +9,16 @@ const $=(s,p)=>{const e=p?p.querySelector(s):document.querySelector(s);return e;
 const $$=(t,c)=>{const e=document.createElement(t);if(c)e.className=c;return e;};
 
 let root=null, injected=false;
-const cauldron={wheat:0, wood:0};  // 当前投入的材料数量
+const cauldron={starwheat:[], wood:0};  // 当前投入的材料,星麦保留产地质量
 
 // 配方表 (玩家不知道,需要试验)
 const RECIPES=[
-  {wheat:3,wood:1, result:{name:'新芽守卫',atk:8,def:18,elem:'wood'}},
-  {wheat:1,wood:3, result:{name:'巨盾',atk:6,def:28,elem:'earth'}},
-  {wheat:2,wood:2, result:{name:'平衡刃',atk:16,def:14,elem:'metal'}},
-  {wheat:4,wood:0, result:{name:'生命之粮',atk:0,def:0,heal:24,elem:'light'}},
-  {wheat:0,wood:4, result:{name:'荆棘壁',atk:12,def:22,elem:'earth'}},
-  {wheat:5,wood:1, result:{name:'收割镰',atk:22,def:8,elem:'fire'}},
+  {starwheat:3,wood:2, recipeId:'card_sprout_guard', result:{name:'新芽守卫',atk:18,def:26,elem:'earth'}},
+  {starwheat:1,wood:3, recipeId:'alchemy_bulwark', result:{name:'巨盾',atk:6,def:28,elem:'earth'}},
+  {starwheat:2,wood:2, recipeId:'alchemy_balanced_blade', result:{name:'平衡刃',atk:16,def:14,elem:'metal'}},
+  {starwheat:4,wood:0, recipeId:'alchemy_life_bread', result:{name:'生命之粮',atk:0,def:0,heal:24,elem:'light'}},
+  {starwheat:0,wood:4, recipeId:'alchemy_thorn_wall', result:{name:'荆棘壁',atk:12,def:22,elem:'earth'}},
+  {starwheat:5,wood:1, recipeId:'alchemy_harvest_sickle', result:{name:'收割镰',atk:22,def:8,elem:'fire'}},
 ];
 
 function injectStyle(){
@@ -117,7 +117,7 @@ function buildDOM(){
   `;
   document.body.appendChild(root);
 
-  $('#addWheat',root).onclick=()=>addIngredient('wheat');
+  $('#addWheat',root).onclick=()=>addIngredient('starwheat');
   $('#addWood',root).onclick=()=>addIngredient('wood');
   $('#alchemyReset',root).onclick=reset;
   $('#alchemyBrew',root).onclick=brew;
@@ -127,11 +127,10 @@ function buildDOM(){
 function addIngredient(type){
   const farm=window.Terra?.farm;
   if(!farm) return;
-  if(type==='wheat'){
-    const have=(farm.inventory.crops.wheat||[]).length;
-    if(have<1) return;
-    farm.inventory.crops.wheat.shift();
-    cauldron.wheat++;
+  if(type==='starwheat'){
+    const have=farm.inventory.crops.starwheat||[];
+    if(have.length<1) return;
+    cauldron.starwheat.push(have.shift());
   }else if(type==='wood'){
     const have=farm.inventory.materials.wood||0;
     if(have<1) return;
@@ -145,46 +144,70 @@ function reset(){
   // 退还材料
   const farm=window.Terra?.farm;
   if(farm){
-    if(!farm.inventory.crops.wheat) farm.inventory.crops.wheat=[];
-    for(let i=0;i<cauldron.wheat;i++) farm.inventory.crops.wheat.push({originFertility:50});
+    if(!farm.inventory.crops.starwheat) farm.inventory.crops.starwheat=[];
+    farm.inventory.crops.starwheat.unshift(...cauldron.starwheat);
     farm.inventory.materials.wood=(farm.inventory.materials.wood||0)+cauldron.wood;
   }
-  cauldron.wheat=0; cauldron.wood=0;
+  cauldron.starwheat=[]; cauldron.wood=0;
   updateDisplay();
+}
+
+function cauldronQuality(){
+  if(!cauldron.starwheat.length) return 0.5;
+  const avg=cauldron.starwheat.reduce((s,c)=>s+(c.originFertility??50),0)/cauldron.starwheat.length;
+  return Math.min(.98, Math.max(.4, avg/100));
+}
+
+function makeAlchemyCard(recipe){
+  const q=cauldronQuality();
+  const forgeBonus=window.__dbg?.forgeHot ? 0.08 : 0;
+  const scale=0.82 + Math.min(.99, q+forgeBonus)*0.36;
+  const craft=window.__dbg?.forgeHot ? 0.9 : Math.min(0.88, 0.42 + q*0.5);
+  const affixes=[];
+  if(craft>.5) affixes.push(q>.75?'丰饶产地':'稳定工艺');
+  if(craft>.85) affixes.push(window.__dbg?.forgeHot?'熔炉灼痕':'同季共鸣');
+  return {
+    id:'card_'+Date.now().toString(36)+(Math.random()*1e4|0),
+    recipeId:recipe.recipeId,
+    name:recipe.result.name,
+    element:recipe.result.elem,
+    atk:Math.round((recipe.result.atk||0)*scale),
+    def:Math.round((recipe.result.def||0)*scale),
+    heal:recipe.result.heal?Math.round(recipe.result.heal*scale):0,
+    quality:+q.toFixed(2),
+    origin:'starwheat',
+    craftsmanship:+craft.toFixed(2),
+    affixes,
+    bound:true
+  };
 }
 
 function brew(){
   // 查找匹配配方
-  const recipe=RECIPES.find(r=>r.wheat===cauldron.wheat && r.wood===cauldron.wood);
+  const recipe=RECIPES.find(r=>r.starwheat===cauldron.starwheat.length && r.wood===cauldron.wood);
   if(!recipe){
-    alert('配方未知! 继续试验其他比例。');
+    alert('配方未知! 材料已退回,继续试验其他比例。');
+    reset();
     if(window.TerraSound) TerraSound.play('click');
     return;
   }
 
-  // 合成成功!
+  // 合成成功:卡牌强度继承星麦产地肥力
   if(window.TerraSound) TerraSound.play('chime');
-  const card={
-    id:'card_'+Date.now().toString(36),
-    recipeId:'alchemy_'+recipe.result.name,
-    name:recipe.result.name,
-    element:recipe.result.elem,
-    atk:recipe.result.atk,
-    def:recipe.result.def,
-    heal:recipe.result.heal||0,
-    quality:0.85,
-    affixes:[],
-    bound:true
-  };
+  const card=makeAlchemyCard(recipe);
   const farm=window.Terra?.farm;
-  if(farm) farm.inventory.cards.push(card);
+  if(farm){
+    farm.inventory.cards.push(card);
+    window.Terra.save();
+  }
 
   // 显示发现特效
   $('#alchemyDiscovery',root).classList.add('on');
   setTimeout(()=>{
     $('#alchemyDiscovery',root).classList.remove('on');
-    alert(`✨ 成功炼制: ${card.name}\n攻${card.atk} 防${card.def}${card.heal?' 治疗'+card.heal:''}`);
-    cauldron.wheat=0; cauldron.wood=0;
+    const aff=card.affixes.length?`\n词条 · ${card.affixes.join(' / ')}`:'';
+    alert(`✨ 成功炼制: ${card.name}\n产地等级 ${(card.quality*100).toFixed(0)} · 工艺 ${(card.craftsmanship*100).toFixed(0)}\n攻${card.atk} 防${card.def}${card.heal?' 治疗'+card.heal:''}${aff}`);
+    cauldron.starwheat=[]; cauldron.wood=0;
     updateDisplay();
     if(window.updateDock) window.updateDock();
   },1800);
@@ -193,13 +216,15 @@ function brew(){
 function updateDisplay(){
   const farm=window.Terra?.farm;
   if(farm){
-    $('#wheatCount',root).textContent=`库存: ${(farm.inventory.crops.wheat||[]).length}`;
+    $('#wheatCount',root).textContent=`库存: ${(farm.inventory.crops.starwheat||[]).length}`;
     $('#woodCount',root).textContent=`库存: ${farm.inventory.materials.wood||0}`;
   }
-  if(cauldron.wheat===0 && cauldron.wood===0){
+  const wheatN=cauldron.starwheat.length;
+  if(wheatN===0 && cauldron.wood===0){
     $('#cauldronDisplay',root).textContent='空釜';
   }else{
-    $('#cauldronDisplay',root).textContent=`🌾 ×${cauldron.wheat}  🪵 ×${cauldron.wood}`;
+    const avg=cauldronQuality();
+    $('#cauldronDisplay',root).textContent=`🌾 ×${wheatN}  🪵 ×${cauldron.wood}${wheatN?` · 产地 ${(avg*100).toFixed(0)}`:''}`;
   }
 }
 
