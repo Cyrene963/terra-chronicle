@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BEFORE FIX - Black Screen Bug</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      overflow: hidden;
+      font-family: monospace;
+      background: #000;
+    }
+    #stage {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      border: 5px solid red; /* VISUAL INDICATOR - canvas should fill this */
+    }
+    #debug-overlay {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.8);
+      color: red;
+      padding: 15px;
+      font-size: 14px;
+      z-index: 9999;
+      border: 2px solid red;
+      line-height: 1.6;
+      max-width: 500px;
+    }
+    #debug-overlay h3 {
+      margin-bottom: 10px;
+      color: #f00;
+      text-decoration: underline;
+    }
+    .pass { color: #0f0; }
+    .fail { color: #f00; }
+    .warn { color: #ff0; }
+  </style>
+</head>
+<body>
+  <div id="stage"></div>
+  <div id="debug-overlay">
+    <h3>🐛 BEFORE FIX - BLACK SCREEN BUG</h3>
+    <div id="test-results">Initializing...</div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/pixi.js@8.0.0/dist/pixi.min.js"></script>
+  <script>
+    const results = {
+      windowSize: null,
+      canvasSize: null,
+      rendererSize: null,
+      filterAreaSize: null,
+      resizeTriggered: false,
+      initSequence: [],
+      verdict: 'PENDING'
+    };
+
+    function log(msg) {
+      console.log(`[BROKEN] ${msg}`);
+      results.initSequence.push(msg);
+      updateDisplay();
+    }
+
+    function updateDisplay() {
+      const el = document.getElementById('test-results');
+
+      const w = results.windowSize;
+      const c = results.canvasSize;
+      const r = results.rendererSize;
+      const f = results.filterAreaSize;
+
+      let html = `<strong>Window:</strong> ${w ? `${w.w} × ${w.h}` : 'N/A'}<br>`;
+      html += `<strong>Canvas:</strong> ${c ? `${c.w} × ${c.h}` : 'N/A'}`;
+      html += ` <span class="${c && w && c.w === w.w && c.h === w.h ? 'pass' : 'fail'}">${c && w && c.w === w.w && c.h === w.h ? '✓' : '✗ MISMATCH'}</span><br>`;
+      html += `<strong>Renderer:</strong> ${r ? `${r.w} × ${r.h}` : 'N/A'}`;
+      html += ` <span class="${r && w && r.w === w.w && r.h === w.h ? 'pass' : 'fail'}">${r && w && r.w === w.w && r.h === w.h ? '✓' : '✗ MISMATCH'}</span><br>`;
+      html += `<strong>FilterArea:</strong> ${f ? `${f.w} × ${f.h}` : 'N/A'}`;
+      html += ` <span class="${f && w && f.w === w.w && f.h === w.h ? 'pass' : 'fail'}">${f && w && f.w === w.w && f.h === w.h ? '✓' : '✗ MISMATCH'}</span><br>`;
+      html += `<strong>Resize Called:</strong> <span class="${results.resizeTriggered ? 'pass' : 'fail'}">${results.resizeTriggered ? 'YES ✓' : 'NO ✗'}</span><br><br>`;
+
+      html += `<strong>Init Sequence:</strong><br>`;
+      results.initSequence.forEach(s => {
+        html += `<span class="warn">• ${s}</span><br>`;
+      });
+
+      html += `<br><strong>VERDICT:</strong> <span class="${results.verdict === 'PASS' ? 'pass' : results.verdict === 'FAIL' ? 'fail' : 'warn'}">${results.verdict}</span>`;
+
+      el.innerHTML = html;
+    }
+
+    function captureState(app, world, label) {
+      log(label);
+      results.windowSize = { w: window.innerWidth, h: window.innerHeight };
+      results.canvasSize = { w: app.canvas.width, h: app.canvas.height };
+      results.rendererSize = { w: app.renderer.width, h: app.renderer.height };
+      if (world && world.filterArea) {
+        results.filterAreaSize = { w: world.filterArea.width, h: world.filterArea.height };
+      }
+      updateDisplay();
+    }
+
+    // ========== SIMULATE OLD (BROKEN) CODE - NO DELAYED RESIZE ==========
+    window.addEventListener('DOMContentLoaded', async () => {
+      log('DOMContentLoaded fired');
+
+      const app = new PIXI.Application();
+      await app.init({
+        width: window.innerWidth || 1920,
+        height: window.innerHeight || 1080,
+        background: 0x1a1a2e,
+        antialias: false,
+        resolution: Math.min(window.devicePixelRatio || 1, 2),
+        autoDensity: true,
+        roundPixels: true
+      });
+
+      log('PIXI app initialized');
+      document.getElementById('stage').appendChild(app.canvas);
+      log('Canvas appended to DOM');
+
+      // Canvas CSS (from main.js line 207-208)
+      app.canvas.style.width = '100%';
+      app.canvas.style.height = '100%';
+      app.canvas.style.display = 'block';
+      log('Canvas CSS applied');
+
+      captureState(app, null, 'AFTER init, BEFORE world build');
+
+      // Build world container
+      const world = new PIXI.Container();
+      const testSprite = new PIXI.Graphics();
+      testSprite.rect(0, 0, 200, 200).fill(0xff0000);
+      testSprite.x = 100;
+      testSprite.y = 100;
+      world.addChild(testSprite);
+
+      // Add filter (from main.js line 218-221)
+      const seasonFilter = new PIXI.ColorMatrixFilter();
+      world.filters = [seasonFilter];
+      world.filterArea = new PIXI.Rectangle(0, 0, window.innerWidth, window.innerHeight);
+      log('World filter applied');
+
+      app.stage.addChild(world);
+      log('World added to stage');
+
+      captureState(app, world, 'AFTER world build');
+
+      // handleResize function (from main.js line 209-212)
+      function handleResize() {
+        log('handleResize() called');
+        results.resizeTriggered = true;
+        app.renderer.resize(window.innerWidth, window.innerHeight);
+        if (world.filters && world.filters.length) {
+          world.filterArea = new PIXI.Rectangle(0, 0, app.screen.width, app.screen.height);
+        }
+        captureState(app, world, 'INSIDE handleResize()');
+      }
+
+      addEventListener('resize', handleResize);
+      log('Resize listener attached');
+
+      // OLD CODE: NO INITIAL RESIZE CALL - THIS IS THE BUG!
+      log('❌ NO initial handleResize() call - BUG!');
+
+      // Final verdict
+      setTimeout(() => {
+        const w = results.windowSize;
+        const c = results.canvasSize;
+        const r = results.rendererSize;
+        const f = results.filterAreaSize;
+
+        const allMatch =
+          c && r && f && w &&
+          c.w === w.w && c.h === w.h &&
+          r.w === w.w && r.h === w.h &&
+          f.w === w.w && f.h === w.h;
+
+        results.verdict = allMatch ? 'PASS (unexpected!)' : 'FAIL ✗✗✗ (BLACK SCREEN)';
+        updateDisplay();
+
+        // Log to console
+        console.log('=== BROKEN VERSION RESULTS ===');
+        console.log('Window:', w);
+        console.log('Canvas:', c);
+        console.log('Renderer:', r);
+        console.log('FilterArea:', f);
+        console.log('Resize triggered:', results.resizeTriggered);
+        console.log('VERDICT:', results.verdict);
+      }, 100);
+    });
+  </script>
+</body>
+</html>

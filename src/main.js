@@ -161,7 +161,8 @@ function placeObjects(){
 placeObjects();
 
 /* ================= 4. PIXI 启动 ================= */
-(async ()=>{
+// Wrap entire initialization in DOMContentLoaded to ensure DOM is ready
+window.addEventListener('DOMContentLoaded', async ()=>{
 const app = new PIXI.Application();
 await app.init({
   width: window.innerWidth || 1920,
@@ -171,11 +172,8 @@ await app.init({
   resolution: Math.min(window.devicePixelRatio||1, 2),
   autoDensity: true,
   roundPixels: true
-});   // 手动指定尺寸，避免 resizeTo 初始化失败
+});
 document.getElementById('stage').appendChild(app.canvas);
-
-// 强制立即同步实际窗口尺寸
-app.renderer.resize(window.innerWidth, window.innerHeight);
 
 /* ---- 通用纹理 ---- */
 function radialTex(size, inner, outer){
@@ -213,8 +211,8 @@ function handleResize(){
   if(world.filters && world.filters.length) world.filterArea=new PIXI.Rectangle(0,0,app.screen.width,app.screen.height);
 }
 addEventListener('resize', handleResize);
-// 立即触发一次，确保初始尺寸正确
-handleResize();
+// CRITICAL: Delay initial resize until after world is fully built and added to stage
+// This ensures full-screen rendering from the start
 
 /* —— 四季色彩分级: ColorMatrixFilter 对整个世界统一调色 —— */
 /* 春=高饱和清新 / 夏=明亮高对比 / 秋=金黄枫红色相偏移 / 冬=去饱和冷调 */
@@ -1443,6 +1441,9 @@ window.__dbg={app,world,groundL,waterL,snowL,overlayL,objL,fxScreen,player,cam,b
 setTimeout(()=>{
   const loader=document.getElementById('loading');
   if(loader){ loader.classList.add('ready'); setTimeout(()=>loader.remove(),800); }
+
+  // NOW trigger resize after everything is built and on stage
+  handleResize();
 },100);
 
-})();
+});
