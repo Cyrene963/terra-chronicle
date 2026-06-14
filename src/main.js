@@ -206,7 +206,10 @@ addEventListener('resize',()=>{
 /* 春=高饱和清新 / 夏=明亮高对比 / 秋=金黄枫红色相偏移 / 冬=去饱和冷调 */
 const seasonFilter=new PIXI.ColorMatrixFilter();
 world.filters=[seasonFilter];
-world.filterArea=new PIXI.Rectangle(0,0,app.screen.width,app.screen.height); // 限定到屏幕,使用 app.screen 而不是 window
+// 延迟设置 filterArea - 等待 resizeTo 完成异步 resize
+setTimeout(() => {
+  world.filterArea=new PIXI.Rectangle(0,0,app.screen.width,app.screen.height);
+}, 100);
 function mkMat({s=1,br=1,rO=0,gO=0,bO=0}){        // 饱和度+亮度+RGB偏移 → 20格矩阵
   const lr=.2126,lg=.7152,lb=.0722,iv=1-s;
   return [(lr*iv+s)*br, lg*iv*br, lb*iv*br, 0, rO,
