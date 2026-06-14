@@ -158,10 +158,12 @@ function brew(){
   const recipe=RECIPES.find(r=>r.wheat===cauldron.wheat && r.wood===cauldron.wood);
   if(!recipe){
     alert('配方未知! 继续试验其他比例。');
+    if(window.TerraSound) TerraSound.play('click');
     return;
   }
 
   // 合成成功!
+  if(window.TerraSound) TerraSound.play('chime');
   const card={
     id:'card_'+Date.now().toString(36),
     recipeId:'alchemy_'+recipe.result.name,

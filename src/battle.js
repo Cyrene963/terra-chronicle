@@ -303,12 +303,14 @@ function startPlayerTurn(){
 function playCard(i, el){
   const c=S.hand[i]; if(!c||S.energy<c.cost||S.phase!=='player'||S.over) return;
   S.energy-=c.cost; S.discard.push(c); S.hand.splice(i,1);
+  if(window.TerraSound) TerraSound.play('whoosh', 0.8);
   if(c.type==='atk'){
     projectile(el); const dmgRaw=c.val;
     setTimeout(()=>{                               // 命中:斩击剑气+闪白+色差+震屏+抛物线伤害数字
       if(!S||S.over) return;
       let dmg=dmgRaw; const blk=Math.min(S.enemy.block,dmg); S.enemy.block-=blk; dmg-=blk;
       S.enemy.hp-=dmg;
+      if(window.TerraSound) TerraSound.play('hit');
       spawnSlashes(); hitFlash(); chromaticAberration(); screenShake(dmg>=10?22:15, 280);
       const b=root.querySelector('#b_eimg').getBoundingClientRect();
       floatNum('-'+dmg,'#ff9b7a', b.left+b.width/2, b.top+b.height*0.4);
@@ -317,6 +319,7 @@ function playCard(i, el){
       render();
     },175);
   } else {
+    if(window.TerraSound) TerraSound.play('click', 0.7);
     S.shield+=c.val;
     floatNum('+'+c.val,'#bcd8ee', innerWidth/2, innerHeight-180);
   }
@@ -331,6 +334,7 @@ function endTurn(){
     if(!S) return;
     const it=S.enemy.intent;
     if(it.kind==='atk'){
+      if(window.TerraSound) TerraSound.play('hit', 0.9);
       let dmg=it.val; const blk=Math.min(S.shield,dmg); S.shield-=blk; dmg-=blk;
       S.pHP-=dmg;
       if(dmg>0){ screenShake(20,300); playerHurtFx(); }
