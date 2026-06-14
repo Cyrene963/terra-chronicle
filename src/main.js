@@ -116,29 +116,9 @@ function genMap(){
   // 小路:屋前向东过桥到果园 + 向南
   for(let x=24;x<=46;x++){const y=26+Math.round(Math.sin(x*.3)*1.2); grid[y][x]='b'===grid[y][x]?'b':(grid[y][x]==='w'?grid[y][x]:'s'); grid[y+1][x]=grid[y+1][x]==='w'?'w':'s';}
   for(let y=14;y<=26;y++){ if(grid[y][21]!=='w')grid[y][21]='s'; }
-  // 水域阻挡（对角线水岸贴图不阻挡，它们是陆地）
+  // 水域阻挡
   for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
-    const k = grid[y][x];
-    if(k==='w') blocked.add(x+','+y);
-  }
-
-  // 检测河流对角线转角并标记为特殊类型
-  for(let y=1;y<MAP-1;y++){
-    for(let x=1;x<MAP-1;x++){
-      if(grid[y][x]==='w'){
-        const n = grid[y-1][x], s = grid[y+1][x], e = grid[y][x+1], w = grid[y][x-1];
-        const ne = grid[y-1][x+1], nw = grid[y-1][x-1], se = grid[y+1][x+1], sw = grid[y+1][x-1];
-
-        // 左上角是陆地,右下角是水 → tl (top-left land, bottom-right water)
-        if(nw!=='w' && se==='w' && n!=='w' && w!=='w') grid[y][x]='wtl';
-        // 右上角是陆地,左下角是水 → tr
-        else if(ne!=='w' && sw==='w' && n!=='w' && e!=='w') grid[y][x]='wtr';
-        // 左下角是陆地,右上角是水 → bl
-        else if(sw!=='w' && ne==='w' && s!=='w' && w!=='w') grid[y][x]='wbl';
-        // 右下角是陆地,左上角是水 → br
-        else if(se!=='w' && nw==='w' && s!=='w' && e!=='w') grid[y][x]='wbr';
-      }
-    }
+    if(grid[y][x]==='w') blocked.add(x+','+y);
   }
 }
 genMap();
