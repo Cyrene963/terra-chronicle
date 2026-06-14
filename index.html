@@ -222,6 +222,16 @@
     position:absolute;bottom:-26px;left:0;right:0;text-align:center;color:rgba(246,241,231,.7);
     font-size:10px;letter-spacing:.4em;text-indent:.4em;
   }
+
+  @keyframes eventPulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 8px 24px rgba(212,175,55,0.4); }
+    50% { transform: scale(1.05); box-shadow: 0 12px 32px rgba(212,175,55,0.6); }
+  }
+
+  #eventIndicator:hover {
+    transform: scale(1.08) !important;
+    box-shadow: 0 12px 36px rgba(212,175,55,0.7) !important;
+  }
 </style>
 </head>
 <body>
@@ -240,6 +250,22 @@
   <div id="clock"><div class="num"><span id="dayNum">01</span></div><div class="cap">年代 I · 第一年</div></div>
   <div id="stamina"></div>
   <div id="weatherTag">— 微风拂过山谷 —</div>
+
+  <!-- Seasonal Event Indicator -->
+  <div id="eventIndicator" style="
+    position: absolute; top: 150px; left: 38px;
+    background: linear-gradient(135deg, #d4af37 0%, #c9a24b 100%);
+    border: 2px solid rgba(246,241,231,0.8); border-radius: 8px;
+    padding: 12px 20px; cursor: pointer; pointer-events: auto;
+    box-shadow: 0 8px 24px rgba(212,175,55,0.4);
+    font-family: 'Noto Serif SC', serif; color: #2a2520;
+    font-size: 14px; font-weight: 500; letter-spacing: 0.2em;
+    display: none; transition: transform 0.3s, box-shadow 0.3s;
+    animation: eventPulse 2s ease-in-out infinite;
+  ">
+    <div style="font-size: 11px; opacity: 0.8; margin-bottom: 4px;">活动进行中</div>
+    <div id="eventIndicatorText" style="font-size: 16px; font-weight: 600;">春季拍卖会</div>
+  </div>
 
   <div id="panel">
     <div class="close" id="panelClose"></div>
@@ -302,6 +328,7 @@
 
 <script src="vendor/pixi.min.js"></script>
 <script src="src/state.js?v=7"></script>
+<script src="src/seasonal_events.js?v=1"></script>
 <script src="src/alchemy.js?v=9"></script>
 <script src="src/battle.js?v=9"></script>
 <script src="src/dungeon.js?v=9"></script>

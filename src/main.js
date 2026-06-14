@@ -53,6 +53,11 @@ const ASSETS = {
     water: { src: 'assets/sprites/tile_water.png' },
     sand:  { src: 'assets/sprites/tile_sand.png' },
     plot:  { src: 'assets/sprites/tile_plot.png' },
+    // 对角线水岸过渡贴图
+    water_diag_tl: { src: 'assets/sprites/water_diag_tl.png' },
+    water_diag_tr: { src: 'assets/sprites/water_diag_tr.png' },
+    water_diag_bl: { src: 'assets/sprites/water_diag_bl.png' },
+    water_diag_br: { src: 'assets/sprites/water_diag_br.png' },
   },
 };
 
@@ -116,8 +121,30 @@ function genMap(){
   // 小路:屋前向东过桥到果园 + 向南
   for(let x=24;x<=46;x++){const y=26+Math.round(Math.sin(x*.3)*1.2); grid[y][x]='b'===grid[y][x]?'b':(grid[y][x]==='w'?grid[y][x]:'s'); grid[y+1][x]=grid[y+1][x]==='w'?'w':'s';}
   for(let y=14;y<=26;y++){ if(grid[y][21]!=='w')grid[y][21]='s'; }
-  // 水域阻挡
-  for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++) if(grid[y][x]==='w') blocked.add(x+','+y);
+  // 水域阻挡（对角线水岸贴图不阻挡，它们是陆地）
+  for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
+    const k = grid[y][x];
+    if(k==='w') blocked.add(x+','+y);
+  }
+
+  // 检测河流对角线转角并标记为特殊类型
+  for(let y=1;y<MAP-1;y++){
+    for(let x=1;x<MAP-1;x++){
+      if(grid[y][x]==='w'){
+        const n = grid[y-1][x], s = grid[y+1][x], e = grid[y][x+1], w = grid[y][x-1];
+        const ne = grid[y-1][x+1], nw = grid[y-1][x-1], se = grid[y+1][x+1], sw = grid[y+1][x-1];
+
+        // 左上角是陆地,右下角是水 → tl (top-left land, bottom-right water)
+        if(nw!=='w' && se==='w' && n!=='w' && w!=='w') grid[y][x]='wtl';
+        // 右上角是陆地,左下角是水 → tr
+        else if(ne!=='w' && sw==='w' && n!=='w' && e!=='w') grid[y][x]='wtr';
+        // 左下角是陆地,右上角是水 → bl
+        else if(sw!=='w' && ne==='w' && s!=='w' && w!=='w') grid[y][x]='wbl';
+        // 右下角是陆地,左上角是水 → br
+        else if(se!=='w' && nw==='w' && s!=='w' && e!=='w') grid[y][x]='wbr';
+      }
+    }
+  }
 }
 genMap();
 
@@ -234,7 +261,11 @@ const KIND2PAL={g:'grass',G:'grassB',s:'soil',w:'water',b:'sand',p:'plot'};
 const tileSprites=[], waterTiles=[], snowAt=[], grassTiles=[];
 for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
   const k=grid[y][x];
-  const t=ASSETS.tiles[{g:'grass',G:'grass',s:'soil',w:'water',b:'sand',p:'plot'}[k]];
+  const tileMap = {
+    g:'grass', G:'grass', s:'soil', w:'water', b:'sand', p:'plot',
+    wtl:'water_diag_tl', wtr:'water_diag_tr', wbl:'water_diag_bl', wbr:'water_diag_br'
+  };
+  const t=ASSETS.tiles[tileMap[k]];
   const sp=new PIXI.Sprite(PIXI.Texture.WHITE);
   sp.width=TS+2; sp.height=TS+2; sp.position.set(x*TS-1,y*TS-1);  // 1px 重叠:消除瓦片接缝
   if(t.src) loadTex(t.src,'tile').then(tex=>{sp.texture=tex;sp.width=TS+2;sp.height=TS+2;});
@@ -242,7 +273,9 @@ for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
   sp._k=k; sp._j=0.975+r*0.05;                 // 每块明度抖动(极轻,避免棋盘格感)
   sp._ph=r*6.28;                               // 水面相位
   if(k==='g'||k==='G') grassTiles.push(sp);    // 草地:随季换图
-  if(k==='w'){ waterL.addChild(sp); waterTiles.push(sp); snowAt.push(null); }   // 水→独立层
+  if(k==='w'||k==='wtl'||k==='wtr'||k==='wbl'||k==='wbr'){
+    waterL.addChild(sp); waterTiles.push(sp); snowAt.push(null);    // 水(含对角线)→独立层
+  }
   else {
     groundL.addChild(sp);
     const sn=new PIXI.Sprite(PIXI.Texture.WHITE);   // 积雪覆盖(冬季由 snowL.alpha 控制)
@@ -255,7 +288,11 @@ snowL.visible=false; snowL.alpha=0;
 
 /* ================= 5.5 水面优化（轻量级边缘柔化）================= */
 // 在水陆边界添加半透明泡沫层,用最轻量的方式平滑过渡(无重度滤镜)
-const isWater=(x,y)=>grid[y]&&grid[y][x]==='w';
+const isWater=(x,y)=>{
+  if(!grid[y] || !grid[y][x]) return false;
+  const k = grid[y][x];
+  return k==='w' || k==='wtl' || k==='wtr' || k==='wbl' || k==='wbr';
+};
 for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
   if(!isWater(x,y)) continue;
   // 检测4邻方向是否有陆地,有则在边缘叠加柔光泡沫

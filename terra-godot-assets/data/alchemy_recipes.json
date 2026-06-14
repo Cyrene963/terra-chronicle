@@ -1,0 +1,84 @@
+{
+  "recipes": [
+    {
+      "id": "sprout_guardian",
+      "ingredients": {"wheat": 3, "wood": 1},
+      "result": {
+        "name": "新芽守卫",
+        "name_en": "Sprout Guardian",
+        "attack": 8,
+        "defense": 18,
+        "element": "wood",
+        "description": "木系守护卡牌，平衡的攻守属性"
+      }
+    },
+    {
+      "id": "giant_shield",
+      "ingredients": {"wheat": 1, "wood": 3},
+      "result": {
+        "name": "巨盾",
+        "name_en": "Giant Shield",
+        "attack": 6,
+        "defense": 28,
+        "element": "earth",
+        "description": "土系防御卡牌，极高防御"
+      }
+    },
+    {
+      "id": "balanced_blade",
+      "ingredients": {"wheat": 2, "wood": 2},
+      "result": {
+        "name": "平衡刃",
+        "name_en": "Balanced Blade",
+        "attack": 16,
+        "defense": 14,
+        "element": "metal",
+        "description": "金系均衡卡牌，攻守兼备"
+      }
+    },
+    {
+      "id": "bread_of_life",
+      "ingredients": {"wheat": 4, "wood": 0},
+      "result": {
+        "name": "生命之粮",
+        "name_en": "Bread of Life",
+        "attack": 0,
+        "defense": 0,
+        "heal": 24,
+        "element": "light",
+        "description": "光系治疗卡牌，纯治疗效果"
+      }
+    },
+    {
+      "id": "thorn_wall",
+      "ingredients": {"wheat": 0, "wood": 4},
+      "result": {
+        "name": "荆棘壁",
+        "name_en": "Thorn Wall",
+        "attack": 12,
+        "defense": 22,
+        "element": "earth",
+        "description": "土系防御卡牌，带有反伤"
+      }
+    },
+    {
+      "id": "harvest_sickle",
+      "ingredients": {"wheat": 5, "wood": 1},
+      "result": {
+        "name": "收割镰",
+        "name_en": "Harvest Sickle",
+        "attack": 22,
+        "defense": 8,
+        "element": "fire",
+        "description": "火系攻击卡牌，高攻低防"
+      }
+    }
+  ],
+  "design_notes": {
+    "philosophy": "配方完全隐藏，无任何提示，需玩家手动试验探索",
+    "discovery_feedback": "配方正确时触发金色闪光动画(goldFlash)",
+    "failure_feedback": "配方错误时 alert 提示继续试验",
+    "materials": ["wheat", "wood"],
+    "future_expansion": "可扩展到 10+ 配方，增加更多材料种类"
+  }
+}

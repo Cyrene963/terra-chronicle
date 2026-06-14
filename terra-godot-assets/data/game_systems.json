@@ -1,0 +1,70 @@
+{
+  "world": {
+    "map_size": [56, 56],
+    "tile_size": 64,
+    "description": "程序生成地图，河流贯穿，树林与农庄分布"
+  },
+  "time_system": {
+    "day_duration_seconds": 30,
+    "season_duration_days": 7,
+    "seasons": [
+      {"id": "spring", "name": "春", "latin": "VER", "color_tint": [1.0, 1.0, 1.0]},
+      {"id": "summer", "name": "夏", "latin": "AEST", "color_tint": [1.1, 1.05, 0.95]},
+      {"id": "autumn", "name": "秋", "latin": "AUT", "color_tint": [1.15, 0.95, 0.85]},
+      {"id": "winter", "name": "冬", "latin": "HIE", "color_tint": [0.9, 0.95, 1.1]}
+    ],
+    "day_cycle": {
+      "dawn": 0.0,
+      "noon": 0.25,
+      "dusk": 0.5,
+      "midnight": 0.75
+    }
+  },
+  "farming": {
+    "crop_growth_base_time": 15,
+    "soil_fertility_max": 100,
+    "soil_fertility_decay_per_harvest": 12,
+    "moisture_max": 100,
+    "pest_pressure_max": 100,
+    "mana_charge_max": 100,
+    "quality_inheritance": "作物继承土地肥力->卡牌基础属性"
+  },
+  "beasts": {
+    "water_spirit": {
+      "name": "水灵兽",
+      "ai_behavior": "自动寻找 moisture<30 的作物浇水",
+      "evolution_cost": "消耗灵魂升级体型和效率",
+      "sprite": "beast_water.png"
+    },
+    "fire_spirit": {
+      "name": "火灵兽",
+      "ai_behavior": "蹲守熔炉提升锻造品质",
+      "evolution_cost": "消耗灵魂升级",
+      "sprite": "beast_fire.png"
+    }
+  },
+  "pathfinding": {
+    "algorithm": "A* with result caching",
+    "cache_strategy": "每次点击计算一次路径并缓存，非每帧重算",
+    "optimization": "已验证无性能问题"
+  },
+  "render": {
+    "engine": "PixiJS v8 (WebGL)",
+    "depth_sort": "Y-Sort 2.5D depth ordering",
+    "dpr_handling": "adaptive devicePixelRatio",
+    "camera": "lerp smooth follow",
+    "post_effects": ["vignette", "soft_light", "day_night_lighting", "cloud_shadows"]
+  },
+  "battle": {
+    "system": "Slay-the-Spire inspired card combat",
+    "energy_per_turn": 3,
+    "armor_mechanic": "护甲每回合重置",
+    "enemy_intent": "敌人下回合行动预告",
+    "transition": "fade-to-black scene transition"
+  },
+  "dungeon": {
+    "structure": "branching node map",
+    "node_types": ["combat", "elite", "rest", "treasure", "event"],
+    "progression": "玩家选择路径，节点逐个解锁"
+  }
+}
