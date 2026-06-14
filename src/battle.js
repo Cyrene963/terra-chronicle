@@ -147,19 +147,22 @@ function injectStyle(){
   #battle .hand{position:absolute;bottom:96px;left:0;right:0;height:210px;display:flex;align-items:flex-end;
     justify-content:center;gap:-10px;pointer-events:none;}
   #battle .card{width:132px;height:188px;margin:0 -6px;border-radius:12px;cursor:pointer;pointer-events:auto;
-    background:linear-gradient(160deg,#3a3450,#221d33);border:1px solid rgba(201,162,75,.4);
-    box-shadow:0 14px 30px rgba(0,0,0,.5);padding:12px;display:flex;flex-direction:column;
+    background:linear-gradient(180deg,rgba(55,38,24,.22),rgba(16,12,16,.48)),url('assets/concept/card_template.png') center/100% 100% no-repeat;
+    border:1px solid rgba(218,176,91,.66);box-shadow:0 16px 34px rgba(0,0,0,.52),inset 0 0 0 1px rgba(255,240,196,.18);
+    padding:14px 12px 12px;display:flex;flex-direction:column;color:#f9ecd0;text-shadow:0 2px 5px rgba(20,10,4,.75);
     transform-origin:bottom center;transition:transform .22s cubic-bezier(.2,.8,.2,1),box-shadow .22s;position:relative;}
-  #battle .card:hover{transform:translateY(-26px) scale(1.07);box-shadow:0 26px 50px rgba(0,0,0,.6);z-index:5;}
-  #battle .card.atk{border-color:rgba(232,140,120,.6);} #battle .card.def{border-color:rgba(150,190,220,.6);}
+  #battle .card::after{content:'';position:absolute;inset:10px;border-radius:10px;border:1px solid rgba(91,58,32,.36);pointer-events:none;mix-blend-mode:multiply;}
+  #battle .card:hover{transform:translateY(-26px) scale(1.07);box-shadow:0 28px 54px rgba(0,0,0,.64),0 0 26px rgba(218,176,91,.22);z-index:5;}
+  #battle .card.atk{border-color:rgba(226,146,99,.78);} #battle .card.def{border-color:rgba(142,185,198,.78);} #battle .card.heal{border-color:rgba(150,203,136,.78);}
   #battle .card.disabled{filter:grayscale(.7) brightness(.6);cursor:default;}
-  #battle .card .cost{position:absolute;top:-10px;left:-10px;width:32px;height:32px;border-radius:50%;
-    background:radial-gradient(circle at 38% 32%,#ffe9a8,#c9a24b);color:#2b2722;display:flex;align-items:center;
-    justify-content:center;font-family:'Cormorant Garamond',serif;font-size:17px;box-shadow:0 2px 10px rgba(0,0,0,.5);}
-  #battle .card .cname{font-size:14px;letter-spacing:.12em;text-align:center;margin-top:6px;}
-  #battle .card .cart{flex:1;margin:8px 4px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:34px;
-    background:rgba(0,0,0,.22);}
-  #battle .card .cdesc{font-size:11px;line-height:1.5;text-align:center;opacity:.85;letter-spacing:.04em;}
+  #battle .card .cost{position:absolute;top:-9px;left:-9px;width:34px;height:34px;border-radius:50%;
+    background:radial-gradient(circle at 38% 30%,#fff0b8,#c99b45 62%,#75542a);color:#2b2417;display:flex;align-items:center;
+    justify-content:center;font-family:'Cormorant Garamond',serif;font-size:17px;border:1px solid rgba(255,236,174,.75);box-shadow:0 3px 12px rgba(0,0,0,.55),0 0 16px rgba(201,162,75,.24);}
+  #battle .card .cname{font-size:14px;letter-spacing:.12em;text-align:center;margin-top:7px;color:#ffe3a7;font-weight:600;}
+  #battle .card .cart{flex:1;margin:9px 5px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:28px;
+    color:#f5d48c;background:radial-gradient(circle at 50% 35%,rgba(246,220,145,.18),rgba(63,36,22,.5) 64%,rgba(21,12,10,.72));
+    border:1px solid rgba(220,175,91,.3);box-shadow:inset 0 0 22px rgba(0,0,0,.34);}
+  #battle .card .cdesc{font-size:10.5px;line-height:1.42;text-align:center;opacity:.92;letter-spacing:.035em;background:rgba(30,18,10,.38);border-radius:8px;padding:5px 6px;}
   #battle .topbar{position:absolute;top:22px;left:0;right:0;text-align:center;}
   #battle .topbar .t{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:15px;letter-spacing:.3em;opacity:.7;}
   #battle .deckcount{position:absolute;bottom:104px;font-size:11px;letter-spacing:.2em;opacity:.55;}
@@ -171,9 +174,10 @@ function injectStyle(){
   #battle .result .loot{font-size:15px;letter-spacing:.16em;line-height:2;opacity:.9;}
   #battle .result .gold{color:#c9a24b;}
   #battle .rewardChoices{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;max-width:760px;}
-  #battle .rewardChoice{width:190px;min-height:120px;border:1px solid rgba(201,162,75,.55);border-radius:14px;
-    background:linear-gradient(150deg,rgba(244,236,216,.1),rgba(201,162,75,.08));padding:18px;cursor:pointer;
-    box-shadow:0 14px 36px rgba(0,0,0,.35);transition:transform .25s,box-shadow .25s,border-color .25s;}
+  #battle .rewardChoice{width:190px;min-height:124px;border:1px solid rgba(218,176,91,.62);border-radius:16px;
+    background:linear-gradient(180deg,rgba(74,48,28,.24),rgba(20,13,14,.54)),url('assets/concept/card_template.png') center/100% 100% no-repeat;
+    padding:20px 18px;cursor:pointer;color:#f8ecd6;text-shadow:0 2px 6px rgba(0,0,0,.72);
+    box-shadow:0 16px 38px rgba(0,0,0,.42),inset 0 0 0 1px rgba(255,238,184,.13);transition:transform .25s,box-shadow .25s,border-color .25s;}
   #battle .rewardChoice:hover{transform:translateY(-6px);border-color:#f4d03f;box-shadow:0 20px 48px rgba(0,0,0,.48),0 0 26px rgba(244,208,63,.25);}
   #battle .rewardChoice .rname{font-size:16px;letter-spacing:.16em;color:#f4d03f;margin-bottom:12px;}
   #battle .rewardChoice .rdesc{font-size:12px;line-height:1.75;letter-spacing:.05em;opacity:.86;}
@@ -321,7 +325,7 @@ function render(){
   S.hand.forEach((c,i)=>{
     const playable = S.turn>0 && !S.over && S.phase==='player' && S.energy>=c.cost;
     const el=$('div','card '+c.type+(playable?'':' disabled'),hand);
-    const icon=c.type==='atk'?'⚔':c.type==='heal'?'✦':'🛡';
+    const icon=c.type==='atk'?'刃':c.type==='heal'?'芽':'盾';
     el.innerHTML=`<div class="cost">${c.cost}</div><div class="cname">${c.name}</div>
       <div class="cart">${icon}</div><div class="cdesc">${c.desc}</div>`;
     if(playable) el.onclick=(ev)=>playCard(i, ev.currentTarget);

@@ -79,6 +79,17 @@ Continuously improve Terra Chronicle public playable prototype at https://terra.
   - Targeted pet persistence smoke passed: seeded localStorage with water Lv.3 + fire Lv.2, reloaded public domain, confirmed one water spirit, one fire spirit, `fireRehydrated=true`, and HUD text `水灵兽 Lv.3 · 闲逛中 …`.
   - GitHub commit: 01607e8ee848070645fa4f78e8e289e42cbe258c.
 
+- 06:18 fifth implementation lane: Card battle visual chain v1 + dungeon reward preview shipped.
+  - Ran four concurrent read-only lanes: visual system, dungeon rewards, farming variants, and boss/reward preview.
+  - Chosen slice: unify `炼金揭示卡 → 战斗手牌 → 战斗奖励卡` using existing `assets/concept/card_template.png`; no AI-generated candidate image was forced into production.
+  - `src/battle.js`: battle hand cards and reward choices now share the same parchment/card-template material language as the reveal card, with bronze cost orb and Chinese glyph role icons.
+  - `src/dungeon.js`: map nodes now preview specific rewards before selection, e.g. `污染种子 / 灵兽灵魂 / 远征木箱`, `深渊核心 · 工坊突破材料`.
+  - Public versions bumped to `battle.js?v=40` and `dungeon.js?v=40`; synced `index.html`, `src/battle.js`, and `src/dungeon.js` to `/var/www/terra-pixijs`.
+  - Syntax gates passed: `node --check src/battle.js`, `src/dungeon.js`, and `tools/terra_battle_dungeon_smoke.js`.
+  - Public visual smoke passed: `node tools/terra_visual_smoke.js` loaded v40/v39 scripts, brewed `新芽守卫`, rendered 1350/1350 non-black samples, and reported 0 console/page errors.
+  - Public battle/dungeon smoke passed: `node tools/terra_battle_dungeon_smoke.js` confirmed 5 battle cards, `card_template.png` background in computed style, concrete dungeon reward previews, v40 scripts, and 0 errors.
+  - Evidence: `/root/terra-chronicle-game/dogfood-output/terra-battle-dungeon-smoke/report.json` plus screenshots `01_battle_cards.png`, `02_dungeon_preview.png`.
+
 ## Next best lanes
 - Pet system v1: persist `farm.beasts`, prevent repeated fire-spirit hatch after refresh, show water/fire spirit levels and make upgrades visible.
 - Dungeon reward v1: add temporary blessings that affect next fights, not just farm materials.

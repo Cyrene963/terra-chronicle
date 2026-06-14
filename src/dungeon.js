@@ -78,6 +78,15 @@ function generateMap(){
   return floors;
 }
 
+function rewardPreviewFor(type){
+  return ({
+    combat:'污染种子 / 灵兽灵魂 / 远征木箱',
+    elite:'含精英残响 · 双资源路线',
+    rest:'恢复整备 · 保留路线节奏',
+    boss:'深渊核心 · 工坊突破材料'
+  })[type]||'未知回响';
+}
+
 function buildDOM(){
   if(root) return;
   injectStyle();
@@ -137,12 +146,11 @@ function renderMap(){
 
       const icons={combat:'icon_combat.png',elite:'◆',rest:'🔥',boss:'icon_boss.png'};
       const labels={combat:'战斗',elite:'精英',rest:'篝火',boss:'深渊核心'};
-      const rewards={combat:'三选一战利品',elite:'高阶残响',rest:'恢复与整备',boss:'核心材料'};
       const icon=icons[node.type]||'?';
       const iconHTML = icon.endsWith?.('.png')
         ? `<img src="assets/ui/${icon}" class="icon" alt="${labels[node.type]||node.type}"/>`
         : `<div class="emoji">${icon}</div>`;
-      nd.innerHTML=`${iconHTML}<div class="label">${labels[node.type]||node.type}</div><div class="reward">${rewards[node.type]||''}</div>`;
+      nd.innerHTML=`${iconHTML}<div class="label">${labels[node.type]||node.type}</div><div class="reward">${rewardPreviewFor(node.type)}</div>`;
 
       if(!locked) nd.onclick=()=>selectNode(node);
     });
