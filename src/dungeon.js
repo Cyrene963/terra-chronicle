@@ -14,7 +14,7 @@ function injectStyle(){
   const css=`
   #dungeonMap{position:fixed;inset:0;z-index:85;display:none;opacity:0;
     transition:opacity .45s cubic-bezier(.2,.8,.2,1);
-    background:url('assets/ui/dungeon_map_bg.jpg') center/cover;
+    background:url('assets/ui/dungeon_entrance_bg.jpg') center/cover;
     font-family:'Cormorant Garamond',serif;color:#f4ecd8;overflow:auto;}
   #dungeonMap::before{content:'';position:absolute;inset:0;
     background:rgba(20,16,12,0.7);pointer-events:none;z-index:0;}
