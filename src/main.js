@@ -11,7 +11,7 @@
 'use strict';
 
 /* 资产版本号: 内容更新时 +1,绕过浏览器/CDN 旧缓存 */
-const ASSET_V="?v=12";
+const ASSET_V="?v=13";
 /* 贴图加载: mode='tile' → NEAREST+CLAMP(消除瓦片接缝+锐利);
    其余(精灵)→ LINEAR+mipmap(高清源缩小时干净不闪烁,painterly 风格不能用 NEAREST 否则缩小抖动) */
 async function loadTex(src, mode){
@@ -199,33 +199,36 @@ function detectDiagonalTransitions(){
 
   for(let y=0;y<MAP;y++){
     for(let x=0;x<MAP;x++){
-      if(!isWater(x,y)) continue;
+      // 检查 LAND 瓦片,看是否需要对角线切角
+      if(!isLand(x,y)) continue;
 
       // 检查8邻域
-      const n  = isLand(x,y-1);
-      const ne = isLand(x+1,y-1);
-      const e  = isLand(x+1,y);
-      const se = isLand(x+1,y+1);
-      const s  = isLand(x,y+1);
-      const sw = isLand(x-1,y+1);
-      const w  = isLand(x-1,y);
-      const nw = isLand(x-1,y-1);
+      const n  = isWater(x,y-1);
+      const ne = isWater(x+1,y-1);
+      const e  = isWater(x+1,y);
+      const se = isWater(x+1,y+1);
+      const s  = isWater(x,y+1);
+      const sw = isWater(x-1,y+1);
+      const w  = isWater(x-1,y);
+      const nw = isWater(x-1,y-1);
 
-      // 对角线检测:两个相邻方向是陆地,对角是水
-      // 西北角草(NW+N+W都是陆地),东南角水 → water_diag_tl
-      if(nw && n && w && !ne && !e && !se && !s && !sw){
+      // 对角线检测:检测"内凹水角" - 对角方向是水,但两个正交邻居不全是水
+      // 这种情况下需要对角线过渡瓦片来平滑视觉
+
+      // 西北角有水凸入(NW是水,但N或W至少一个是陆地) → 用 water_diag_tl(左上角水色)
+      if(nw && !n && !w){
         diagonalTiles[x+','+y] = 'water_diag_tl';
       }
-      // 东北角草(NE+N+E都是陆地),西南角水 → water_diag_tr
-      else if(ne && n && e && !nw && !w && !sw && !s && !se){
+      // 东北角有水凸入(NE是水,但N或E至少一个是陆地) → 用 water_diag_tr(右上角水色)
+      else if(ne && !n && !e){
         diagonalTiles[x+','+y] = 'water_diag_tr';
       }
-      // 西南角草(SW+S+W都是陆地),东北角水 → water_diag_bl
-      else if(sw && s && w && !se && !e && !ne && !n && !nw){
+      // 西南角有水凸入(SW是水,但S或W至少一个是陆地) → 用 water_diag_bl(左下角水色)
+      else if(sw && !s && !w){
         diagonalTiles[x+','+y] = 'water_diag_bl';
       }
-      // 东南角草(SE+S+E都是陆地),西北角水 → water_diag_br
-      else if(se && s && e && !sw && !w && !nw && !n && !ne){
+      // 东南角有水凸入(SE是水,但S或E至少一个是陆地) → 用 water_diag_br(右下角水色)
+      else if(se && !s && !e){
         diagonalTiles[x+','+y] = 'water_diag_br';
       }
     }
@@ -270,9 +273,8 @@ function placeObjects(){
 placeObjects();
 
 /* ================= 4. PIXI 启动 ================= */
-// NUCLEAR FIX: Multiple fallbacks to prevent black screen
-// Wrap entire initialization in window.onload (stronger than DOMContentLoaded)
-window.addEventListener('load', async ()=>{
+// FIX: Return to v9-v11 simple initialization (resizeTo: window handles everything)
+(async ()=>{
 
 // Initialize sound system
 if(window.TerraSound) {
@@ -281,8 +283,7 @@ if(window.TerraSound) {
 
 const app = new PIXI.Application();
 await app.init({
-  width: window.innerWidth || 1920,
-  height: window.innerHeight || 1080,
+  resizeTo: window,
   background: 0x0d0f12,
   antialias: false,
   resolution: Math.min(window.devicePixelRatio||1, 2),
@@ -290,19 +291,7 @@ await app.init({
   roundPixels: true
 });
 
-const stage = document.getElementById('stage');
-stage.appendChild(app.canvas);
-
-// FALLBACK 1: Force canvas style dimensions immediately after append
-app.canvas.style.width = window.innerWidth + 'px';
-app.canvas.style.height = window.innerHeight + 'px';
-app.canvas.style.display = 'block';
-app.canvas.style.position = 'absolute';
-app.canvas.style.top = '0';
-app.canvas.style.left = '0';
-
-console.log('[Terra] Canvas dimensions:', app.canvas.width, app.canvas.height);
-console.log('[Terra] Renderer size:', app.renderer.width, app.renderer.height);
+document.getElementById('stage').appendChild(app.canvas);
 
 /* ---- 通用纹理 ---- */
 function radialTex(size, inner, outer){
@@ -332,40 +321,7 @@ const fxScreen = new PIXI.Container();           // 屏幕空间: 粒子/光/晕
 world.addChild(groundL, waterL, foamL, snowL, overlayL, objL);
 app.stage.addChild(world, fxScreen);
 
-/* DPR/视口加固: 画布撑满屏 + resize 时同步渲染器与滤镜区域(防止高分屏下视口缩进黑屏) */
-// NUCLEAR FIX: Enhanced resize handler with visibility check and multiple triggers
-function handleResize(){
-  // Only resize when document is visible (prevents black screen on tab switch)
-  if(document.visibilityState !== 'visible') {
-    console.log('[Terra] Skipping resize - document not visible');
-    return;
-  }
-
-  const w = window.innerWidth;
-  const h = window.innerHeight;
-
-  console.log('[Terra] handleResize called:', w, 'x', h);
-
-  app.renderer.resize(w, h);
-
-  // FALLBACK 2: Force canvas dimensions again after renderer resize
-  app.canvas.style.width = w + 'px';
-  app.canvas.style.height = h + 'px';
-
-  if(world.filters && world.filters.length) {
-    world.filterArea = new PIXI.Rectangle(0, 0, w, h);
-  }
-
-  console.log('[Terra] Resize complete. Canvas:', app.canvas.width, app.canvas.height, 'Screen:', app.screen.width, app.screen.height);
-}
-
-// FALLBACK 3: Multiple resize triggers at different intervals
-addEventListener('resize', handleResize);
-addEventListener('visibilitychange', () => {
-  if(document.visibilityState === 'visible') {
-    setTimeout(handleResize, 50);
-  }
-});
+/* resizeTo: window handles all resize automatically */
 
 /* —— 四季色彩分级: ColorMatrixFilter 对整个世界统一调色 —— */
 /* 春=高饱和清新 / 夏=明亮高对比 / 秋=金黄枫红色相偏移 / 冬=去饱和冷调 */
@@ -1835,30 +1791,22 @@ function enterWorld(){
 }
 $('enter').onclick=enterWorld;
 
-// Sound controls setup
+// Sound controls setup - Simple mute button only
 function setupSoundControls() {
   const muteBtn = $('muteBtn');
-  const volumeSlider = $('volumeSlider');
 
-  if(!muteBtn || !volumeSlider || !window.TerraSound) return;
+  if(!muteBtn || !window.TerraSound) return;
 
-  // Mute button
+  // Mute button - toggle sound on/off
   muteBtn.addEventListener('click', () => {
     const muted = TerraSound.toggleMute();
     muteBtn.textContent = muted ? '🔇' : '🔊';
-    if(window.TerraSound) TerraSound.play('click');
-  });
-
-  // Volume slider
-  volumeSlider.addEventListener('input', (e) => {
-    const vol = e.target.value / 100;
-    TerraSound.setVolume(vol);
+    if(!muted && window.TerraSound) TerraSound.play('click');
   });
 
   // Sync initial state
   const state = TerraSound.getState();
   muteBtn.textContent = state.muted ? '🔇' : '🔊';
-  volumeSlider.value = state.volume * 100;
 }
 
 /* 调试句柄(性能排查/控制台实验用) */
@@ -1871,53 +1819,6 @@ window.__dbg={app,world,groundL,waterL,snowL,overlayL,objL,fxScreen,player,cam,b
 setTimeout(()=>{
   const loader=document.getElementById('loading');
   if(loader){ loader.classList.add('ready'); setTimeout(()=>loader.remove(),800); }
-
-  // FALLBACK 4: Staggered resize triggers after everything is built
-  // Immediate
-  handleResize();
-  console.log('[Terra] Resize trigger 1: immediate');
-
-  // FALLBACK 5: After 100ms (canvas might not be fully attached yet)
-  setTimeout(() => {
-    handleResize();
-    console.log('[Terra] Resize trigger 2: +100ms');
-
-    // NUCLEAR: Force canvas repaint by hiding/showing
-    const canvas = app.canvas;
-    canvas.style.visibility = 'hidden';
-    setTimeout(() => {
-      canvas.style.visibility = 'visible';
-      handleResize();
-      console.log('[Terra] Forced canvas repaint');
-    }, 10);
-  }, 100);
-
-  // FALLBACK 6: After 500ms (second safety net)
-  setTimeout(() => {
-    handleResize();
-    console.log('[Terra] Resize trigger 3: +500ms');
-  }, 500);
-
-  // FALLBACK 7: After 1000ms (third safety net for slow systems)
-  setTimeout(() => {
-    handleResize();
-    console.log('[Terra] Resize trigger 4: +1000ms');
-  }, 1000);
-
-  // FALLBACK 8: Force browser resize event (fixes black screen on some systems)
-  window.dispatchEvent(new Event('resize'));
-
-  // FALLBACK 9: Double-check after another animation frame
-  requestAnimationFrame(() => {
-    handleResize();
-    console.log('[Terra] Resize trigger 5: RAF');
-
-    // FALLBACK 10: Triple-check after second animation frame
-    requestAnimationFrame(() => {
-      handleResize();
-      console.log('[Terra] Resize trigger 6: RAF+1');
-    });
-  });
 },100);
 
-});
+})();

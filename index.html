@@ -305,53 +305,26 @@
     box-shadow: 0 16px 48px rgba(212,175,55,0.8) !important;
   }
 
-  /* Sound Controls - Minimal parchment aesthetic */
-  #soundControls {
-    position: absolute; top: 44px; right: 232px;
-    display: flex; align-items: center; gap: 12px;
-    background: rgba(246,241,231,.94); backdrop-filter: blur(16px) saturate(1.15);
-    border: 2px solid rgba(43,39,34,.15); border-radius: 12px;
-    padding: 10px 16px; box-shadow: 0 8px 24px rgba(10,10,10,.28), inset 0 1px 0 rgba(255,255,255,.6);
-  }
-
+  /* Sound Controls - Minimal mute button matching game aesthetic */
   #muteBtn {
-    width: 32px; height: 32px; border: none; background: none;
+    position: absolute; top: 44px; right: 232px;
+    width: 40px; height: 40px; border: none;
+    background: rgba(246,241,231,.94); backdrop-filter: blur(16px) saturate(1.15);
+    border: 2px solid rgba(43,39,34,.15); border-radius: 50%;
     cursor: pointer; display: flex; align-items: center; justify-content: center;
-    font-size: 18px; opacity: 0.75; transition: all 0.3s;
-    border-radius: 6px; padding: 0;
+    font-size: 18px; opacity: 0.8; transition: all 0.35s cubic-bezier(.2,.8,.2,1);
+    box-shadow: 0 6px 18px rgba(10,10,10,.25), inset 0 1px 0 rgba(255,255,255,.6);
   }
 
   #muteBtn:hover {
-    opacity: 1; background: rgba(201,162,75,.12); transform: scale(1.1);
+    opacity: 1; background: rgba(246,241,231,1);
+    transform: translateY(-2px) scale(1.08);
+    box-shadow: 0 8px 24px rgba(10,10,10,.35), inset 0 1px 0 rgba(255,255,255,.7);
   }
 
-  #volumeSlider {
-    width: 80px; height: 4px; -webkit-appearance: none; appearance: none;
-    background: rgba(43,39,34,.18); border-radius: 2px; outline: none;
-    cursor: pointer;
-  }
-
-  #volumeSlider::-webkit-slider-thumb {
-    -webkit-appearance: none; appearance: none;
-    width: 16px; height: 16px; border-radius: 50%;
-    background: linear-gradient(135deg, #d4af37, #c9a24b);
-    cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.3);
-    transition: all 0.2s;
-  }
-
-  #volumeSlider::-webkit-slider-thumb:hover {
-    transform: scale(1.2); box-shadow: 0 3px 12px rgba(212,175,55,.5);
-  }
-
-  #volumeSlider::-moz-range-thumb {
-    width: 16px; height: 16px; border-radius: 50%; border: none;
-    background: linear-gradient(135deg, #d4af37, #c9a24b);
-    cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.3);
-    transition: all 0.2s;
-  }
-
-  #volumeSlider::-moz-range-thumb:hover {
-    transform: scale(1.2); box-shadow: 0 3px 12px rgba(212,175,55,.5);
+  #muteBtn:active {
+    transform: translateY(0) scale(1);
+    transition: all 0.1s;
   }
 </style>
 </head>
@@ -369,10 +342,7 @@
     <div id="dialLabel"><div class="s" id="seasonName">春</div><div class="d" id="seasonLatin">VER</div></div>
   </div>
   <div id="clock"><div class="num"><span id="dayNum">01</span></div><div class="cap">年代 I · 第一年</div></div>
-  <div id="soundControls">
-    <button id="muteBtn" title="静音/取消静音">🔊</button>
-    <input type="range" id="volumeSlider" min="0" max="100" value="70" title="音量">
-  </div>
+  <button id="muteBtn" title="静音/取消静音">🔊</button>
   <div id="stamina"></div>
   <div id="weatherTag">— 微风拂过山谷 —</div>
 
@@ -460,12 +430,12 @@
 <script src="src/farming_enhanced.js?v=1"></script>
 <script src="src/capture_system.js?v=1"></script>
 <script src="src/capture_integration.js?v=1"></script>
-<script src="src/alchemy.js?v=21"></script>
-<script src="src/battle.js?v=21"></script>
-<script src="src/dungeon.js?v=21"></script>
-<script src="src/upgrade.js?v=21"></script>
+<script src="src/alchemy.js?v=22"></script>
+<script src="src/battle.js?v=22"></script>
+<script src="src/dungeon.js?v=22"></script>
+<script src="src/upgrade.js?v=22"></script>
 <script src="src/world_map.js?v=1"></script>
 <script src="src/world_map_integration.js?v=1"></script>
-<script src="src/main.js?v=21"></script>
+<script src="src/main.js?v=22"></script>
 </body>
 </html>
