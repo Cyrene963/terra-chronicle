@@ -13,6 +13,7 @@ Continuously improve Terra Chronicle public playable prototype at https://terra.
 - Run JS syntax checks for touched modules.
 - Verify public domain via remote readback and browser where possible.
 - Commit and push meaningful changes to GitHub.
+- For UI/art/animation work, AI-generated images are moodboard/reference only until they pass style-fit review against current Terra assets. Do not force a pretty but mismatched AI image into production; slice/retouch/repaint/unify first, then run public visual smoke.
 
 ## Priority lanes
 1. Top-tier art/UI/animation/UX and game feel.
@@ -83,4 +84,5 @@ Continuously improve Terra Chronicle public playable prototype at https://terra.
 - Dungeon reward v1: add temporary blessings that affect next fights, not just farm materials.
 - Farming v2: crop variants and visible choice between high-yield/low-quality vs low-yield/high-quality plots.
 - Combat v2: boss phase loop and reward preview before node selection.
+- Visual system v2: build a current-screenshot/style-board first, then generate or retouch UI/assets only if they fit Terra's existing crops, cards, pets, farm tiles, and battle panels.
 - Keep `node tools/terra_visual_smoke.js` as the public visual gate after every UI/rendering change.
