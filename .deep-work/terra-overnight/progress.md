@@ -15,11 +15,12 @@ Continuously improve Terra Chronicle public playable prototype at https://terra.
 - Commit and push meaningful changes to GitHub.
 
 ## Priority lanes
-1. Card archetypes and battle synergies.
-2. Pet/spirit-beast acquisition and progression.
-3. Farming quality, crop variants, soil/watering feedback.
-4. Combat feel: enemy intents, weak points, rewards, readable choices.
-5. Regression safety: public render stability and no black-screen regression.
+1. Top-tier art/UI/animation/UX and game feel.
+2. Card archetypes and battle synergies.
+3. Pet/spirit-beast acquisition and progression.
+4. Farming quality, crop variants, soil/watering feedback.
+5. Combat feel: enemy intents, weak points, rewards, readable choices.
+6. Regression safety: public render stability and no black-screen regression.
 
 ## Progress log
 - 22:42 baseline: public site loads dungeon.js?v=35 upgrade.js?v=35 main.js?v=32, repo clean at e81e85a.
@@ -45,8 +46,23 @@ Continuously improve Terra Chronicle public playable prototype at https://terra.
   - Public readback passed: terra.bz9.me serves v37 scripts and feature anchors.
   - Browser smoke passed: Battle.enter on public domain loaded v37, elite intent displayed `精英突刺 11弱点:火`; test harvest/fire card reduced enemy HP from 70 to 31 with no JS error.
   - GitHub commit: adbb3cde41d4bcf9b9a0bc3bd9f3fae208f06e99.
+- 23:50 design-first audit lanes completed.
+  - Stage assessment: current PixiJS prototype is a playable vertical slice, about 35-45% of single-player core experience and 10-15% of the long-term project vision.
+  - Strongest gap vs project vision: top-tier art/UI/animation/UX consistency. The core loop exists, but the alchemy moment still used emoji and browser alert, which broke game feel.
+  - Four read-only lanes converged on one safe slice: redesign alchemy workshop ritual, remove alert, use real resource icons and in-game card reveal, add click/arrival feedback, expose stable `__dbg` smoke surface.
+- 00:02 third implementation lane: visual/UX ritual v1 shipped.
+  - `src/alchemy.js`: alchemy panel restyled with parchment/glow/blur/gold treatment, real wheat/wood icons, in-panel status, no browser `alert()`.
+  - Successful alchemy now opens the existing in-game 3D card reveal overlay with card name, stats, quality, effect text, and affixes.
+  - Failed recipes now show `配方未共鸣` in the panel and return materials without leaving the game layer.
+  - `src/main.js`: click destinations and action arrival now spawn world-space ripple feedback; `window.__dbg` exposes `ready`, `farm`, `scripts`, `plantedCount`, and `cardCount` for future smoke tests.
+  - Public versions bumped to alchemy.js?v=38 main.js?v=38.
+  - Syntax gates passed: `node --check src/alchemy.js`, `src/main.js`.
+  - Deterministic anchors passed: local and remote alchemy contain no `alert(`; remote serves `wheat_icon.png`, `wood_icon.png`, `revealCard`, `alchemyStatus`, `spawnWorldRipple`, and `__dbg.ready` anchors.
+  - Public readback passed: terra.bz9.me HTTP 200 and serves v38 scripts.
+  - Browser/visual smoke degraded: CloakBrowser Chrome path missing and project lacks Puppeteer/Playwright packages, so no real browser screenshot was produced in this run. This is a test-infrastructure blocker, not a claimed game pass.
 
 ## Next best lanes
+- Restore reliable browser visual smoke tooling or add a lightweight repo-local Playwright/Puppeteer setup so UI claims can be screenshot-backed again.
 - Pet system v1: persist `farm.beasts`, prevent repeated fire-spirit hatch after refresh, show water/fire spirit levels and make upgrades visible.
 - Dungeon reward v1: add temporary blessings that affect next fights, not just farm materials.
 - Farming v2: crop variants and visible choice between high-yield/low-quality vs low-yield/high-quality plots.

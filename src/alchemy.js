@@ -26,58 +26,64 @@ function injectStyle(){
   const css=`
   #alchemyUI{position:fixed;inset:0;z-index:90;display:none;opacity:0;
     transition:opacity .45s;
-    background:linear-gradient(135deg, #2a2520 0%, #1a1612 100%);
+    background:radial-gradient(circle at 50% 28%,rgba(201,162,75,.18),transparent 38%),linear-gradient(135deg, rgba(18,14,11,.94) 0%, rgba(42,37,32,.92) 100%);
     font-family:'Cormorant Garamond',serif;color:#f4ecd8;
-    display:flex;align-items:center;justify-content:center;}
+    display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);}
   #alchemyUI.on{display:flex;opacity:1;}
-  #alchemyUI .panel{width:min(680px,90vw);
-    background:linear-gradient(135deg, #f4ecd8 0%, #e8dcbf 100%);
-    border:3px double #8b7355;border-radius:12px;padding:48px 50px;
-    box-shadow:0 40px 120px rgba(0,0,0,.7);position:relative;color:#2a2520;}
-  #alchemyUI .panel::before{content:'';position:absolute;inset:10px;border:1px solid rgba(212,175,55,.5);
-    border-radius:8px;pointer-events:none;}
-  #alchemyUI .title{font-size:42px;letter-spacing:.24em;text-align:center;margin-bottom:16px;
-    color:#d4af37;text-shadow:0 2px 10px rgba(0,0,0,.3);}
-  #alchemyUI .subtitle{font-size:14px;letter-spacing:.6em;text-align:center;opacity:.7;
-    margin-bottom:36px;font-style:italic;color:#8b7355;}
-  #alchemyUI .cauldron{width:280px;height:280px;margin:0 auto 32px;
-    background:radial-gradient(ellipse at 50% 40%,#4a3c2f,#2a2520);
-    border-radius:50%;border:6px solid #8b7355;
-    box-shadow:inset 0 20px 60px rgba(0,0,0,.6),0 12px 40px rgba(0,0,0,.5);
-    display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;
-    position:relative;}
-  #alchemyUI .cauldron::before{content:'';position:absolute;inset:12px;border-radius:50%;
-    border:2px solid rgba(212,175,55,.3);}
-  #alchemyUI .contents{font-size:20px;color:#d4af37;letter-spacing:.12em;}
-  #alchemyUI .ingredients{display:flex;gap:32px;justify-content:center;margin-bottom:32px;}
-  #alchemyUI .ingr{text-align:center;cursor:pointer;transition:transform .3s;
-    border:2px solid #d4af37;border-radius:12px;padding:20px 28px;
-    background:rgba(244,236,216,.4);box-shadow:0 4px 12px rgba(0,0,0,.15);}
-  #alchemyUI .ingr:hover{transform:scale(1.08);box-shadow:0 0 24px rgba(212,175,55,.4);}
-  #alchemyUI .ingr .icon{font-size:48px;margin-bottom:12px;}
-  #alchemyUI .ingr .name{font-size:18px;letter-spacing:.14em;font-family:'Noto Serif SC',serif;}
-  #alchemyUI .ingr .count{font-size:14px;opacity:.7;margin-top:6px;}
-  #alchemyUI .actions{display:flex;gap:20px;justify-content:center;}
-  #alchemyUI .btn{border:2px solid #d4af37;background:linear-gradient(135deg,rgba(244,236,216,.4),rgba(232,220,191,.5));
-    border-radius:8px;padding:14px 32px;cursor:pointer;font-size:18px;letter-spacing:.2em;
+  #alchemyUI .panel{width:min(760px,92vw);
+    background:linear-gradient(135deg, rgba(244,236,216,.98) 0%, rgba(232,220,191,.96) 100%);
+    border:3px double #8b7355;border-radius:18px;padding:52px 56px 46px;
+    box-shadow:0 44px 130px rgba(0,0,0,.76),0 0 90px rgba(212,175,55,.16);position:relative;color:#2a2520;overflow:hidden;}
+  #alchemyUI .panel::before{content:'';position:absolute;inset:12px;border:1px solid rgba(212,175,55,.55);
+    border-radius:13px;pointer-events:none;box-shadow:inset 0 0 42px rgba(139,115,85,.12);}
+  #alchemyUI .panel::after{content:'';position:absolute;left:8%;right:8%;top:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,246,210,.9),transparent);}
+  #alchemyUI .title{font-size:44px;letter-spacing:.28em;text-align:center;margin-bottom:12px;
+    color:#b98a2a;text-shadow:0 2px 0 rgba(255,255,255,.4),0 8px 22px rgba(0,0,0,.18);}
+  #alchemyUI .subtitle{font-size:13px;letter-spacing:.55em;text-align:center;opacity:.72;
+    margin-bottom:34px;font-style:italic;color:#7d674d;}
+  #alchemyUI .cauldron{width:300px;height:300px;margin:0 auto 30px;
+    background:radial-gradient(circle at 50% 34%,rgba(255,230,150,.42),transparent 24%),radial-gradient(ellipse at 50% 42%,#5c4b3a,#211b17 68%);
+    border-radius:50%;border:7px solid #8b7355;
+    box-shadow:inset 0 24px 70px rgba(0,0,0,.65),0 18px 48px rgba(0,0,0,.48),0 0 38px rgba(212,175,55,.22);
+    display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;
+    position:relative;animation:cauldronBreath 3.6s ease-in-out infinite;}
+  #alchemyUI .cauldron::before{content:'';position:absolute;inset:14px;border-radius:50%;
+    border:2px solid rgba(212,175,55,.36);box-shadow:inset 0 0 30px rgba(255,220,130,.12);}
+  #alchemyUI .cauldron::after{content:'';position:absolute;inset:34px;border-radius:50%;background:radial-gradient(circle,rgba(126,255,205,.18),rgba(201,162,75,.08) 42%,transparent 68%);filter:blur(1px);}
+  @keyframes cauldronBreath{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+  #alchemyUI .contents{font-size:20px;color:#f4d03f;letter-spacing:.12em;z-index:1;text-align:center;text-shadow:0 2px 10px rgba(0,0,0,.6);}
+  #alchemyUI .ingredients{display:flex;gap:28px;justify-content:center;margin-bottom:28px;}
+  #alchemyUI .ingr{text-align:center;cursor:pointer;transition:transform .28s,box-shadow .28s,border-color .28s;
+    border:1px solid rgba(185,138,42,.64);border-radius:18px;padding:18px 30px 16px;
+    background:linear-gradient(160deg,rgba(255,250,232,.72),rgba(215,188,131,.26));box-shadow:0 8px 22px rgba(0,0,0,.14);min-width:130px;}
+  #alchemyUI .ingr:hover{transform:translateY(-6px) scale(1.04);border-color:#d4af37;box-shadow:0 18px 34px rgba(0,0,0,.18),0 0 28px rgba(212,175,55,.3);}
+  #alchemyUI .ingr .icon{width:58px;height:58px;margin:0 auto 10px;border-radius:16px;object-fit:contain;filter:drop-shadow(0 8px 12px rgba(0,0,0,.24));}
+  #alchemyUI .ingr .name{font-size:18px;letter-spacing:.16em;font-family:'Noto Serif SC',serif;}
+  #alchemyUI .ingr .count{font-size:13px;opacity:.68;margin-top:6px;}
+  #alchemyUI .actions{display:flex;gap:18px;justify-content:center;align-items:center;}
+  #alchemyUI .btn{border:1px solid #b98a2a;background:linear-gradient(135deg,rgba(244,236,216,.52),rgba(201,162,75,.18));
+    border-radius:999px;padding:13px 32px;cursor:pointer;font-size:17px;letter-spacing:.24em;text-indent:.24em;
     transition:all .3s;font-family:'Cormorant Garamond',serif;color:#2a2520;
-    box-shadow:0 4px 12px rgba(0,0,0,.15);}
-  #alchemyUI .btn:hover{background:linear-gradient(135deg,rgba(212,175,55,.3),rgba(201,162,75,.2));
-    transform:translateY(-2px);box-shadow:0 0 20px rgba(212,175,55,.4);}
+    box-shadow:0 7px 18px rgba(0,0,0,.12);}
+  #alchemyUI .btn:hover{background:linear-gradient(135deg,rgba(244,208,63,.32),rgba(201,162,75,.2));
+    transform:translateY(-2px);box-shadow:0 12px 24px rgba(0,0,0,.17),0 0 20px rgba(212,175,55,.28);}
   #alchemyUI .btn:disabled{opacity:.3;cursor:default;transform:none!important;}
-  #alchemyUI .close{position:absolute;top:32px;right:36px;font-size:32px;cursor:pointer;
-    width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:50%;
-    border:2px solid #d4af37;background:rgba(244,236,216,.6);color:#2a2520;opacity:.6;
-    transition:all .3s;box-shadow:0 4px 12px rgba(0,0,0,.2);}
-  #alchemyUI .close:hover{opacity:1;transform:scale(1.15);box-shadow:0 0 16px rgba(212,175,55,.5);}
-  #alchemyUI .discovery{position:absolute;inset:0;background:rgba(212,175,55,.95);
+  #alchemyUI .close{position:absolute;top:28px;right:34px;font-size:30px;cursor:pointer;
+    width:42px;height:42px;display:flex;align-items:center;justify-content:center;border-radius:50%;
+    border:1px solid rgba(185,138,42,.7);background:rgba(244,236,216,.64);color:#2a2520;opacity:.62;
+    transition:all .3s;box-shadow:0 4px 12px rgba(0,0,0,.16);z-index:2;}
+  #alchemyUI .close:hover{opacity:1;transform:scale(1.12) rotate(90deg);box-shadow:0 0 16px rgba(212,175,55,.45);}
+  #alchemyUI .alchemyStatus{height:24px;margin-top:16px;text-align:center;font-family:'Noto Serif SC',serif;font-size:13px;letter-spacing:.12em;color:#8b5a35;opacity:.85;}
+  #alchemyUI .alchemyStatus.warn{color:#a64838;animation:statusPulse .5s ease-out;}
+  @keyframes statusPulse{0%{transform:scale(.96);opacity:.3}100%{transform:scale(1);opacity:.85}}
+  #alchemyUI .discovery{position:absolute;inset:0;background:radial-gradient(circle at 50% 42%,rgba(255,246,210,.96),rgba(212,175,55,.93));
     display:none;align-items:center;justify-content:center;flex-direction:column;
-    border-radius:12px;animation:goldFlash 1s;}
-  @keyframes goldFlash{0%,100%{background:rgba(212,175,55,.95)}50%{background:rgba(244,208,63,1)}}
+    border-radius:18px;animation:goldFlash 1s;z-index:3;}
+  @keyframes goldFlash{0%,100%{filter:brightness(1)}50%{filter:brightness(1.22)}}
   #alchemyUI .discovery.on{display:flex;}
-  #alchemyUI .discovery .msg{font-size:56px;color:#fff;letter-spacing:.3em;
-    text-shadow:0 4px 20px rgba(0,0,0,.5);animation:bounce .6s;}
-  @keyframes bounce{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+  #alchemyUI .discovery .msg{font-size:54px;color:#fff;letter-spacing:.28em;
+    text-shadow:0 4px 20px rgba(0,0,0,.38),0 0 26px rgba(255,255,255,.45);animation:bounce .6s;}
+  @keyframes bounce{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
   `;
   const s=$$('style');s.textContent=css;document.head.appendChild(s);
 }
@@ -95,12 +101,12 @@ function buildDOM(){
       </div>
       <div class="ingredients">
         <div class="ingr" id="addWheat">
-          <div class="icon">🌾</div>
+          <img class="icon" src="assets/ui/wheat_icon.png" alt="">
           <div class="name">星麦</div>
           <div class="count" id="wheatCount">库存: 0</div>
         </div>
         <div class="ingr" id="addWood">
-          <div class="icon">🪵</div>
+          <img class="icon" src="assets/ui/wood_icon.png" alt="">
           <div class="name">木材</div>
           <div class="count" id="woodCount">库存: 0</div>
         </div>
@@ -109,6 +115,7 @@ function buildDOM(){
         <button class="btn" id="alchemyReset">清空</button>
         <button class="btn" id="alchemyBrew">炼制</button>
       </div>
+      <div class="alchemyStatus" id="alchemyStatus">投入材料，聆听大地的回响</div>
       <div class="close" id="alchemyClose">×</div>
       <div class="discovery" id="alchemyDiscovery">
         <div class="msg">✨ 配方发现! ✨</div>
@@ -189,11 +196,27 @@ function makeAlchemyCard(recipe){
   };
 }
 
+function showStatus(text, warn=false){
+  const el=$('#alchemyStatus',root); if(!el) return;
+  el.textContent=text; el.classList.toggle('warn', !!warn);
+  if(warn){ el.style.animation='none'; void el.offsetWidth; el.style.animation='statusPulse .5s ease-out'; }
+}
+function revealCard(card){
+  const r=document.getElementById('cardReveal');
+  if(!r) return false;
+  document.getElementById('cvName').textContent=card.name;
+  document.getElementById('cvAtk').textContent=card.atk||0;
+  document.getElementById('cvDef').textContent=card.def||0;
+  document.getElementById('cvQ').textContent=Math.round((card.quality||0)*100);
+  document.getElementById('cvAffix').textContent=[card.effectText, ...(card.affixes||[])].filter(Boolean).join(' · ');
+  r.classList.add('on');
+  return true;
+}
 function brew(){
   // 查找匹配配方
   const recipe=RECIPES.find(r=>r.starwheat===cauldron.starwheat.length && r.wood===cauldron.wood);
   if(!recipe){
-    alert('配方未知! 材料已退回,继续试验其他比例。');
+    showStatus('配方未共鸣 · 材料已退回，换一种比例试试', true);
     reset();
     if(window.TerraSound) TerraSound.play('click');
     return;
@@ -210,14 +233,14 @@ function brew(){
 
   // 显示发现特效
   $('#alchemyDiscovery',root).classList.add('on');
+  showStatus('配方共鸣 · 卡牌正在成形');
   setTimeout(()=>{
     $('#alchemyDiscovery',root).classList.remove('on');
-    const aff=card.affixes.length?`\n词条 · ${card.affixes.join(' / ')}`:'';
-    alert(`✨ 成功炼制: ${card.name}\n产地等级 ${(card.quality*100).toFixed(0)} · 工艺 ${(card.craftsmanship*100).toFixed(0)}\n攻${card.atk} 防${card.def}${card.heal?' 治疗'+card.heal:''}\n${card.effectText}${aff}`);
     cauldron.starwheat=[]; cauldron.wood=0;
     updateDisplay();
     if(window.updateDock) window.updateDock();
-  },1800);
+    if(!revealCard(card)) showStatus(`成功炼制 ${card.name} · 攻${card.atk} 防${card.def}`, false);
+  },1400);
 }
 
 function updateDisplay(){

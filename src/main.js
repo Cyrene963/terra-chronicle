@@ -631,8 +631,21 @@ function objectAtTile(tx,ty){
     if(Math.floor(o.node.x/TS)===tx && Math.floor(o.node.y/TS)===ty) return o; }
   return null;
 }
+function spawnWorldRipple(wx, wy, tint=0xf4d03f, label=''){
+  const ring=new PIXI.Graphics(); ring.x=wx; ring.y=wy; overlayL.addChild(ring);
+  const t0=performance.now(), dur=560;
+  (function step(){
+    const p=Math.min(1,(performance.now()-t0)/dur), eased=1-Math.pow(1-p,3);
+    ring.clear(); ring.alpha=1-p;
+    ring.lineStyle(2.2, tint, .9*(1-p)); ring.drawEllipse(0,0,18+eased*34,8+eased*18);
+    ring.lineStyle(1, 0xffffff, .45*(1-p)); ring.drawEllipse(0,0,8+eased*20,3+eased*9);
+    if(p<1) requestAnimationFrame(step); else { if(ring.parent) ring.parent.removeChild(ring); ring.destroy(); }
+  })();
+  if(label) toastHint(label);
+}
 /* 点击/触摸 → 路由: 树→走到旁边砍伐; 耕地→走过去种/收; 空地→走过去 */
 function commandTo(wx,wy){
+  spawnWorldRipple(wx,wy,0xf4d03f);
   const tx=Math.floor(wx/TS), ty=Math.floor(wy/TS);
   const sx=Math.floor(player.x/TS), sy=Math.floor(player.y/TS);
   const o=objectAtTile(tx,ty);
@@ -672,6 +685,8 @@ const chopLoop={obj:null,t:0};
 function onArrive(){
   const a=pendingAction; pendingAction=null;
   if(!a) return;
+  const arriveLabel={farm:'抵达耕地',chop:'开始伐木',portal:'深渊之门',breed:'孵化阵',upgrade:'工坊'}[a.type];
+  spawnWorldRipple(player.x,player.y,a.type==='portal'?0xb68cff:a.type==='farm'?0x9fdc7b:0xf4d03f,arriveLabel);
   if(a.type==='farm') interactFarm(a.key);
   else if(a.type==='chop'){ chopLoop.obj=a.obj; chopLoop.t=0; }
   else if(a.type==='portal'){ if(window.DungeonMap) DungeonMap.open(); }
@@ -1381,8 +1396,13 @@ $('enter').onclick=enterWorld;
 
 /* 调试句柄(性能排查/控制台实验用) */
 window.__dbg={app,world,groundL,waterL,snowL,overlayL,objL,fxScreen,player,cam,beast,beastAI,
-  seasonFilter, findPath, planted, commandTo, interactFarm,
+  seasonFilter, findPath, planted, commandTo, interactFarm, enterWorld,
   beastStep, get quality(){return quality}, get fireBeast(){return fireBeast}, get forgeHot(){return forgeHot}, openBreed,
+  get ready(){return entered && !!app?.renderer && app.screen.width>0 && app.screen.height>0},
+  get farm(){return Terra.farm},
+  get scripts(){return [...document.scripts].map(s=>s.src).filter(Boolean)},
+  get plantedCount(){return Object.keys(planted).length},
+  get cardCount(){return farm.inventory.cards.length},
   get parts(){return parts.length}};
 
 /* Loading screen fade-out (after first successful frame) */
