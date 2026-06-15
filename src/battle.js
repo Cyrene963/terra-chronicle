@@ -184,6 +184,7 @@ function injectStyle(){
   #battle .card .cart::before,#battle .card .cart::after{content:'';position:absolute;pointer-events:none;}
   #battle .card .cart::before{inset:14%;border-radius:50%;border:1px solid rgba(255,236,174,.18);}
   #battle .card .cart::after{width:78%;height:2px;background:linear-gradient(90deg,transparent,rgba(255,240,180,.75),transparent);transform:rotate(-28deg);filter:blur(.2px);}
+  #battle .card .cartImg{position:relative;z-index:2;width:82%;height:82%;object-fit:contain;filter:drop-shadow(0 8px 10px rgba(0,0,0,.42));transform:translateZ(0);}
   #battle .card.def .cart::before{inset:18% 24%;border-radius:18px 18px 26px 26px;border:2px solid rgba(188,233,255,.42);background:linear-gradient(180deg,rgba(188,233,255,.12),transparent);}
   #battle .card.def .cart::after{width:44%;height:44%;border-radius:50%;background:radial-gradient(circle,rgba(188,233,255,.38),transparent 68%);transform:none;}
   #battle .card.heal .cart::before{inset:20%;border-radius:50% 50% 46% 46%;border:2px solid rgba(201,245,154,.42);background:radial-gradient(circle at 50% 70%,rgba(201,245,154,.22),transparent 60%);}
@@ -370,13 +371,13 @@ function chromaticAberration(){                          // 全屏色差畸变 0
 
 function cardVisual(c){
   const name=c?.name||'';
-  if(name.includes('蓄能')) return {icon:'✦烈刃✦', label:'STRIKE · FIRE', cls:'charge'};
-  if(name.includes('格挡')||c?.type==='def') return {icon:'⬟根盾⬟', label:'GUARD · ROOT', cls:'def'};
-  if(name.includes('愈')||name.includes('芽')||c?.type==='heal') return {icon:'✦新芽✦', label:'HEAL · SPROUT', cls:'heal'};
-  if(name.includes('划击')) return {icon:'⌁芽刃⌁', label:'ATTACK · EARTH', cls:'atk'};
-  if(c?.elem==='fire') return {icon:'✦火纹✦', label:'ATTACK · FIRE', cls:'charge'};
-  if(c?.elem==='metal') return {icon:'⬡金痕⬡', label:'ATTACK · METAL', cls:'atk'};
-  return c?.type==='atk' ? {icon:'⌁刃光⌁', label:'ATTACK · EARTH', cls:'atk'} : {icon:'✦灵纹✦', label:'RUNE · TERRA', cls:'heal'};
+  if(name.includes('蓄能')) return {icon:'✦烈刃✦', label:'STRIKE · FIRE', cls:'charge', art:'assets/sprites/card_art_charge.png'};
+  if(name.includes('格挡')||c?.type==='def') return {icon:'⬟根盾⬟', label:'GUARD · ROOT', cls:'def', art:'assets/sprites/card_art_guard.png'};
+  if(name.includes('愈')||name.includes('芽')||c?.type==='heal') return {icon:'✦新芽✦', label:'HEAL · SPROUT', cls:'heal', art:'assets/sprites/card_art_heal.png'};
+  if(name.includes('划击')) return {icon:'⌁芽刃⌁', label:'ATTACK · EARTH', cls:'atk', art:'assets/sprites/card_art_slash.png'};
+  if(c?.elem==='fire') return {icon:'✦火纹✦', label:'ATTACK · FIRE', cls:'charge', art:'assets/sprites/card_art_charge.png'};
+  if(c?.elem==='metal') return {icon:'⬡金痕⬡', label:'ATTACK · METAL', cls:'atk', art:'assets/sprites/card_art_slash.png'};
+  return c?.type==='atk' ? {icon:'⌁刃光⌁', label:'ATTACK · EARTH', cls:'atk', art:'assets/sprites/card_art_slash.png'} : {icon:'✦灵纹✦', label:'RUNE · TERRA', cls:'heal', art:'assets/sprites/card_art_heal.png'};
 }
 
 function render(){
@@ -421,7 +422,7 @@ function render(){
     const visual=cardVisual(c);
     if(visual.cls) el.classList.add(visual.cls);
     el.innerHTML=`<div class="cost">${c.cost}</div><div class="cname">${c.name}</div>
-      <div class="cart">${visual.icon}</div><div class="ctype">${visual.label}</div><div class="cdesc">${c.desc}</div>`;
+      <div class="cart"><img class="cartImg" src="${visual.art}" alt="${visual.icon}"></div><div class="ctype">${visual.label}</div><div class="cdesc">${c.desc}</div>`;
     if(playable) el.onclick=(ev)=>playCard(i, ev.currentTarget);
   });
 }

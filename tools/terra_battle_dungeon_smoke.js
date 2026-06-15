@@ -26,12 +26,15 @@ fs.mkdirSync(OUT, { recursive: true });
   await page.waitForFunction(() => window.Battle && window.DungeonMap && window.__dbg?.ready, null, { timeout: 30000 });
 
   const scripts = await page.evaluate(() => Array.from(document.scripts).map(s => s.src).filter(Boolean));
-  const versionsOk = scripts.some(s => s.includes('battle.js?v=49')) && scripts.some(s => s.includes('dungeon.js?v=42'));
+  const versionsOk = scripts.some(s => s.includes('battle.js?v=50')) && scripts.some(s => s.includes('dungeon.js?v=42'));
 
   await page.evaluate(() => {
     window.Battle.enter({
       deck: [
-        { name: '测试新芽', atk: 8, def: 14, heal: 0, element: 'earth', quality: 0.86, affixes: ['同季共鸣'], archetype: 'sprout', effectText: '验证实体卡样式' }
+        { name: '划击', type: 'atk', val: 6, cost: 1, desc: '造成 6 点伤害' },
+        { name: '格挡', type: 'def', val: 5, cost: 1, desc: '获得 5 点护甲' },
+        { name: '蓄能', type: 'atk', val: 9, cost: 2, desc: '造成 9 点伤害' },
+        { name: '新芽愈合', type: 'heal', val: 5, cost: 1, desc: '恢复 5 点生命' }
       ],
       isElite: true,
       buffs: [{ id: 'abyss_vigor', hpMax: 8, fights: 2 }, { id: 'ember_focus', energyFirstTurn: 1, fights: 1 }, { id: 'root_guard', shield: 6, fights: 2 }],
@@ -50,6 +53,7 @@ fs.mkdirSync(OUT, { recursive: true });
       cardCount: document.querySelectorAll('#battle .card').length,
       cardBackground: style?.backgroundImage || '',
       cardText: card?.innerText || '',
+      cardArtSources: Array.from(document.querySelectorAll('#battle .card .cartImg')).map(img => img.getAttribute('src')),
       hpText: document.querySelector('#b_vnum')?.textContent || '',
       energy: document.querySelector('#b_orb')?.textContent || '',
       buffLine: document.querySelector('#b_buffs')?.textContent || '',
@@ -60,6 +64,9 @@ fs.mkdirSync(OUT, { recursive: true });
     };
   });
   if (!battleState.cardBackground.includes('card_template.png')) throw new Error('battle card template not applied');
+  for (const requiredArt of ['card_art_slash.png', 'card_art_guard.png', 'card_art_charge.png', 'card_art_heal.png']) {
+    if (!battleState.cardArtSources.some(src => src.includes(requiredArt))) throw new Error(`missing battle card art ${requiredArt}: ${JSON.stringify(battleState)}`);
+  }
   if (!battleState.enemyName.includes('菌甲精英') || !battleState.enemySrc.includes('enemy_root_worm.png')) {
     throw new Error(`root worm enemy not applied: ${JSON.stringify(battleState)}`);
   }
