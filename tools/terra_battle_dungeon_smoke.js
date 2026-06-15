@@ -134,7 +134,7 @@ fs.mkdirSync(OUT, { recursive: true });
   await capturePage.evaluate(() => {
     if (!window.Battle.pickRewardByName('驯化春露兽')) throw new Error('capture reward missing');
   });
-  await capturePage.waitForTimeout(1200);
+  await capturePage.waitForFunction(() => window.__captureLoot || (JSON.parse(localStorage.getItem('terra_farm') || '{}').beasts || []).some(b => b.species === 'spring_drop'), null, { timeout: 8000 });
   const captureState = await capturePage.evaluate(() => ({
     rewardTexts: window.__captureRewardTexts || [],
     captureLoot: window.__captureLoot || null,
