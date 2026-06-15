@@ -21,6 +21,7 @@ Terra Chronicle is not a generic browser game. Treat it as a high-aesthetic, hig
    - Current public root: `/var/www/terra-pixijs`
 5. Bump the `src/main.js?v=N` query in `index.html` after changing `src/main.js`, because Cloudflare/browser cache can keep old JS by query path.
 6. Commit and push meaningful changes to GitHub so server loss does not erase progress.
+7. For any new monster, card, pet, crop, or major UI set, first align it with `docs/unified-art-design-spec.md` before implementation.
 
 ## Rendering Pitfalls
 
