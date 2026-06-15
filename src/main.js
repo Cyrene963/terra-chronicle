@@ -1385,7 +1385,7 @@ function selectedPetPower(){
 function selectedPetSummary(){
   return selectedPetEntries().map(b=>{
     const def=SELECTED_PET_DEFS[b.species];
-    return {species:b.species,name:def.name,level:b.level||1,branch:b.evolutionBranch||'未分支',passive:def.passive,active:def.active,role:def.role};
+    return {species:b.species,name:def.name,level:b.level||1,branch:b.evolutionBranch||'未分支',passive:def.passive,active:def.active,role:def.role,src:ASSETS[b.species]?.src||''};
   });
 }
 const waterSpirit=()=>beastBySpecies('water_spirit');
@@ -1605,10 +1605,21 @@ function updateBeastRosterUI(){
   const named=$('beastName'); if(!named) return;
   const waterCount=farm.beasts.filter(b=>b.element==='water' || b.species==='water_spirit' || b.species==='spring_drop').length;
   named.textContent=waterCount>1?`春露兽群 · ${waterCount} 只`:'水灵兽 · 未名';
+  updatePetCodex();
 }
 window.updateBeastRosterUI=updateBeastRosterUI;
 updateBeastRosterUI();
 setBeastStatus('idle');
+
+function updatePetCodex(){
+  const list=$('petCodexList'); if(!list) return;
+  const pets=selectedPetSummary();
+  list.innerHTML=pets.map(p=>`<div class="pet"><img src="${p.src}" alt=""><div><b>${p.name} · Lv.${p.level}</b><div class="role">${p.role} · ${p.branch}</div><div class="skill">被动: ${p.passive}<br>主动: ${p.active}</div></div></div>`).join('');
+}
+updatePetCodex();
+const petPanel=$('beastPanel'), petCodex=$('petCodex'), petCodexClose=$('petCodexClose');
+if(petPanel&&petCodex) petPanel.onclick=()=>petCodex.classList.toggle('on');
+if(petCodexClose&&petCodex) petCodexClose.onclick=(e)=>{e.stopPropagation(); petCodex.classList.remove('on');};
 
 /* ================= 12. 标题 → 世界 转场 ================= */
 function enterWorld(){
