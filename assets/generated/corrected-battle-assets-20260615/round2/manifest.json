@@ -1,0 +1,62 @@
+[
+  {
+    "id": "card_slash",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/round2/card_slash.png",
+    "group": "card_slash"
+  },
+  {
+    "id": "card_guard",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/round2/card_guard.png",
+    "group": "card_guard"
+  },
+  {
+    "id": "card_charge",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/round2/card_charge.png",
+    "group": "card_charge"
+  },
+  {
+    "id": "card_heal",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/round2/card_heal.png",
+    "group": "card_heal"
+  },
+  {
+    "id": "node_combat_1",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/round2/node_combat_1.png",
+    "group": "node_combat"
+  },
+  {
+    "id": "node_combat_2",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/round2/node_combat_2.png",
+    "group": "node_combat"
+  },
+  {
+    "id": "node_combat_3",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/round2/node_combat_3.png",
+    "group": "node_combat"
+  },
+  {
+    "id": "node_combat_4",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/round2/node_combat_4.png",
+    "group": "node_combat"
+  },
+  {
+    "id": "node_combat_5",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/round2/node_combat_5.png",
+    "group": "node_combat"
+  },
+  {
+    "id": "node_event_1",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/round2/node_event_1.png",
+    "group": "node_event"
+  },
+  {
+    "id": "node_event_2",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/round2/node_event_2.png",
+    "group": "node_event"
+  },
+  {
+    "id": "node_event_3",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/round2/node_event_3.png",
+    "group": "node_event"
+  }
+]

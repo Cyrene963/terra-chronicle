@@ -1,0 +1,52 @@
+[
+  {
+    "id": "card_slash",
+    "kind": "card",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/independent/card_slash.png"
+  },
+  {
+    "id": "card_guard",
+    "kind": "card",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/independent/card_guard.png"
+  },
+  {
+    "id": "card_charge",
+    "kind": "card",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/independent/card_charge.png"
+  },
+  {
+    "id": "card_heal",
+    "kind": "card",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/independent/card_heal.png"
+  },
+  {
+    "id": "node_combat",
+    "kind": "node",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/independent/node_combat.png"
+  },
+  {
+    "id": "node_elite",
+    "kind": "node",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/independent/node_elite.png"
+  },
+  {
+    "id": "node_rest",
+    "kind": "node",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/independent/node_rest.png"
+  },
+  {
+    "id": "node_event",
+    "kind": "node",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/independent/node_event.png"
+  },
+  {
+    "id": "node_chest",
+    "kind": "node",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/independent/node_chest.png"
+  },
+  {
+    "id": "node_boss",
+    "kind": "node",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/independent/node_boss.png"
+  }
+]

@@ -1,0 +1,77 @@
+[
+  {
+    "id": "root_worm_01",
+    "kind": "root_worm",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/root_worm_01.png"
+  },
+  {
+    "id": "root_worm_02",
+    "kind": "root_worm",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/root_worm_02.png"
+  },
+  {
+    "id": "root_worm_03",
+    "kind": "root_worm",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/root_worm_03.png"
+  },
+  {
+    "id": "root_worm_04",
+    "kind": "root_worm",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/root_worm_04.png"
+  },
+  {
+    "id": "root_worm_05",
+    "kind": "root_worm",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/root_worm_05.png"
+  },
+  {
+    "id": "node_set_01",
+    "kind": "node_set",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/node_set_01.png"
+  },
+  {
+    "id": "node_set_02",
+    "kind": "node_set",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/node_set_02.png"
+  },
+  {
+    "id": "node_set_03",
+    "kind": "node_set",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/node_set_03.png"
+  },
+  {
+    "id": "node_set_04",
+    "kind": "node_set",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/node_set_04.png"
+  },
+  {
+    "id": "node_set_05",
+    "kind": "node_set",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/node_set_05.png"
+  },
+  {
+    "id": "card_art_set_01",
+    "kind": "card_art_set",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/card_art_set_01.png"
+  },
+  {
+    "id": "card_art_set_02",
+    "kind": "card_art_set",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/card_art_set_02.png"
+  },
+  {
+    "id": "card_art_set_03",
+    "kind": "card_art_set",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/card_art_set_03.png"
+  },
+  {
+    "id": "card_art_set_04",
+    "kind": "card_art_set",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/card_art_set_04.png"
+  },
+  {
+    "id": "card_art_set_05",
+    "kind": "card_art_set",
+    "file": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/card_art_set_05.png"
+  }
+]

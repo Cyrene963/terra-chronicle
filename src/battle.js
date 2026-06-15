@@ -238,7 +238,7 @@ function buildDOM(){
       <div class="enemyZone">
         <div class="enemy" id="b_enemy">
           <div class="ename" id="b_ename">根蚀虫</div>
-          <img id="b_eimg" src="assets/sprites/enemy_root_worm.png?v=1" alt="">
+          <img id="b_eimg" src="assets/sprites/enemy_root_worm.png?v=2" alt="">
           <div class="ehp"><i id="b_ehpbar"></i><span id="b_ehptxt"></span></div>
           <div class="intent" id="b_intent"></div>
         </div>
@@ -275,10 +275,10 @@ function setEnemyPresentation(){
     if(img){ img.src='assets/sprites/enemy_blight.png?v=6'; img.style.width='440px'; }
   } else if(type==='elite'){
     if(name) name.textContent='菌甲精英';
-    if(img){ img.src='assets/sprites/enemy_root_worm.png?v=1'; img.style.width='420px'; }
+    if(img){ img.src='assets/sprites/enemy_root_worm.png?v=2'; img.style.width='440px'; }
   } else {
     if(name) name.textContent='根蚀虫';
-    if(img){ img.src='assets/sprites/enemy_root_worm.png?v=1'; img.style.width='400px'; }
+    if(img){ img.src='assets/sprites/enemy_root_worm.png?v=2'; img.style.width='420px'; }
   }
 }
 

@@ -26,7 +26,7 @@ fs.mkdirSync(OUT, { recursive: true });
   await page.waitForFunction(() => window.Battle && window.DungeonMap && window.__dbg?.ready, null, { timeout: 30000 });
 
   const scripts = await page.evaluate(() => Array.from(document.scripts).map(s => s.src).filter(Boolean));
-  const versionsOk = scripts.some(s => s.includes('battle.js?v=57')) && scripts.some(s => s.includes('dungeon.js?v=47'));
+  const versionsOk = scripts.some(s => s.includes('battle.js?v=58')) && scripts.some(s => s.includes('dungeon.js?v=50'));
 
   await page.evaluate(() => {
     window.Battle.enter({
@@ -85,14 +85,16 @@ fs.mkdirSync(OUT, { recursive: true });
     if (battle) { battle.classList.remove('on'); battle.style.display = 'none'; }
     window.DungeonMap.open();
   });
-  await page.waitForSelector('#dungeonMap.on .node .reward', { timeout: 30000 });
+  await page.waitForSelector('#dungeonMap.on .node img.icon', { timeout: 30000 });
   await page.screenshot({ path: path.join(OUT, '02_dungeon_preview.png'), fullPage: false });
   const dungeonState = await page.evaluate(() => ({
     active: !!document.querySelector('#dungeonMap.on'),
-    rewards: Array.from(document.querySelectorAll('#dungeonMap .node .reward')).map(e => e.textContent.trim()),
-    hasSpecificPreview: Array.from(document.querySelectorAll('#dungeonMap .node .reward')).some(e => e.textContent.includes('临时祝福') || e.textContent.includes('根甲护佑') || e.textContent.includes('深渊核心'))
+    rewards: Array.from(document.querySelectorAll('#dungeonMap .node')).map(e => e.title.trim()),
+    iconSources: Array.from(document.querySelectorAll('#dungeonMap .node img.icon')).map(e => e.getAttribute('src')),
+    hasSpecificPreview: Array.from(document.querySelectorAll('#dungeonMap .node')).some(e => e.title.includes('临时祝福') || e.title.includes('根甲护佑') || e.title.includes('深渊核心'))
   }));
   if (!dungeonState.hasSpecificPreview) throw new Error('dungeon reward preview missing');
+  if (!dungeonState.iconSources.some(src => src.includes('node_combat.png')) || !dungeonState.iconSources.some(src => src.includes('node_boss.png'))) throw new Error(`dungeon generated node icons missing: ${JSON.stringify(dungeonState)}`);
 
   const dungeonLoot = await page.evaluate(() => {
     return window.DungeonMap.grantLoot({ wood: 2, beast_soul: 1, buff: { id: 'ember_focus', energyFirstTurn: 1, fights: 1 } });

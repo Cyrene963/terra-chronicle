@@ -40,23 +40,21 @@ function injectStyle(){
     radial-gradient(circle at 25% 28%,rgba(255,226,158,.08),transparent 2px),radial-gradient(circle at 70% 38%,rgba(255,226,158,.08),transparent 2px),radial-gradient(circle at 56% 72%,rgba(166,111,255,.14),transparent 3px);}
   #dungeonMap .path{position:absolute;height:3px;background:linear-gradient(90deg,transparent,rgba(166,111,255,.22),rgba(255,226,158,.68),rgba(244,208,117,.52),transparent);
     transform-origin:left center;box-shadow:0 0 10px rgba(244,208,117,.18);border-radius:999px;opacity:.72;}
-  #dungeonMap .node{position:absolute;width:124px;height:124px;border-radius:28px;cursor:pointer;border:1px solid rgba(244,208,117,.58);
-    background:linear-gradient(155deg,rgba(83,52,28,.76),rgba(28,19,22,.78));box-shadow:0 18px 46px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,245,202,.16),inset 0 0 0 4px rgba(255,229,160,.05);
-    display:flex;align-items:center;justify-content:center;transition:transform .28s ease,box-shadow .28s ease,border-color .28s ease;flex-direction:column;gap:7px;overflow:hidden;}
-  #dungeonMap .node::before{content:'';position:absolute;inset:-45% -30% auto auto;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,rgba(244,208,117,.22),transparent 68%);}
+  #dungeonMap .node{position:absolute;width:124px;height:124px;border-radius:30px;cursor:pointer;border:1px solid rgba(244,208,117,.24);
+    background:radial-gradient(circle at 50% 46%,rgba(255,220,130,.10),rgba(22,14,22,.18) 62%,rgba(0,0,0,.18));box-shadow:0 18px 46px rgba(0,0,0,.45);
+    display:grid;place-items:center;transition:transform .28s ease,box-shadow .28s ease,border-color .28s ease;overflow:visible;}
+  #dungeonMap .node::before{content:'';position:absolute;inset:14px;border-radius:28px;background:radial-gradient(circle,rgba(244,208,117,.08),transparent 68%);pointer-events:none;}
   #dungeonMap .node:hover{transform:translateY(-8px) scale(1.04);border-color:#ffe0a0;box-shadow:0 28px 70px rgba(0,0,0,.58),0 0 32px rgba(244,208,117,.16);}
   #dungeonMap .node.locked{opacity:.5;cursor:default;pointer-events:none;filter:saturate(.68);}
   #dungeonMap .node.completed{opacity:.72;border-color:rgba(125,211,151,.5);}
   #dungeonMap .node.completed::after{content:'✓';position:absolute;top:10px;right:12px;font-size:22px;color:#8ee5a4;text-shadow:0 0 14px rgba(74,222,128,.6);}
   #dungeonMap .node.current{animation:nodePulse 2.2s ease-in-out infinite;border-color:#ffe0a0;}
   @keyframes nodePulse{0%,100%{box-shadow:0 18px 46px rgba(0,0,0,.45),0 0 22px rgba(244,208,117,.24)}50%{box-shadow:0 24px 62px rgba(0,0,0,.56),0 0 44px rgba(244,208,117,.42)}}
-  #dungeonMap .node.elite{border-radius:50% 22% 50% 22%;} #dungeonMap .node.rest{border-radius:50%;} #dungeonMap .node.boss{width:148px;height:148px;border-radius:36px;border-width:2px;}
-  #dungeonMap .node .icon{position:relative;width:44px;height:44px;filter:drop-shadow(0 8px 18px rgba(0,0,0,.75));}
-  #dungeonMap .node .emoji{position:relative;font-size:42px;line-height:1;filter:drop-shadow(0 8px 18px rgba(0,0,0,.75));}
-  #dungeonMap .node .label{position:relative;font-size:15px;letter-spacing:.12em;color:#fff4d0;font-weight:800;text-shadow:0 2px 8px rgba(0,0,0,.75);}
-  #dungeonMap .node .reward{position:relative;font-size:11px;letter-spacing:.04em;color:#ffe6b6;opacity:1;text-align:center;max-width:110px;line-height:1.3;text-shadow:0 2px 8px rgba(0,0,0,.85);background:rgba(12,8,10,.24);border-radius:8px;padding:2px 4px;}
-  #dungeonMap .node.locked .label{color:#e9d5a4;} #dungeonMap .node.locked .reward{color:#d7c197;background:rgba(10,8,10,.36);}
-  #dungeonMap .node.boss .label{color:#f4d075;} #dungeonMap .node.boss .reward{color:#f2d9aa;}
+  #dungeonMap .node.boss{width:148px;height:148px;border-radius:40px;border-width:2px;}
+  #dungeonMap .node .icon{position:relative;width:96px;height:96px;object-fit:contain;filter:drop-shadow(0 12px 22px rgba(0,0,0,.72));}
+  #dungeonMap .node.boss .icon{width:122px;height:122px;}
+  #dungeonMap .node .label{position:absolute;left:50%;bottom:-25px;transform:translateX(-50%);white-space:nowrap;font-size:13px;letter-spacing:.1em;color:#fff4d0;font-weight:900;text-shadow:0 2px 8px rgba(0,0,0,.92);background:rgba(13,8,12,.66);border:1px solid rgba(244,208,117,.22);border-radius:999px;padding:4px 9px;}
+  #dungeonMap .node.locked .label{color:#d9c89f;background:rgba(8,7,9,.72);} #dungeonMap .node.boss .label{color:#f4d075;}
   #dungeonMap .node.current::after{content:'可选';position:absolute;top:9px;right:10px;font-size:10px;letter-spacing:.12em;color:#2a1b0d;background:#f4d075;border-radius:999px;padding:3px 7px;box-shadow:0 3px 10px rgba(0,0,0,.36);}
   #dungeonMap .closeBtn{position:absolute;top:36px;right:42px;font-size:32px;cursor:pointer;color:#f6d99d;opacity:.72;transition:all .25s;
     width:46px;height:46px;display:grid;place-items:center;border-radius:50%;border:1px solid rgba(244,208,117,.28);background:rgba(0,0,0,.26);z-index:2;}
@@ -96,9 +94,9 @@ function rewardPreviewFor(type){
     combat:'材料或临时祝福 · 影响下一战',
     elite:'精英残响 + 根甲护佑',
     rest:'恢复整备 · 保留路线节奏',
-    event:'地脉事件 · 选择风险收益',
-    chest:'遗物宝箱 · 材料或卡牌补给',
-    boss:'深渊核心 · 工坊突破材料'
+    event:'选择风险收益',
+    chest:'材料或卡牌补给',
+    boss:'工坊突破材料'
   })[type]||'未知回响';
 }
 
@@ -159,7 +157,7 @@ function buildDOM(){
       <h2>深渊星图</h2>
       <div class="sub">选择一条路线进入污染地脉。战斗奖励会带回农场，改变下一轮锻造、灵兽和工坊升级方向。</div>
     </div>
-    <div class="legend"><span>⚔ 战斗</span><span>◆ 精英</span><span>🔥 休息</span><span>✦ 事件</span><span>▣ 宝箱</span><span>♛ 深渊核心</span></div>
+    <div class="legend"><span>战斗</span><span>精英</span><span>休息</span><span>事件</span><span>宝箱</span><span>深渊核心</span></div>
     <div class="mapWrap"><div class="mapCanvas"></div></div>
     <div class="closeBtn">×</div>
   `;
@@ -174,8 +172,8 @@ function renderMap(){
   const w=canvas.clientWidth||760, h=canvas.clientHeight||620;
   const positions={
     '0_0':[.27,.25], '0_1':[.72,.25],
-    '1_0':[.50,.52],
-    '2_0':[.50,.78]
+    '1_0':[.36,.55], '1_1':[.64,.55],
+    '2_0':[.50,.82]
   };
 
   mapData.forEach((floor,fi)=>{
@@ -208,13 +206,11 @@ function renderMap(){
       nd.style.left=(x-size/2)+'px';
       nd.style.top=(y-size/2)+'px';
 
-      const icons={combat:'icon_combat.png',elite:'◆',rest:'🔥',event:'✦',chest:'▣',boss:'icon_boss.png'};
+      const icons={combat:'node_combat.png',elite:'node_elite.png',rest:'node_rest.png',event:'node_event.png',chest:'node_chest.png',boss:'node_boss.png'};
       const labels={combat:'战斗',elite:'精英',rest:'篝火',event:'地脉事件',chest:'遗物宝箱',boss:'深渊核心'};
       const icon=icons[node.type]||'?';
-      const iconHTML = icon.endsWith?.('.png')
-        ? `<img src="assets/ui/${icon}" class="icon" alt="${labels[node.type]||node.type}"/>`
-        : `<div class="emoji">${icon}</div>`;
-      nd.innerHTML=`${iconHTML}<div class="label">${labels[node.type]||node.type}</div><div class="reward">${rewardPreviewFor(node.type)}</div>`;
+      nd.title=`${labels[node.type]||node.type} · ${rewardPreviewFor(node.type)}`;
+      nd.innerHTML=`<img src="assets/ui/${icon}" class="icon" alt="${labels[node.type]||node.type}"/><div class="label">${labels[node.type]||node.type}</div>`;
 
       if(!locked) nd.onclick=()=>selectNode(node);
     });

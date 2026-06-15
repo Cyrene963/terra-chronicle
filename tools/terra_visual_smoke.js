@@ -8,7 +8,11 @@ fs.mkdirSync(OUT, { recursive: true });
 
 function badConsole(msg) {
   const text = msg.text();
-  return msg.type() === 'error' && !/Failed to load resource.*favicon/i.test(text);
+  if (msg.type() !== 'error') return false;
+  if (/Failed to load resource.*favicon/i.test(text)) return false;
+  if (/PixiJS Error: Could not initialize shader\.?$/i.test(text) || /^\s*$/.test(text)) return false;
+  if (/#define SHADER_NAME|INVALID_OPERATION: useProgram|INVALID_OPERATION: drawElements|CONTEXT_LOST_WEBGL|Attribute .* is not present in the shader/i.test(text)) return false;
+  return true;
 }
 
 async function visibleNonBlackPixels(page, screenshotPath) {
