@@ -53,7 +53,8 @@ fs.mkdirSync(OUT, { recursive: true });
       hpText: document.querySelector('#b_vnum')?.textContent || '',
       energy: document.querySelector('#b_orb')?.textContent || '',
       buffLine: document.querySelector('#b_buffs')?.textContent || '',
-      rewardVisible: !!rewardCard
+      shieldBar: document.querySelector('#b_shbar')?.style.transform || '',
+      turnText: document.querySelector('#b_turn')?.textContent || '',
     };
   });
   if (!battleState.cardBackground.includes('card_template.png')) throw new Error('battle card template not applied');
