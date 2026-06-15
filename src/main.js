@@ -1020,7 +1020,7 @@ function openBreed(){
         pet.evolutionBranch=branch;
         pet.activeSkill=def.active;
         pet.passiveSkill=def.passive;
-        Terra.save(); updateDock(); updateBeastRosterUI(); toastHint(`${def.name} ${branch} Lv.${pet.level} · ${def.passive} 生效`); openBreed();
+        Terra.save(); syncCompanionPets(); updatePetCodex(); updateDock(); updateBeastRosterUI(); toastHint(`${def.name} ${branch} Lv.${pet.level} · ${def.passive} 生效`); openBreed();
       }));
   }
   breedEl.style.opacity='1'; breedEl.style.pointerEvents='auto'; breedEl.style.transform='translate(-50%,-50%) scale(1)';
@@ -1337,7 +1337,8 @@ farm.tech.unlockedRecipes ??= ['card_sprout_guard'];
 farm.upgrades ??= [];
 farm.beasts ??= [];
 function normalizeBeasts(){
-  farm.beasts = (farm.beasts||[]).map((b,i)=>({
+  const selectedSpecies=new Set(Object.keys(SELECTED_PET_DEFS));
+  farm.beasts = (farm.beasts||[]).filter(b=>!(selectedSpecies.has(b.species) && (!b.obtainedFrom || b.id?.endsWith('_companion')))).map((b,i)=>({
     id:b.id || `${b.species||'beast'}_${i}`,
     species:b.species || 'water_spirit',
     element:b.element || (b.species==='fire_spirit'?'fire':'water'),
@@ -1349,18 +1350,6 @@ function normalizeBeasts(){
   }));
   if(!farm.beasts.some(b=>b.species==='water_spirit')){
     farm.beasts.unshift({id:'water_spirit_starter',species:'water_spirit',element:'water',level:1,xp:0,stamina:100,evolution:{diet:{},laborHistory:{}},assignment:'irrigate'});
-  }
-  if(!farm.beasts.some(b=>b.species==='beast_shrine_fox_spirit')){
-    farm.beasts.push({id:'shrine_fox_spirit_companion',species:'beast_shrine_fox_spirit',element:'spirit',level:1,xp:0,stamina:100,evolution:{diet:{},laborHistory:{}},assignment:'idle'});
-  }
-  if(!farm.beasts.some(b=>b.species==='beast_sacred_fawnling')){
-    farm.beasts.push({id:'sacred_fawnling_companion',species:'beast_sacred_fawnling',element:'earth',level:1,xp:0,stamina:100,evolution:{diet:{},laborHistory:{}},assignment:'idle'});
-  }
-  if(!farm.beasts.some(b=>b.species==='beast_white_serpent_shrine')){
-    farm.beasts.push({id:'white_serpent_companion',species:'beast_white_serpent_shrine',element:'water',level:1,xp:0,stamina:100,evolution:{diet:{},laborHistory:{}},assignment:'idle'});
-  }
-  if(!farm.beasts.some(b=>b.species==='beast_deepsea_noble')){
-    farm.beasts.push({id:'deepsea_noble_companion',species:'beast_deepsea_noble',element:'water',level:1,xp:0,stamina:100,evolution:{diet:{},laborHistory:{}},assignment:'idle'});
   }
   const seen=new Set();
   farm.beasts=farm.beasts.filter(b=>{
@@ -1387,6 +1376,46 @@ function selectedPetSummary(){
     const def=SELECTED_PET_DEFS[b.species];
     return {species:b.species,name:def.name,level:b.level||1,branch:b.evolutionBranch||'未分支',passive:def.passive,active:def.active,role:def.role,src:ASSETS[b.species]?.src||''};
   });
+}
+function grantSelectedPet(species, source='debug'){
+  const def=SELECTED_PET_DEFS[species];
+  if(!def) return null;
+  let pet=beastBySpecies(species);
+  if(!pet){
+    pet={id:`${species}_${Date.now().toString(36)}`,species,element:def.element,level:1,xp:0,stamina:100,evolution:{diet:{},laborHistory:{}},assignment:'idle',obtainedFrom:source};
+    farm.beasts.push(pet);
+  }
+  pet.obtainedFrom ||= source;
+  Terra.save();
+  if(typeof syncCompanionPets==='function') syncCompanionPets();
+  if(typeof updatePetCodex==='function') updatePetCodex();
+  if(typeof updateBeastRosterUI==='function') updateBeastRosterUI();
+  return pet;
+}
+function useSelectedPetActive(species){
+  const pet=beastBySpecies(species), def=SELECTED_PET_DEFS[species];
+  if(!pet||!def) return false;
+  const materials=farm.inventory.materials;
+  if(species==='beast_shrine_fox_spirit'){
+    materials.spirit_charm=(materials.spirit_charm||0)+1+(pet.level||1);
+    toastHint(`神社狐灵 · 御札标记 · 灵符残片 +${1+(pet.level||1)}`);
+  }else if(species==='beast_sacred_fawnling'){
+    for(const pc of Object.values(planted)){ if(!pc.mature) pc.grown=(pc.grown||0)+GROW_SECONDS*.22; }
+    ecoState.soil=Math.min(100,ecoState.soil+8+(pet.level||1));
+    toastHint('御鹿幼灵 · 踏青祝福 · 作物成长与土壤恢复');
+  }else if(species==='beast_white_serpent_shrine'){
+    ecoState.pest=Math.max(0,ecoState.pest-12-(pet.level||1)*2);
+    materials.water_essence=(materials.water_essence||0)+1;
+    toastHint('白蛇社灵 · 蛇行净流 · 虫害下降 / 水脉精华 +1');
+  }else if(species==='beast_deepsea_noble'){
+    materials.tide_pearl=(materials.tide_pearl||0)+1;
+    for(const pc of Object.values(planted)){ if(pc.species==='dewberry') pc.boost=true; }
+    toastHint('深海贵族 · 蓝宝石潮声 · 潮汐珍珠 +1 / 露莓加速');
+  }else return false;
+  pet.activeUses=(pet.activeUses||0)+1;
+  pet.lastActiveAt=Date.now();
+  Terra.save(); updateDock(); updatePetCodex(); updateEcoHUD();
+  return true;
 }
 const waterSpirit=()=>beastBySpecies('water_spirit');
 const waterBeasts=()=>farm.beasts.filter(b=>b.element==='water'||b.species==='water_spirit'||b.species==='spring_drop');
@@ -1524,10 +1553,24 @@ function spawnCompanionPet(kind, tx, ty, phase=0){
   objL.addChild(node); companionPets.push(node);
   return node;
 }
-spawnCompanionPet('beast_shrine_fox_spirit', 18.6, 30.7, 0.1);
-spawnCompanionPet('beast_sacred_fawnling', 19.8, 31.2, 1.4);
-spawnCompanionPet('beast_white_serpent_shrine', 16.4, 30.6, 2.1);
-spawnCompanionPet('beast_deepsea_noble', 28.2, 31.1, 2.8);
+const companionSlots={
+  beast_shrine_fox_spirit:[18.6,30.7,0.1],
+  beast_sacred_fawnling:[19.8,31.2,1.4],
+  beast_white_serpent_shrine:[16.4,30.6,2.1],
+  beast_deepsea_noble:[28.2,31.1,2.8],
+};
+function syncCompanionPets(){
+  const owned=new Set(selectedPetEntries().map(b=>b.species));
+  for(let i=companionPets.length-1;i>=0;i--){
+    const pet=companionPets[i];
+    if(!owned.has(pet._kind)){ objL.removeChild(pet); companionPets.splice(i,1); }
+  }
+  const spawned=new Set(companionPets.map(p=>p._kind));
+  for(const [kind,slot] of Object.entries(companionSlots)){
+    if(owned.has(kind) && !spawned.has(kind)) spawnCompanionPet(kind, ...slot);
+  }
+}
+syncCompanionPets();
 function stepCompanionPets(dt){
   for(const p of companionPets){
     p._petPhase+=dt*2.2;
@@ -1614,7 +1657,8 @@ setBeastStatus('idle');
 function updatePetCodex(){
   const list=$('petCodexList'); if(!list) return;
   const pets=selectedPetSummary();
-  list.innerHTML=pets.map(p=>`<div class="pet"><img src="${p.src}" alt=""><div><b>${p.name} · Lv.${p.level}</b><div class="role">${p.role} · ${p.branch}</div><div class="skill">被动: ${p.passive}<br>主动: ${p.active}</div></div></div>`).join('');
+  list.innerHTML=pets.map(p=>`<div class="pet"><img src="${p.src}" alt=""><div><b>${p.name} · Lv.${p.level}</b><div class="role">${p.role} · ${p.branch}</div><div class="skill">被动: ${p.passive}<br>主动: ${p.active}</div><button class="petUse" data-species="${p.species}">发动主动</button></div></div>`).join('');
+  list.querySelectorAll('.petUse').forEach(btn=>btn.onclick=(e)=>{e.stopPropagation(); useSelectedPetActive(btn.dataset.species);});
 }
 updatePetCodex();
 const petPanel=$('beastPanel'), petCodex=$('petCodex'), petCodexClose=$('petCodexClose');
@@ -1656,7 +1700,7 @@ $('enter').onclick=enterWorld;
 /* 调试句柄(性能排查/控制台实验用) */
 window.__dbg={app,world,groundL,waterL,snowL,overlayL,objL,fxScreen,player,cam,beast,beastAI,
   seasonFilter, findPath, planted, commandTo, interactFarm, enterWorld,
-  beastStep, get ecology(){return ecoState}, get quality(){return quality}, get fps(){return fpsLast}, get fireBeast(){return fireBeast}, get forgeHot(){return forgeHot}, openBreed, hatchFire,
+  beastStep, get ecology(){return ecoState}, get quality(){return quality}, get fps(){return fpsLast}, get fireBeast(){return fireBeast}, get forgeHot(){return forgeHot}, openBreed, hatchFire, useSelectedPetActive, grantSelectedPet, syncCompanionPets,
   get beasts(){return farm.beasts}, get companionPets(){return companionPets}, get companionBehaviors(){return companionBehaviors},
   get selectedPets(){return selectedPetSummary()},
   get ready(){return entered && !!app?.renderer && app.screen.width>0 && app.screen.height>0},

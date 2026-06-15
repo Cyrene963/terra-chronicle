@@ -49,7 +49,7 @@ async function visibleNonBlackPixels(page, screenshotPath) {
 
   const scripts = await page.evaluate(() => [...document.scripts].map(s => s.src).filter(Boolean));
   if (!scripts.some(src => src.includes('alchemy.js?v=40'))) throw new Error('public page did not load alchemy.js?v=40');
-  if (!scripts.some(src => src.includes('main.js?v=56'))) throw new Error('public page did not load main.js?v=56');
+  if (!scripts.some(src => src.includes('main.js?v=57'))) throw new Error('public page did not load main.js?v=57');
 
   await page.click('#enter');
   await page.waitForFunction(() => window.__dbg && window.__dbg.ready, null, { timeout: 12000 });
@@ -61,9 +61,30 @@ async function visibleNonBlackPixels(page, screenshotPath) {
     const behaviorModes = required.map(id => window.__dbg?.companionBehaviors?.[id]?.mode || '');
     return { required, beastSpecies, petKinds, behaviorModes };
   });
-  const missingPets = petState.required.filter(id => !petState.beastSpecies.includes(id) || !petState.petKinds.includes(id));
-  if (missingPets.length) throw new Error(`selected pets missing in game: ${JSON.stringify({ missingPets, petState })}`);
+  const wronglyOwned = petState.required.filter(id => petState.beastSpecies.includes(id) || petState.petKinds.includes(id));
+  if (wronglyOwned.length) throw new Error(`selected pets should not be owned or visible before obtainment: ${JSON.stringify({ wronglyOwned, petState })}`);
   if (petState.behaviorModes.some(mode => !mode)) throw new Error(`missing pet behavior modes: ${JSON.stringify(petState)}`);
+  const petLoopState = await page.evaluate(() => {
+    const farm = window.__dbg.farm;
+    farm.inventory.materials.beast_soul = Math.max(farm.inventory.materials.beast_soul || 0, 8);
+    farm.inventory.materials.blight_seed = Math.max(farm.inventory.materials.blight_seed || 0, 3);
+    const required = ['beast_shrine_fox_spirit', 'beast_sacred_fawnling', 'beast_white_serpent_shrine', 'beast_deepsea_noble'];
+    required.forEach(id => window.__dbg.grantSelectedPet(id, 'smoke_obtainment'));
+    window.__dbg.syncCompanionPets();
+    window.__dbg.openBreed();
+    const before = window.__dbg.selectedPets;
+    const options = Array.from(document.querySelectorAll('#breedOpts button')).map(btn => btn.innerText);
+    const target = Array.from(document.querySelectorAll('#breedOpts button')).find(btn => btn.innerText.includes('神社狐灵'));
+    if (target && !target.disabled) target.click();
+    const after = window.__dbg.selectedPets;
+    const petKinds = (window.__dbg?.companionPets || []).map(p => p._kind);
+    return { before, after, options, petKinds, ecoDetail: document.querySelector('#ecoDetail')?.textContent || '' };
+  });
+  const requiredPetNames = ['神社狐灵', '御鹿幼灵', '白蛇社灵', '深海贵族'];
+  if (!requiredPetNames.every(name => petLoopState.options.some(text => text.includes(name)))) throw new Error(`selected pet awakening options missing after obtainment: ${JSON.stringify(petLoopState)}`);
+  if (petLoopState.petKinds.length !== 4) throw new Error(`selected pets not visible after obtainment: ${JSON.stringify(petLoopState)}`);
+  const foxAfter = petLoopState.after.find(p => p.name === '神社狐灵');
+  if (!foxAfter || foxAfter.level < 2 || foxAfter.branch === '未分支' || foxAfter.passive !== '狐火巡界') throw new Error(`selected pet awakening failed: ${JSON.stringify(petLoopState)}`);
   const petMotion = await page.evaluate(async () => {
     const snap = () => (window.__dbg?.companionPets || []).map(p => ({ kind: p._kind, x: p.x, y: p.y, bodyY: p._body?.y || 0, sx: p._body?.scale?.x || 0, sy: p._body?.scale?.y || 0 }));
     const before = snap();
@@ -75,25 +96,27 @@ async function visibleNonBlackPixels(page, screenshotPath) {
     const other = petMotion.after[idx];
     return other && (Math.abs(pt.x - other.x) > 0.01 || Math.abs(pt.y - other.y) > 0.01 || Math.abs(pt.bodyY - other.bodyY) > 0.01 || Math.abs(pt.sx - other.sx) > 0.0001 || Math.abs(pt.sy - other.sy) > 0.0001);
   });
-  if (moved.length < 4) throw new Error(`pet motion not visible enough: ${JSON.stringify(petMotion)}`);
-  const petLoopState = await page.evaluate(() => {
-    const farm = window.__dbg.farm;
-    farm.inventory.materials.beast_soul = Math.max(farm.inventory.materials.beast_soul || 0, 8);
-    farm.inventory.materials.blight_seed = Math.max(farm.inventory.materials.blight_seed || 0, 3);
-    window.__dbg.openBreed();
-    const before = window.__dbg.selectedPets;
-    const options = Array.from(document.querySelectorAll('#breedOpts button')).map(btn => btn.innerText);
-    const target = Array.from(document.querySelectorAll('#breedOpts button')).find(btn => btn.innerText.includes('神社狐灵'));
-    if (target && !target.disabled) target.click();
-    const after = window.__dbg.selectedPets;
-    return { before, after, options, ecoDetail: document.querySelector('#ecoDetail')?.textContent || '' };
-  });
-  const requiredPetNames = ['神社狐灵', '御鹿幼灵', '白蛇社灵', '深海贵族'];
-  if (!requiredPetNames.every(name => petLoopState.options.some(text => text.includes(name)))) throw new Error(`selected pet awakening options missing: ${JSON.stringify(petLoopState)}`);
-  const foxAfter = petLoopState.after.find(p => p.name === '神社狐灵');
+  if (moved.length < 4) throw new Error(`pet motion not visible enough after obtainment: ${JSON.stringify(petMotion)}`);
   if (!foxAfter || foxAfter.level < 2 || foxAfter.branch === '未分支' || foxAfter.passive !== '狐火巡界') throw new Error(`selected pet awakening failed: ${JSON.stringify(petLoopState)}`);
+  await page.waitForTimeout(1800);
   const worldPath = path.join(OUT, '02_world.png');
   await page.screenshot({ path: worldPath, fullPage: false });
+  await page.click('#beastPanel');
+  await page.waitForTimeout(250);
+  const petCodexState = await page.evaluate(() => ({
+    rows: document.querySelectorAll('#petCodexList .pet').length,
+    useButtons: document.querySelectorAll('#petCodexList .petUse').length,
+    text: document.querySelector('#petCodexList')?.textContent || '',
+  }));
+  if (petCodexState.rows !== 4 || petCodexState.useButtons !== 4 || !petCodexState.text.includes('神社狐灵')) throw new Error(`pet codex missing: ${JSON.stringify(petCodexState)}`);
+  const activeState = await page.evaluate(() => {
+    const before={...window.__dbg.farm.inventory.materials};
+    window.__dbg.useSelectedPetActive('beast_shrine_fox_spirit');
+    window.__dbg.useSelectedPetActive('beast_white_serpent_shrine');
+    return {before, after:{...window.__dbg.farm.inventory.materials}, pets:window.__dbg.beasts.filter(b=>b.species.startsWith('beast_')).map(b=>({species:b.species,activeUses:b.activeUses||0}))};
+  });
+  if ((activeState.after.spirit_charm||0) <= (activeState.before.spirit_charm||0) || (activeState.after.water_essence||0) <= (activeState.before.water_essence||0)) throw new Error(`pet active failed: ${JSON.stringify(activeState)}`);
+  await page.click('#petCodexClose');
   const worldPixels = await visibleNonBlackPixels(page, worldPath);
 
   await page.evaluate(() => {
