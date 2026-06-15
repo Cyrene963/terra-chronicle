@@ -46,7 +46,7 @@ async function visibleNonBlackPixels(page, screenshotPath) {
 
   const scripts = await page.evaluate(() => [...document.scripts].map(s => s.src).filter(Boolean));
   if (!scripts.some(src => src.includes('alchemy.js?v=38'))) throw new Error('public page did not load alchemy.js?v=38');
-  if (!scripts.some(src => src.includes('main.js?v=49'))) throw new Error('public page did not load main.js?v=49');
+  if (!scripts.some(src => src.includes('main.js?v=50'))) throw new Error('public page did not load main.js?v=50');
 
   await page.click('#enter');
   await page.waitForFunction(() => window.__dbg && window.__dbg.ready, null, { timeout: 12000 });
@@ -54,6 +54,21 @@ async function visibleNonBlackPixels(page, screenshotPath) {
   const worldPath = path.join(OUT, '02_world.png');
   await page.screenshot({ path: worldPath, fullPage: false });
   const worldPixels = await visibleNonBlackPixels(page, worldPath);
+
+  const evolutionState = await page.evaluate(() => {
+    const farm = window.__dbg.farm;
+    farm.inventory.materials.beast_soul = Math.max(farm.inventory.materials.beast_soul || 0, 2);
+    farm.inventory.materials.blight_seed = Math.max(farm.inventory.materials.blight_seed || 0, 1);
+    window.__dbg.openBreed();
+    const options = Array.from(document.querySelectorAll('#breedOpts button')).map(btn => btn.innerText);
+    const branch = Array.from(document.querySelectorAll('#breedOpts button')).find(btn => btn.innerText.includes('巡田进化'));
+    if (branch && !branch.disabled) branch.click();
+    const water = farm.beasts.find(b => b.species === 'water_spirit');
+    return { options, level: water?.level || 0, branch: water?.evolutionBranch || '', panelOpen: getComputedStyle(document.querySelector('#breedPanel')).opacity };
+  });
+  if (!evolutionState.options.some(t => t.includes('巡田进化')) || !evolutionState.options.some(t => t.includes('灵脉进化')) || evolutionState.level < 2 || evolutionState.branch !== 'irrigation') {
+    throw new Error(`evolution branch flow failed: ${JSON.stringify(evolutionState)}`);
+  }
 
   await page.evaluate(() => {
     const farm = window.__dbg.farm;

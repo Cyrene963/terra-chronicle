@@ -785,15 +785,15 @@ function beastStep(dt){
     const pc=planted[beastAI.target];                          // 到达(无路径了)
     if(pc && !pc.watered){
       const habitat=farm.upgrades?.includes('beast_capacity');
-      const waterLevel=beastLevel('water_spirit');
-      beastAI.state='water'; beastAI.t=Math.max(0.65, (habitat ? 1.05 : 2.0) - (waterLevel-1)*0.35); setBeastStatus('water');
+      const waterLevel=waterPower();
+      beastAI.state='water'; beastAI.t=Math.max(0.55, (habitat ? 1.05 : 2.0) - (waterLevel-1)*0.22); setBeastStatus('water');
     }
     else { beastAI.state='idle'; beastAI.t=.3; }
   } else if(beastAI.state==='water'){
     if((beastAI.t*4|0)!==((beastAI.t+dt)*4|0)) spawnSplash(beastAI.target);  // 周期水花爆发
     if(beastAI.t<=0){
       const pc=planted[beastAI.target];
-      if(pc){ pc.watered=true; pc.boost=true; toastHint(`水灵兽 Lv.${beastLevel('water_spirit')} 灌溉 · 生长加速${farm.upgrades?.includes('beast_capacity')?' · 栖地加成':''}`); }
+      if(pc){ pc.watered=true; pc.boost=true; toastHint(`水系灵兽群 Lv.${waterPower().toFixed(1)} 灌溉 · 生长加速${farm.upgrades?.includes('beast_capacity')?' · 栖地加成':''}`); }
       beastAI.state='idle'; beastAI.t=.5; setBeastStatus('idle');
     }
   }
@@ -931,12 +931,19 @@ function openBreed(){
     ()=>{ farm.inventory.materials.beast_soul--; farm.inventory.materials.blight_seed--;
       hatchFire(); Terra.save(); updateDock(); toastHint('火灵兽破壳而出!'); openBreed(); }));
   opts.appendChild(breedBtn(
-    `进化 水灵兽 💧 Lv.${water?.level||1} → Lv.${(water?.level||1)+1}`,
-    `消耗 灵兽灵魂×1 · 灌溉施法更快，收获提示显示等级`,
+    `巡田进化 · 润野型 💧 Lv.${water?.level||1} → Lv.${(water?.level||1)+1}`,
+    `消耗 灵兽灵魂×1 · 灌溉施法更快，水系灵兽群降低虫害压力`,
     soul>=1,
-    ()=>{ farm.inventory.materials.beast_soul--; const w=waterSpirit(); w.level=Math.min(9,(w.level||1)+1); w.xp=(w.xp||0)+1;
+    ()=>{ farm.inventory.materials.beast_soul--; const w=waterSpirit(); w.level=Math.min(9,(w.level||1)+1); w.xp=(w.xp||0)+1; w.evolutionBranch='irrigation';
       if(beast._bw){ beast._bw*=1.08; beast._bh*=1.08; }
-      Terra.save(); updateDock(); toastHint(`水灵兽进化至 Lv.${w.level} · 灌溉更快`); openBreed(); }));
+      Terra.save(); updateDock(); updateBeastRosterUI(); toastHint(`润野型进化 Lv.${w.level} · 巡田效率提升`); openBreed(); }));
+  opts.appendChild(breedBtn(
+    `灵脉进化 · 汲泉型 ✦ Lv.${water?.level||1} → Lv.${(water?.level||1)+1}`,
+    `消耗 灵兽灵魂×1 + 污染种子×1 · 收获品质与灵脉充能更高`,
+    soul>=1 && seed>=1,
+    ()=>{ farm.inventory.materials.beast_soul--; farm.inventory.materials.blight_seed--; const w=waterSpirit(); w.level=Math.min(9,(w.level||1)+1); w.xp=(w.xp||0)+1; w.evolutionBranch='mana';
+      if(beast._bw){ beast._bw*=1.05; beast._bh*=1.12; }
+      Terra.save(); updateDock(); updateBeastRosterUI(); toastHint(`汲泉型进化 Lv.${w.level} · 灵脉共鸣增强`); openBreed(); }));
   breedEl.style.opacity='1'; breedEl.style.pointerEvents='auto'; breedEl.style.transform='translate(-50%,-50%) scale(1)';
 }
 function closeBreed(){ if(!breedEl)return; breedEl.style.opacity='0'; breedEl.style.pointerEvents='none'; breedEl.style.transform='translate(-50%,-50%) scale(.88)'; }
@@ -1276,6 +1283,8 @@ normalizeBeasts();
 const beastBySpecies=species=>farm.beasts.find(b=>b.species===species);
 const beastLevel=species=>beastBySpecies(species)?.level||1;
 const waterSpirit=()=>beastBySpecies('water_spirit');
+const waterBeasts=()=>farm.beasts.filter(b=>b.element==='water'||b.species==='water_spirit'||b.species==='spring_drop');
+function waterPower(){ return waterBeasts().reduce((sum,b)=>sum+(b.level||1)+(b.evolutionBranch==='mana'?.35:0),0); }
 const fireSpirit=()=>beastBySpecies('fire_spirit');
 farm.inventory.materials.wood ??= 8;           // 初始木材(伐木系统未上线前)
 if(fireSpirit()) hatchFire();
@@ -1297,17 +1306,17 @@ function updateEcology(dt){
   const day=Math.floor(elapsed/DAY_SECONDS);
   const season=((Math.floor(elapsed/(DAY_SECONDS*7))%4)+4)%4;
   if(plantedKeys.length===0){
-    ecoState.pest=Math.max(4, [8,14,18,10][season]-(waterSpirit()?6:0));
-    ecoState.soil=78+(waterSpirit()?4:0);
-    ecoState.predator=waterSpirit()?12+beastLevel('water_spirit')*4:0;
+    ecoState.pest=Math.max(4, [8,14,18,10][season]-Math.min(12,waterPower()*3));
+    ecoState.soil=78+Math.min(10,waterPower()*2);
+    ecoState.predator=waterPower()*5;
     ecoState.score=Math.max(0,Math.min(100,Math.round(ecoState.soil*.72 + (100-ecoState.pest)*.28)));
     ecoState.status=ecoState.score>=78?'休耕丰饶':'休耕稳定';
-    ecoState.detail=`暂无作物 · 虫害${ecoState.pest<28?'低':'中'} · ${waterSpirit()?`水灵兽巡田 Lv.${beastLevel('water_spirit')}`:'等待灵兽巡田'}`;
+    ecoState.detail=`暂无作物 · 虫害${ecoState.pest<28?'低':'中'} · ${waterPower()>0?`水系灵兽巡田 Lv.${waterPower().toFixed(1)}`:'等待灵兽巡田'}`;
     return;
   }
   const avgMeta=plantedKeys.reduce((a,k)=>{ const m=tileMeta[k]||{}; a.f+=(m.fert||60); a.m+=(m.moist||50); a.p+=(m.pest||20); return a; },{f:0,m:0,p:0});
   const count=Math.max(1,plantedKeys.length);
-  const waterBonus=waterSpirit()?12+beastLevel('water_spirit')*4:0;
+  const waterBonus=waterPower()*5;
   const firePenalty=forgeHot?4:0;
   const seasonPest=[4,12,18,8][season];
   ecoState.pest=Math.max(0,Math.min(100,Math.round(avgMeta.p/count + plantedKeys.length*2 + seasonPest - waterBonus*.45 + firePenalty)));
@@ -1315,7 +1324,7 @@ function updateEcology(dt){
   ecoState.predator=waterBonus;
   ecoState.score=Math.max(0,Math.min(100,Math.round(ecoState.soil*.72 + (100-ecoState.pest)*.28)));
   ecoState.status=ecoState.score>=78?'丰饶':ecoState.score>=58?'平衡':ecoState.score>=38?'失衡':'虫潮';
-  ecoState.detail=`虫害${ecoState.pest<28?'低':ecoState.pest<55?'中':'高'} · ${waterSpirit()?`水灵兽巡田 Lv.${beastLevel('water_spirit')}`:'缺少巡田灵兽'} · 土壤${ecoState.soil>=70?'稳定':ecoState.soil>=48?'波动':'衰退'}`;
+  ecoState.detail=`虫害${ecoState.pest<28?'低':ecoState.pest<55?'中':'高'} · ${waterPower()>0?`水系灵兽巡田 Lv.${waterPower().toFixed(1)}`:'缺少巡田灵兽'} · 土壤${ecoState.soil>=70?'稳定':ecoState.soil>=48?'波动':'衰退'}`;
 }
 function updateEcoHUD(){
   const panel=$('ecoPanel'); if(!panel) return;
@@ -1380,7 +1389,7 @@ function interactFarm(key){
 }
 function calcHarvestQuality(meta, pc){
   const pestPressure=Math.max(meta.pest||0, ecoState.pest||0);
-  const raw=meta.fert*.65 + meta.moist*.15 + meta.mana*.12 - pestPressure*.18 + (pc.watered?10:0) + (pc.boost?4:0) + Math.max(0,ecoState.score-70)*.08;
+  const raw=meta.fert*.65 + meta.moist*.15 + meta.mana*.12 - pestPressure*.18 + (pc.watered?10:0) + (pc.boost?4:0) + Math.max(0,ecoState.score-70)*.08 + waterBeasts().filter(b=>b.evolutionBranch==='mana').length*3;
   return Math.round(Math.max(35, Math.min(110, raw)));
 }
 function harvestGrade(q){ return q>=92?'灵脉':q>=80?'珍品':q>=65?'良品':'粗麦'; }
