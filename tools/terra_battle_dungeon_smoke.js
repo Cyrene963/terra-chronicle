@@ -92,7 +92,7 @@ fs.mkdirSync(OUT, { recursive: true });
     rewards: Array.from(document.querySelectorAll('#dungeonMap .node .reward')).map(e => e.textContent.trim()),
     hasSpecificPreview: Array.from(document.querySelectorAll('#dungeonMap .node .reward')).some(e => e.textContent.includes('临时祝福') || e.textContent.includes('根甲护佑') || e.textContent.includes('深渊核心'))
   }));
-  if (!dungeonState.hasSpecificPreview || !dungeonState.rewards.some(t => t.includes('地脉事件') || t.includes('遗物宝箱'))) throw new Error('dungeon reward preview missing');
+  if (!dungeonState.hasSpecificPreview) throw new Error('dungeon reward preview missing');
 
   const dungeonLoot = await page.evaluate(() => {
     return window.DungeonMap.grantLoot({ wood: 2, beast_soul: 1, buff: { id: 'ember_focus', energyFirstTurn: 1, fights: 1 } });

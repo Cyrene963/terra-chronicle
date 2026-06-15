@@ -101,6 +101,9 @@
     font-family:'Cormorant Garamond',serif;font-style:italic;font-size:14px;letter-spacing:.2em;
     text-shadow:0 1px 12px rgba(0,0,0,.5);
   }
+  #perfBadge{position:absolute;right:42px;top:40px;color:rgba(246,241,231,.72);font-family:'Cormorant Garamond',serif;
+    font-size:12px;letter-spacing:.18em;text-shadow:0 1px 12px rgba(0,0,0,.55);text-align:right;}
+  #perfBadge b{font-size:20px;color:#f6f1e7;font-weight:400;}
   #whisper{
     position:absolute;bottom:130px;left:50%;transform:translateX(-50%);
     color:rgba(246,241,231,.82);font-weight:300;font-size:13px;letter-spacing:.3em;text-indent:.3em;
@@ -255,6 +258,7 @@
   </div>
   <div id="clock"><div class="num"><span id="dayNum">01</span></div><div class="cap">年代 I · 第一年</div></div>
   <div id="stamina"></div>
+  <div id="perfBadge"><b id="fpsVal">—</b> FPS<br><span id="qualityVal">AUTO</span></div>
   <div id="weatherTag">— 微风拂过山谷 —</div>
 
   <div id="panel">
@@ -328,6 +332,6 @@
 <script src="src/battle.js?v=54"></script>
 <script src="src/dungeon.js?v=44"></script>
 <script src="src/upgrade.js?v=37"></script>
-<script src="src/main.js?v=50"></script>
+<script src="src/main.js?v=51"></script>
 </body>
 </html>

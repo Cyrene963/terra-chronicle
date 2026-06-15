@@ -46,7 +46,7 @@ async function visibleNonBlackPixels(page, screenshotPath) {
 
   const scripts = await page.evaluate(() => [...document.scripts].map(s => s.src).filter(Boolean));
   if (!scripts.some(src => src.includes('alchemy.js?v=38'))) throw new Error('public page did not load alchemy.js?v=38');
-  if (!scripts.some(src => src.includes('main.js?v=50'))) throw new Error('public page did not load main.js?v=50');
+  if (!scripts.some(src => src.includes('main.js?v=51'))) throw new Error('public page did not load main.js?v=51');
 
   await page.click('#enter');
   await page.waitForFunction(() => window.__dbg && window.__dbg.ready, null, { timeout: 12000 });
@@ -99,6 +99,8 @@ async function visibleNonBlackPixels(page, screenshotPath) {
     ecoScore: document.querySelector('#ecoScore')?.textContent || '',
     ecoDetail: document.querySelector('#ecoDetail')?.textContent || '',
     dbgEcology: !!window.__dbg?.ecology,
+    fpsBadge: document.querySelector('#fpsVal')?.textContent || '',
+    qualityBadge: document.querySelector('#qualityVal')?.textContent || '',
     cardRevealOn: document.querySelector('#cardReveal')?.classList.contains('on') || false,
     cardName: document.querySelector('#cvName')?.textContent || '',
     cardAffix: document.querySelector('#cvAffix')?.textContent || '',
@@ -111,7 +113,7 @@ async function visibleNonBlackPixels(page, screenshotPath) {
 
   const report = { ok: true, url: 'https://terra.bz9.me/', scripts, worldPixels, result, consoleErrors, screenshots: fs.readdirSync(OUT).filter(f => f.endsWith('.png')).map(f => path.join(OUT, f)) };
   if (!worldPixels.exists || worldPixels.nonBlack < Math.max(20, Math.floor(worldPixels.sample * 0.08))) throw new Error(`canvas appears black/empty: ${JSON.stringify(worldPixels)}`);
-  if (!result.ecoStatus || !result.ecoScore || !result.dbgEcology) throw new Error(`ecology HUD/debug missing: ${JSON.stringify(result)}`);
+  if (!result.ecoStatus || !result.ecoScore || !result.dbgEcology || !result.fpsBadge || !result.qualityBadge) throw new Error(`hud/debug missing: ${JSON.stringify(result)}`);
   if (!result.cardRevealOn || !result.cardName) throw new Error(`card reveal failed: ${JSON.stringify(result)}`);
   if (consoleErrors.length) throw new Error(`console/page errors: ${consoleErrors.join(' | ')}`);
   fs.writeFileSync(path.join(OUT, 'report.json'), JSON.stringify(report, null, 2));

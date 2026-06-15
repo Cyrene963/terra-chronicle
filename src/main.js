@@ -1157,7 +1157,7 @@ app.ticker.add(tk=>{
   spawnParticles(st,dt,night>.62); updateParticles(dt,((Math.floor(st)%4)+4)%4);
 
   hudClock-=dt;
-  if(hudClock<=0){ hudClock=.1; updateHUD(st,Math.floor(elapsed/DAY_SECONDS)); updateEcoHUD(); }
+  if(hudClock<=0){ hudClock=.1; updateHUD(st,Math.floor(elapsed/DAY_SECONDS)); updateEcoHUD(); updatePerfHUD(); }
   springTick(dt);
 });
 
@@ -1333,6 +1333,11 @@ function updateEcoHUD(){
   $('ecoScore').textContent=ecoState.score;
   $('ecoBar').style.transform=`scaleX(${ecoState.score/100})`;
   $('ecoDetail').textContent=ecoState.detail;
+}
+function updatePerfHUD(){
+  const fps=$('fpsVal'), q=$('qualityVal'); if(!fps || !q) return;
+  fps.textContent=fpsLast?Math.round(fpsLast):'—';
+  q.textContent=quality===2?'HIGH':quality===1?'LOW':'AUTO';
 }
 function nearestChoppable(){
   let best=null,bd=1e9;
