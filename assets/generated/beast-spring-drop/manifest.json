@@ -1,0 +1,41 @@
+{
+  "asset": "beast_spring_drop",
+  "candidates": [
+    {
+      "id": 1,
+      "name": "beast_spring_drop_candidate_01",
+      "path": "/root/terra-chronicle-game/assets/generated/beast-spring-drop/beast_spring_drop_candidate_01.png",
+      "source": "/root/.hermes/cache/images/openai_gpt-image-2-high_20260615_112406_d4684e5e.png"
+    },
+    {
+      "id": 2,
+      "name": "beast_spring_drop_candidate_02",
+      "path": "/root/terra-chronicle-game/assets/generated/beast-spring-drop/beast_spring_drop_candidate_02.png",
+      "source": "/root/.hermes/cache/images/openai_gpt-image-2-high_20260615_112521_67abf753.png"
+    },
+    {
+      "id": 3,
+      "name": "beast_spring_drop_candidate_03",
+      "path": "/root/terra-chronicle-game/assets/generated/beast-spring-drop/beast_spring_drop_candidate_03.png",
+      "source": "/root/.hermes/cache/images/openai_gpt-image-2-high_20260615_112624_82c084f5.png"
+    },
+    {
+      "id": 4,
+      "name": "beast_spring_drop_candidate_04",
+      "path": "/root/terra-chronicle-game/assets/generated/beast-spring-drop/beast_spring_drop_candidate_04.png",
+      "source": "/root/.hermes/cache/images/openai_gpt-image-2-high_20260615_112735_144a64bb.png"
+    },
+    {
+      "id": 5,
+      "name": "beast_spring_drop_candidate_05",
+      "path": "/root/terra-chronicle-game/assets/generated/beast-spring-drop/beast_spring_drop_candidate_05.png",
+      "source": "/root/.hermes/cache/images/openai_gpt-image-2-high_20260615_112832_021c06a5.png"
+    },
+    {
+      "id": 6,
+      "name": "beast_spring_drop_candidate_06",
+      "path": "/root/terra-chronicle-game/assets/generated/beast-spring-drop/beast_spring_drop_candidate_06.png",
+      "source": "/root/.hermes/cache/images/openai_gpt-image-2-high_20260615_112924_76b4496f.png"
+    }
+  ]
+}
