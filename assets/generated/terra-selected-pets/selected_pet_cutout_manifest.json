@@ -1,0 +1,54 @@
+[
+  {
+    "name": "beast_shrine_fox_spirit",
+    "sprite": "/root/terra-chronicle-game/assets/sprites/beast_shrine_fox_spirit.png",
+    "alpha_bbox": [
+      29,
+      33,
+      486,
+      478
+    ],
+    "visible_ratio": 0.4667,
+    "edge_nonzero_alpha_pixels": 0,
+    "passes_no_full_rect_bg": true
+  },
+  {
+    "name": "beast_sacred_fawnling",
+    "sprite": "/root/terra-chronicle-game/assets/sprites/beast_sacred_fawnling.png",
+    "alpha_bbox": [
+      43,
+      26,
+      466,
+      487
+    ],
+    "visible_ratio": 0.2294,
+    "edge_nonzero_alpha_pixels": 0,
+    "passes_no_full_rect_bg": true
+  },
+  {
+    "name": "beast_white_serpent_shrine",
+    "sprite": "/root/terra-chronicle-game/assets/sprites/beast_white_serpent_shrine.png",
+    "alpha_bbox": [
+      55,
+      30,
+      457,
+      483
+    ],
+    "visible_ratio": 0.3398,
+    "edge_nonzero_alpha_pixels": 0,
+    "passes_no_full_rect_bg": true
+  },
+  {
+    "name": "beast_deepsea_noble",
+    "sprite": "/root/terra-chronicle-game/assets/sprites/beast_deepsea_noble.png",
+    "alpha_bbox": [
+      76,
+      30,
+      436,
+      482
+    ],
+    "visible_ratio": 0.2334,
+    "edge_nonzero_alpha_pixels": 0,
+    "passes_no_full_rect_bg": true
+  }
+]
