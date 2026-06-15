@@ -39,7 +39,7 @@ async function visibleNonBlackPixels(page, screenshotPath) {
   page.on('console', msg => { if (badConsole(msg)) consoleErrors.push(`${msg.type()}: ${msg.text()}`); });
   page.on('pageerror', err => consoleErrors.push(`pageerror: ${err.message}`));
 
-  await page.goto('https://terra.bz9.me/?smoke=v55-pet-loop', { waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.goto('https://terra.bz9.me/?smoke=v58-obtainment-gate', { waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.waitForFunction(() => {
     const enter = document.querySelector('#enter');
     return !!enter && getComputedStyle(enter).visibility !== 'hidden' && getComputedStyle(enter).display !== 'none';
@@ -49,7 +49,7 @@ async function visibleNonBlackPixels(page, screenshotPath) {
 
   const scripts = await page.evaluate(() => [...document.scripts].map(s => s.src).filter(Boolean));
   if (!scripts.some(src => src.includes('alchemy.js?v=40'))) throw new Error('public page did not load alchemy.js?v=40');
-  if (!scripts.some(src => src.includes('main.js?v=57'))) throw new Error('public page did not load main.js?v=57');
+  if (!scripts.some(src => src.includes('main.js?v=58'))) throw new Error('public page did not load main.js?v=58');
 
   await page.click('#enter');
   await page.waitForFunction(() => window.__dbg && window.__dbg.ready, null, { timeout: 12000 });
@@ -86,9 +86,19 @@ async function visibleNonBlackPixels(page, screenshotPath) {
   const foxAfter = petLoopState.after.find(p => p.name === '神社狐灵');
   if (!foxAfter || foxAfter.level < 2 || foxAfter.branch === '未分支' || foxAfter.passive !== '狐火巡界') throw new Error(`selected pet awakening failed: ${JSON.stringify(petLoopState)}`);
   const petMotion = await page.evaluate(async () => {
+    await new Promise(resolve => {
+      const start = performance.now();
+      const tick = () => {
+        const pets = window.__dbg?.companionPets || [];
+        const ready = pets.length === 4 && pets.every(p => p._body && p._body.texture && p._body.texture.width > 1);
+        if (ready || performance.now() - start > 3000) resolve();
+        else requestAnimationFrame(tick);
+      };
+      tick();
+    });
     const snap = () => (window.__dbg?.companionPets || []).map(p => ({ kind: p._kind, x: p.x, y: p.y, bodyY: p._body?.y || 0, sx: p._body?.scale?.x || 0, sy: p._body?.scale?.y || 0 }));
     const before = snap();
-    await new Promise(resolve => setTimeout(resolve, 800));
+    await new Promise(resolve => setTimeout(resolve, 1200));
     const after = snap();
     return { before, after };
   });
