@@ -55,6 +55,12 @@ function injectStyle(){
   #dungeonMap .closeBtn{position:absolute;top:36px;right:42px;font-size:32px;cursor:pointer;color:#f6d99d;opacity:.72;transition:all .25s;
     width:46px;height:46px;display:grid;place-items:center;border-radius:50%;border:1px solid rgba(244,208,117,.28);background:rgba(0,0,0,.26);z-index:2;}
   #dungeonMap .closeBtn:hover{opacity:1;transform:scale(1.08);background:rgba(244,208,117,.14);box-shadow:0 0 24px rgba(244,208,117,.18);}
+  #dungeonToast{position:fixed;left:50%;top:12vh;transform:translate(-50%,-16px) scale(.96);z-index:140;min-width:min(520px,calc(100vw - 38px));max-width:680px;
+    border:1px solid rgba(244,208,117,.42);border-radius:22px;padding:20px 24px;background:linear-gradient(180deg,rgba(41,29,24,.94),rgba(14,11,16,.96));
+    color:#f9ebc8;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.58),inset 0 1px 0 rgba(255,255,255,.08);opacity:0;pointer-events:none;transition:opacity .28s ease,transform .28s ease;font-family:'Noto Serif SC',serif;}
+  #dungeonToast.on{opacity:1;transform:translate(-50%,0) scale(1);}
+  #dungeonToast .dtTitle{font-size:20px;letter-spacing:.18em;color:#f4d075;margin-bottom:8px;}
+  #dungeonToast .dtBody{font-size:14px;letter-spacing:.08em;line-height:1.8;color:#eadab8;}
   @media (max-width:840px){#dungeonMap{overflow:auto;}#dungeonMap .header{position:relative;left:auto;top:auto;padding:28px 24px 0;}#dungeonMap .legend{display:none;}#dungeonMap .mapWrap{position:relative;inset:auto;padding:20px;}#dungeonMap .mapCanvas{width:100%;min-width:0;height:560px;}#dungeonMap .closeBtn{top:22px;right:22px;}}
   `;
   const s=$('style');s.textContent=css;document.head.appendChild(s);
@@ -99,6 +105,20 @@ function consumeRunBuffs(){
   runBuffs=runBuffs.map(b=>({...b,fights:(b.fights||1)-1})).filter(b=>(b.fights||0)>0);
 }
 function activeBuffSummary(){ return runBuffs.length?`当前祝福: ${runBuffs.map(b=>`${buffName(b)}×${b.fights||1}`).join(' / ')}`:''; }
+
+function showToast(title, body, after){
+  injectStyle();
+  let toast=document.getElementById('dungeonToast');
+  if(!toast){
+    toast=$('div','',document.body); toast.id='dungeonToast';
+    toast.innerHTML='<div class="dtTitle"></div><div class="dtBody"></div>';
+  }
+  toast.querySelector('.dtTitle').textContent=title;
+  toast.querySelector('.dtBody').textContent=body||'';
+  toast.classList.add('on');
+  clearTimeout(showToast._timer);
+  showToast._timer=setTimeout(()=>{ toast.classList.remove('on'); if(after) after(); }, 1500);
+}
 
 function buildDOM(){
   if(root) return;
@@ -195,17 +215,17 @@ function selectNode(node){
         }
         consumeRunBuffs();
         progress.floor++;
-        if(progress.floor>=mapData.length){ alert('深渊征服!回到农场休整。'); return; }
+        if(progress.floor>=mapData.length){ showToast('深渊征服', '战利品已带回农场，回到地表休整。'); return; }
         open();
       },
       onLose(){
-        alert('战败!回到农场休养生息。');
+        showToast('败退', '你被击退回农场，休养生息后再战。');
       }
     });
   } else if(node.type==='rest'){
-    alert('你在篝火旁休息,恢复了体力。'); // TODO: 恢复机制
+    showToast('篝火休整', '你在篝火旁恢复体力，保留路线节奏。');
     progress.floor++;
-    if(progress.floor>=mapData.length){ alert('深渊征服!'); close(); return; }
+    if(progress.floor>=mapData.length){ showToast('深渊征服', '路线已完成，返回农场整备。', close); return; }
     renderMap();
   }
 }

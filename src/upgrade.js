@@ -64,6 +64,12 @@ function injectStyle(){
   #upgradePanel .close{position:absolute;top:18px;right:18px;cursor:pointer;z-index:2;width:42px;height:42px;display:grid;place-items:center;
     border-radius:50%;border:1px solid rgba(236,201,126,.36);background:rgba(20,16,12,.55);color:#f7dfae;font-size:28px;transition:all .25s;}
   #upgradePanel .close:hover{transform:scale(1.08);background:rgba(244,208,117,.18);box-shadow:0 0 22px rgba(244,208,117,.18);}
+  #upgradePanel .toast{position:absolute;left:50%;top:28px;transform:translate(-50%,-12px) scale(.96);min-width:min(460px,calc(100% - 84px));
+    border:1px solid rgba(244,208,117,.48);border-radius:18px;padding:14px 18px;background:linear-gradient(180deg,rgba(45,32,22,.96),rgba(17,13,14,.96));
+    color:#f8e6bd;text-align:center;box-shadow:0 18px 55px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease;z-index:4;}
+  #upgradePanel .toast.on{opacity:1;transform:translate(-50%,0) scale(1);}
+  #upgradePanel .toast .tt{font-size:16px;letter-spacing:.14em;color:#f4d075;margin-bottom:4px;}
+  #upgradePanel .toast .tb{font-size:12px;letter-spacing:.06em;line-height:1.6;color:#e5d4b7;}
   @media (max-width:760px){#upgradePanel{padding:12px;}#upgradePanel .shell{height:calc(100vh - 24px);grid-template-columns:1fr;padding:18px;}#upgradePanel .side{display:none;}#upgradePanel .upgrades{grid-template-columns:1fr;}#upgradePanel h3{font-size:34px;}}
   `;
   const s=$('style');s.textContent=css;document.head.appendChild(s);
@@ -90,6 +96,7 @@ function buildDOM(){
         <div class="tip">选择一张蓝图即可升级；锁定项会显示缺少的前置或资源。这里不再使用会裁屏的小弹窗，而是完整游戏菜单。</div>
       </aside>
       <div class="close">×</div>
+      <div class="toast"><div class="tt"></div><div class="tb"></div></div>
     </div>
   `;
   root.querySelector('.close').onclick=()=>close();
@@ -135,6 +142,15 @@ function render(){
   });
 }
 
+function showToast(title, body){
+  const toast=root?.querySelector('.toast'); if(!toast) return;
+  toast.querySelector('.tt').textContent=title;
+  toast.querySelector('.tb').textContent=body||'';
+  toast.classList.add('on');
+  clearTimeout(showToast._timer);
+  showToast._timer=setTimeout(()=>toast.classList.remove('on'),1500);
+}
+
 function buy(u){
   const f=window.Terra?.farm; if(!f) return;
   f.inventory.materials.wood-=u.cost.wood;
@@ -143,7 +159,7 @@ function buy(u){
   f.upgrades.push(u.id);
   window.Terra.save();
   if(window.updateDock) updateDock();
-  alert(`升级完成: ${u.name}`);
+  showToast('升级完成', `${u.name} 已写入大地工坊蓝图。`);
   render();
 }
 

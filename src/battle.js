@@ -154,29 +154,32 @@ function injectStyle(){
     border-radius:999px;position:relative;overflow:hidden;transition:color .4s;}
   #battle .endBtn::before{content:'';position:absolute;inset:0;background:#c9a24b;transform:scaleX(0);transform-origin:left;transition:transform .4s;z-index:-1;}
   #battle .endBtn:hover{color:#2b2722;} #battle .endBtn:hover::before{transform:scaleX(1);}
-  #battle .hand{position:absolute;bottom:96px;left:0;right:0;height:210px;display:flex;align-items:flex-end;
-    justify-content:center;gap:-10px;pointer-events:none;}
-  #battle .card{width:132px;height:188px;margin:0 -6px;border-radius:12px;cursor:pointer;pointer-events:auto;
+  #battle .hand{position:absolute;bottom:76px;left:0;right:0;height:clamp(244px,30vh,292px);display:flex;align-items:flex-end;
+    justify-content:center;gap:clamp(6px,1vw,14px);pointer-events:none;perspective:900px;}
+  #battle .card{width:clamp(154px,11.4vw,178px);height:clamp(218px,16vw,254px);margin:0;border-radius:16px;cursor:pointer;pointer-events:auto;
     background:linear-gradient(180deg,rgba(67,47,28,.16),rgba(17,12,13,.34)),url('assets/concept/card_template.png') center/100% 100% no-repeat;
     border:1px solid rgba(218,176,91,.72);box-shadow:0 16px 34px rgba(0,0,0,.52),inset 0 0 0 1px rgba(255,240,196,.18);
-    padding:12px 10px 10px;display:flex;flex-direction:column;color:#f9ecd0;text-shadow:0 2px 5px rgba(20,10,4,.75);
-    transform-origin:bottom center;transition:transform .22s cubic-bezier(.2,.8,.2,1),box-shadow .22s;position:relative;}
+    padding:15px 13px 13px;display:flex;flex-direction:column;color:#f9ecd0;text-shadow:0 2px 5px rgba(20,10,4,.75);
+    transform-origin:bottom center;transition:transform .34s cubic-bezier(.16,1,.3,1),box-shadow .34s cubic-bezier(.16,1,.3,1),filter .34s;position:relative;will-change:transform;backface-visibility:hidden;}
   #battle .card.playing{animation:cardPlay .34s cubic-bezier(.2,.8,.2,1) forwards;z-index:20;}
   @keyframes cardPlay{0%{transform:translateY(0) scale(1) rotate(0deg)}40%{transform:translateY(-92px) scale(1.18) rotate(-2deg)}100%{transform:translateY(-28px) scale(.9) rotate(2deg);opacity:0}}
   #battle .card::after{content:'';position:absolute;inset:10px;border-radius:10px;border:1px solid rgba(91,58,32,.36);pointer-events:none;mix-blend-mode:multiply;}
-  #battle .card:hover{transform:translateY(-26px) scale(1.07);box-shadow:0 28px 54px rgba(0,0,0,.64),0 0 26px rgba(218,176,91,.22);z-index:5;}
+  #battle .card:hover{transform:translate3d(0,-30px,0) scale(1.055);box-shadow:0 30px 64px rgba(0,0,0,.66),0 0 30px rgba(218,176,91,.22);z-index:5;filter:saturate(1.08);}
+  #battle .card.atk .cart{background:radial-gradient(circle at 50% 34%,rgba(255,211,120,.3),rgba(98,38,28,.62) 64%,rgba(21,10,10,.78));color:#ffcd7d;}
+  #battle .card.def .cart{background:radial-gradient(circle at 50% 34%,rgba(158,209,232,.28),rgba(34,65,77,.58) 64%,rgba(10,18,24,.76));color:#bce9ff;}
+  #battle .card.heal .cart{background:radial-gradient(circle at 50% 34%,rgba(184,232,145,.3),rgba(43,83,46,.6) 64%,rgba(13,26,16,.78));color:#c9f59a;}
   #battle .card.atk{border-color:rgba(226,146,99,.78);} #battle .card.def{border-color:rgba(142,185,198,.78);} #battle .card.heal{border-color:rgba(150,203,136,.78);}
   #battle .card.disabled{filter:grayscale(.7) brightness(.6);cursor:default;}
-  #battle .card .cost{position:absolute;top:-9px;left:-9px;width:34px;height:34px;border-radius:50%;
+  #battle .card .cost{position:absolute;top:-10px;left:-10px;width:42px;height:42px;border-radius:50%;
     background:radial-gradient(circle at 38% 30%,#fff0b8,#c99b45 62%,#75542a);color:#2b2417;display:flex;align-items:center;
-    justify-content:center;font-family:'Cormorant Garamond',serif;font-size:17px;border:1px solid rgba(255,236,174,.75);box-shadow:0 3px 12px rgba(0,0,0,.55),0 0 16px rgba(201,162,75,.24);z-index:2;}
-  #battle .card .cname{font-size:12px;letter-spacing:.08em;text-align:center;margin:4px 13px 7px;color:#4a2f16;font-weight:700;
+    justify-content:center;font-family:'Cormorant Garamond',serif;font-size:22px;border:1px solid rgba(255,236,174,.75);box-shadow:0 3px 12px rgba(0,0,0,.55),0 0 16px rgba(201,162,75,.24);z-index:2;}
+  #battle .card .cname{font-size:clamp(14px,1vw,17px);letter-spacing:.08em;text-align:center;margin:4px 16px 9px;color:#4a2f16;font-weight:800;
     background:linear-gradient(180deg,rgba(248,222,165,.92),rgba(209,156,80,.76));border:1px solid rgba(102,61,28,.45);border-radius:999px;padding:3px 5px;text-shadow:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  #battle .card .cart{height:66px;margin:0 5px 6px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:28px;
+  #battle .card .cart{height:clamp(82px,6.2vw,98px);margin:0 7px 8px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:clamp(34px,2.8vw,44px);
     color:#f5d48c;background:radial-gradient(circle at 50% 35%,rgba(246,220,145,.22),rgba(63,36,22,.5) 64%,rgba(21,12,10,.72));
     border:1px solid rgba(220,175,91,.42);box-shadow:inset 0 0 22px rgba(0,0,0,.34),0 0 10px rgba(201,162,75,.1);}
-  #battle .card .ctype{font-size:8.5px;letter-spacing:.16em;text-align:center;color:#c58a45;opacity:.96;margin:0 0 4px;text-shadow:0 1px 3px rgba(0,0,0,.45);}
-  #battle .card .cdesc{font-size:9.6px;line-height:1.34;text-align:center;opacity:.96;letter-spacing:.02em;background:rgba(245,218,166,.18);border:1px solid rgba(229,185,105,.16);border-radius:8px;padding:5px 5px;color:#f8e8c8;min-height:34px;}
+  #battle .card .ctype{font-size:clamp(9.5px,.72vw,12px);letter-spacing:.13em;text-align:center;color:#d99d53;opacity:.98;margin:0 0 5px;text-shadow:0 1px 3px rgba(0,0,0,.45);font-weight:700;}
+  #battle .card .cdesc{font-size:clamp(11.2px,.86vw,13.5px);line-height:1.38;text-align:center;opacity:.98;letter-spacing:.015em;background:rgba(245,218,166,.2);border:1px solid rgba(229,185,105,.2);border-radius:10px;padding:7px 7px;color:#fff0ce;min-height:48px;}
   #battle .topbar{position:absolute;top:22px;left:0;right:0;text-align:center;}
   #battle .topbar .t{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:15px;letter-spacing:.3em;opacity:.7;}
   #battle .buffline{margin-top:8px;font-size:11px;letter-spacing:.18em;color:#f4d03f;opacity:.82;text-shadow:0 2px 8px rgba(0,0,0,.7);}
@@ -390,7 +393,7 @@ function render(){
   S.hand.forEach((c,i)=>{
     const playable = S.turn>0 && !S.over && S.phase==='player' && S.energy>=c.cost;
     const el=$('div','card '+c.type+(playable?'':' disabled'),hand);
-    const icon=c.type==='atk'?'刃':c.type==='heal'?'芽':'盾';
+    const icon=c.type==='atk'?'⌁刃⌁':c.type==='heal'?'✦芽✦':'⬟盾⬟';
     const typeLabel=c.type==='atk'?'ATTACK · EARTH':c.type==='heal'?'HEAL · SPROUT':'GUARD · ROOT';
     el.innerHTML=`<div class="cost">${c.cost}</div><div class="cname">${c.name}</div>
       <div class="cart">${icon}</div><div class="ctype">${typeLabel}</div><div class="cdesc">${c.desc}</div>`;
