@@ -26,7 +26,7 @@ fs.mkdirSync(OUT, { recursive: true });
   await page.waitForFunction(() => window.Battle && window.DungeonMap && window.__dbg?.ready, null, { timeout: 30000 });
 
   const scripts = await page.evaluate(() => Array.from(document.scripts).map(s => s.src).filter(Boolean));
-  const versionsOk = scripts.some(s => s.includes('battle.js?v=46')) && scripts.some(s => s.includes('dungeon.js?v=42'));
+  const versionsOk = scripts.some(s => s.includes('battle.js?v=48')) && scripts.some(s => s.includes('dungeon.js?v=42'));
 
   await page.evaluate(() => {
     window.Battle.enter({

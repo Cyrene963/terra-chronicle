@@ -37,14 +37,17 @@ function buildDeck(crafted){
     {name:'蓄能',type:'atk',val:9,cost:2,desc:'造成 9 点伤害'},
   ];
   const made=(crafted||[]).map(c=>{
+    const atk=Number.isFinite(c.atk)?c.atk:(c.type==='atk'?c.val||6:0);
+    const def=Number.isFinite(c.def)?c.def:(c.type==='def'?c.val||5:0);
+    const heal=Number.isFinite(c.heal)?c.heal:(c.type==='heal'?c.val||5:0);
     const qualityTag=c.quality?` · 产地${Math.round(c.quality*100)}`:'';
     const affixTag=c.affixes?.length?` · ${c.affixes.join('/')}`:'';
-    if(c.heal>0) return {name:c.name,type:'heal',val:c.heal,cost:c.heal>=24?2:1,
-      desc:`恢复 ${c.heal} 点生命${qualityTag}${affixTag}${c.effectText?' · '+c.effectText:''}`,elem:c.element,quality:c.quality,affixes:c.affixes||[],archetype:c.archetype||'plain',effectText:c.effectText||''};
-    if(c.def>=c.atk) return {name:c.name,type:'def',val:c.def,cost:c.def>=24?2:1,
-      desc:`获得 ${c.def} 点护甲${qualityTag}${affixTag}${c.effectText?' · '+c.effectText:''}`,elem:c.element,quality:c.quality,affixes:c.affixes||[],archetype:c.archetype||'plain',effectText:c.effectText||''};
-    return {name:c.name,type:'atk',val:c.atk,cost:c.atk>=22?2:1,
-      desc:`造成 ${c.atk} 点伤害${qualityTag}${affixTag}${c.effectText?' · '+c.effectText:''}`,elem:c.element,quality:c.quality,affixes:c.affixes||[],archetype:c.archetype||'plain',effectText:c.effectText||''};
+    if(heal>0) return {name:c.name,type:'heal',val:heal,cost:heal>=24?2:(c.cost||1),
+      desc:c.desc||`恢复 ${heal} 点生命${qualityTag}${affixTag}${c.effectText?' · '+c.effectText:''}`,elem:c.element,quality:c.quality,affixes:c.affixes||[],archetype:c.archetype||'plain',effectText:c.effectText||''};
+    if(def>=atk) return {name:c.name,type:'def',val:def,cost:def>=24?2:(c.cost||1),
+      desc:c.desc||`获得 ${def} 点护甲${qualityTag}${affixTag}${c.effectText?' · '+c.effectText:''}`,elem:c.element,quality:c.quality,affixes:c.affixes||[],archetype:c.archetype||'plain',effectText:c.effectText||''};
+    return {name:c.name,type:'atk',val:atk,cost:atk>=22?2:(c.cost||1),
+      desc:c.desc||`造成 ${atk} 点伤害${qualityTag}${affixTag}${c.effectText?' · '+c.effectText:''}`,elem:c.element,quality:c.quality,affixes:c.affixes||[],archetype:c.archetype||'plain',effectText:c.effectText||''};
   });
   return [...base,...made];
 }
@@ -177,7 +180,17 @@ function injectStyle(){
     background:linear-gradient(180deg,rgba(248,222,165,.92),rgba(209,156,80,.76));border:1px solid rgba(102,61,28,.45);border-radius:999px;padding:3px 5px;text-shadow:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   #battle .card .cart{height:clamp(82px,6.2vw,98px);margin:0 7px 8px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:clamp(34px,2.8vw,44px);
     color:#f5d48c;background:radial-gradient(circle at 50% 35%,rgba(246,220,145,.22),rgba(63,36,22,.5) 64%,rgba(21,12,10,.72));
-    border:1px solid rgba(220,175,91,.42);box-shadow:inset 0 0 22px rgba(0,0,0,.34),0 0 10px rgba(201,162,75,.1);}
+    border:1px solid rgba(220,175,91,.42);box-shadow:inset 0 0 22px rgba(0,0,0,.34),0 0 10px rgba(201,162,75,.1);position:relative;overflow:hidden;font-weight:800;}
+  #battle .card .cart::before,#battle .card .cart::after{content:'';position:absolute;pointer-events:none;}
+  #battle .card .cart::before{inset:14%;border-radius:50%;border:1px solid rgba(255,236,174,.18);}
+  #battle .card .cart::after{width:78%;height:2px;background:linear-gradient(90deg,transparent,rgba(255,240,180,.75),transparent);transform:rotate(-28deg);filter:blur(.2px);}
+  #battle .card.def .cart::before{inset:18% 24%;border-radius:18px 18px 26px 26px;border:2px solid rgba(188,233,255,.42);background:linear-gradient(180deg,rgba(188,233,255,.12),transparent);}
+  #battle .card.def .cart::after{width:44%;height:44%;border-radius:50%;background:radial-gradient(circle,rgba(188,233,255,.38),transparent 68%);transform:none;}
+  #battle .card.heal .cart::before{inset:20%;border-radius:50% 50% 46% 46%;border:2px solid rgba(201,245,154,.42);background:radial-gradient(circle at 50% 70%,rgba(201,245,154,.22),transparent 60%);}
+  #battle .card.heal .cart::after{width:52%;height:52%;border-radius:60% 0 60% 0;background:linear-gradient(135deg,rgba(201,245,154,.5),transparent);transform:rotate(38deg);}
+  #battle .card.charge .cart::before{inset:17%;border-radius:50%;border:2px dashed rgba(255,213,122,.45);animation:chargeSpin 7s linear infinite;}
+  #battle .card.charge .cart::after{width:34%;height:70%;border-radius:999px;background:linear-gradient(180deg,rgba(255,240,180,.72),rgba(255,134,76,.18));transform:rotate(24deg);}
+  @keyframes chargeSpin{to{transform:rotate(360deg)}}
   #battle .card .ctype{font-size:clamp(9.5px,.72vw,12px);letter-spacing:.13em;text-align:center;color:#d99d53;opacity:.98;margin:0 0 5px;text-shadow:0 1px 3px rgba(0,0,0,.45);font-weight:700;}
   #battle .card .cdesc{font-size:clamp(11.2px,.86vw,13.5px);line-height:1.38;text-align:center;opacity:.98;letter-spacing:.015em;background:rgba(245,218,166,.2);border:1px solid rgba(229,185,105,.2);border-radius:10px;padding:7px 7px;color:#fff0ce;min-height:48px;}
   #battle .topbar{position:absolute;top:22px;left:0;right:0;text-align:center;}
@@ -357,13 +370,13 @@ function chromaticAberration(){                          // 全屏色差畸变 0
 
 function cardVisual(c){
   const name=c?.name||'';
-  if(name.includes('蓄能')) return {icon:'✦烈刃✦', label:'STRIKE · FIRE'};
-  if(name.includes('格挡')||c?.type==='def') return {icon:'⬟根盾⬟', label:'GUARD · ROOT'};
-  if(name.includes('愈')||name.includes('芽')||c?.type==='heal') return {icon:'✦新芽✦', label:'HEAL · SPROUT'};
-  if(name.includes('划击')) return {icon:'⌁芽刃⌁', label:'ATTACK · EARTH'};
-  if(c?.elem==='fire') return {icon:'✦火纹✦', label:'ATTACK · FIRE'};
-  if(c?.elem==='metal') return {icon:'⬡金痕⬡', label:'ATTACK · METAL'};
-  return c?.type==='atk' ? {icon:'⌁刃光⌁', label:'ATTACK · EARTH'} : {icon:'✦灵纹✦', label:'RUNE · TERRA'};
+  if(name.includes('蓄能')) return {icon:'✦烈刃✦', label:'STRIKE · FIRE', cls:'charge'};
+  if(name.includes('格挡')||c?.type==='def') return {icon:'⬟根盾⬟', label:'GUARD · ROOT', cls:'def'};
+  if(name.includes('愈')||name.includes('芽')||c?.type==='heal') return {icon:'✦新芽✦', label:'HEAL · SPROUT', cls:'heal'};
+  if(name.includes('划击')) return {icon:'⌁芽刃⌁', label:'ATTACK · EARTH', cls:'atk'};
+  if(c?.elem==='fire') return {icon:'✦火纹✦', label:'ATTACK · FIRE', cls:'charge'};
+  if(c?.elem==='metal') return {icon:'⬡金痕⬡', label:'ATTACK · METAL', cls:'atk'};
+  return c?.type==='atk' ? {icon:'⌁刃光⌁', label:'ATTACK · EARTH', cls:'atk'} : {icon:'✦灵纹✦', label:'RUNE · TERRA', cls:'heal'};
 }
 
 function render(){
@@ -406,6 +419,7 @@ function render(){
     const playable = S.turn>0 && !S.over && S.phase==='player' && S.energy>=c.cost;
     const el=$('div','card '+c.type+(playable?'':' disabled'),hand);
     const visual=cardVisual(c);
+    if(visual.cls) el.classList.add(visual.cls);
     el.innerHTML=`<div class="cost">${c.cost}</div><div class="cname">${c.name}</div>
       <div class="cart">${visual.icon}</div><div class="ctype">${visual.label}</div><div class="cdesc">${c.desc}</div>`;
     if(playable) el.onclick=(ev)=>playCard(i, ev.currentTarget);
