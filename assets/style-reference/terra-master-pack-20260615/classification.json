@@ -1,0 +1,75 @@
+{
+  "keep": {
+    "environment": [
+      "assets/ui/battle_bg.jpg",
+      "assets/ui/dungeon_map_bg.jpg",
+      "assets/ui/dungeon_entrance_bg.jpg"
+    ],
+    "battle_magic": [
+      "assets/sprites/enemy_blight.png",
+      "assets/sprites/enemy_root_worm.png",
+      "assets/sprites/card_art_slash.png",
+      "assets/sprites/card_art_guard.png",
+      "assets/sprites/card_art_charge.png",
+      "assets/sprites/card_art_heal.png"
+    ],
+    "node_ui": [
+      "assets/ui/node_combat.png",
+      "assets/ui/node_elite.png",
+      "assets/ui/node_rest.png",
+      "assets/ui/node_event.png",
+      "assets/ui/node_chest.png",
+      "assets/ui/node_boss.png"
+    ],
+    "soft_farm": [
+      "assets/sprites/beast_water.png",
+      "assets/sprites/beast_fire.png",
+      "assets/sprites/beast_sacred_fawnling.png",
+      "assets/sprites/crop_dewberry.png",
+      "assets/sprites/crop_star_wheat.png",
+      "assets/sprites/button_frame.png",
+      "assets/sprites/scroll_paper.png"
+    ]
+  },
+  "reference_only": {
+    "battle_magic": [
+      "assets/ui/enemy_void_beast.png",
+      "assets/ui/icon_boss.png",
+      "assets/ui/icon_combat.png",
+      "assets/ui/card_icon.png"
+    ],
+    "soft_farm": [
+      "assets/sprites/beast_deepsea_noble.png",
+      "assets/sprites/beast_shrine_fox_spirit.png",
+      "assets/sprites/beast_white_serpent_shrine.png"
+    ],
+    "ui": [
+      "assets/ui/dungeon_route_reference_terra.png",
+      "assets/ui/action_button_template.png",
+      "assets/ui/craft_button_bg.png"
+    ]
+  },
+  "replace": {
+    "battle_magic": [
+      "assets/sprites/_backup_before_corrected_battle_assets_20260615/card_template.png",
+      "assets/sprites/_backup_before_corrected_battle_assets_20260615/enemy_root_worm.png",
+      "assets/ui/icon_boss.png",
+      "assets/ui/icon_combat.png"
+    ],
+    "node_ui": [
+      "assets/ui/dungeon_route_reference_terra.png"
+    ],
+    "soft_farm": [
+      "assets/sprites/thunder_cat.png",
+      "assets/sprites/forest_deer.png",
+      "assets/sprites/magma_lizard.png",
+      "assets/sprites/ice_bear.png",
+      "assets/sprites/shadow_wolf.png",
+      "assets/sprites/light_fairy.png",
+      "assets/sprites/earth_golem.png",
+      "assets/sprites/wind_bird.png",
+      "assets/sprites/fire_fox.png",
+      "assets/sprites/water_serpent.png"
+    ]
+  }
+}

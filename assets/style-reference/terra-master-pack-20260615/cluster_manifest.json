@@ -1,0 +1,52 @@
+[
+  {
+    "cluster": "environment",
+    "count": 3,
+    "sheet": "/root/terra-chronicle-game/assets/style-reference/terra-master-pack-20260615/clusters/environment_contact_sheet.png",
+    "ids": [
+      "bg_battle",
+      "bg_dungeon_map",
+      "bg_dungeon_entrance"
+    ]
+  },
+  {
+    "cluster": "battle_magic",
+    "count": 6,
+    "sheet": "/root/terra-chronicle-game/assets/style-reference/terra-master-pack-20260615/clusters/battle_magic_contact_sheet.png",
+    "ids": [
+      "boss",
+      "monster",
+      "cardslash",
+      "cardguard",
+      "cardcharge",
+      "cardheal"
+    ]
+  },
+  {
+    "cluster": "node_ui",
+    "count": 6,
+    "sheet": "/root/terra-chronicle-game/assets/style-reference/terra-master-pack-20260615/clusters/node_ui_contact_sheet.png",
+    "ids": [
+      "nodecombat",
+      "nodeelite",
+      "noderest",
+      "nodeevent",
+      "nodechest",
+      "nodeboss"
+    ]
+  },
+  {
+    "cluster": "soft_farm",
+    "count": 7,
+    "sheet": "/root/terra-chronicle-game/assets/style-reference/terra-master-pack-20260615/clusters/soft_farm_contact_sheet.png",
+    "ids": [
+      "petwater",
+      "petfire",
+      "petfawn",
+      "cropdew",
+      "cropwheat",
+      "button",
+      "scroll"
+    ]
+  }
+]

@@ -1,0 +1,90 @@
+[
+  {
+    "id": "bg_battle",
+    "file": "/root/terra-chronicle-game/assets/ui/battle_bg.jpg"
+  },
+  {
+    "id": "bg_dungeon_map",
+    "file": "/root/terra-chronicle-game/assets/ui/dungeon_map_bg.jpg"
+  },
+  {
+    "id": "bg_dungeon_entrance",
+    "file": "/root/terra-chronicle-game/assets/ui/dungeon_entrance_bg.jpg"
+  },
+  {
+    "id": "boss",
+    "file": "/root/terra-chronicle-game/assets/sprites/enemy_blight.png"
+  },
+  {
+    "id": "monster",
+    "file": "/root/terra-chronicle-game/assets/sprites/enemy_root_worm.png"
+  },
+  {
+    "id": "cardslash",
+    "file": "/root/terra-chronicle-game/assets/sprites/card_art_slash.png"
+  },
+  {
+    "id": "cardguard",
+    "file": "/root/terra-chronicle-game/assets/sprites/card_art_guard.png"
+  },
+  {
+    "id": "cardcharge",
+    "file": "/root/terra-chronicle-game/assets/sprites/card_art_charge.png"
+  },
+  {
+    "id": "cardheal",
+    "file": "/root/terra-chronicle-game/assets/sprites/card_art_heal.png"
+  },
+  {
+    "id": "nodecombat",
+    "file": "/root/terra-chronicle-game/assets/ui/node_combat.png"
+  },
+  {
+    "id": "nodeelite",
+    "file": "/root/terra-chronicle-game/assets/ui/node_elite.png"
+  },
+  {
+    "id": "noderest",
+    "file": "/root/terra-chronicle-game/assets/ui/node_rest.png"
+  },
+  {
+    "id": "nodeevent",
+    "file": "/root/terra-chronicle-game/assets/ui/node_event.png"
+  },
+  {
+    "id": "nodechest",
+    "file": "/root/terra-chronicle-game/assets/ui/node_chest.png"
+  },
+  {
+    "id": "nodeboss",
+    "file": "/root/terra-chronicle-game/assets/ui/node_boss.png"
+  },
+  {
+    "id": "petwater",
+    "file": "/root/terra-chronicle-game/assets/sprites/beast_water.png"
+  },
+  {
+    "id": "petfire",
+    "file": "/root/terra-chronicle-game/assets/sprites/beast_fire.png"
+  },
+  {
+    "id": "petfawn",
+    "file": "/root/terra-chronicle-game/assets/sprites/beast_sacred_fawnling.png"
+  },
+  {
+    "id": "cropdew",
+    "file": "/root/terra-chronicle-game/assets/sprites/crop_dewberry.png"
+  },
+  {
+    "id": "cropwheat",
+    "file": "/root/terra-chronicle-game/assets/sprites/crop_star_wheat.png"
+  },
+  {
+    "id": "button",
+    "file": "/root/terra-chronicle-game/assets/sprites/button_frame.png"
+  },
+  {
+    "id": "scroll",
+    "file": "/root/terra-chronicle-game/assets/sprites/scroll_paper.png"
+  }
+]

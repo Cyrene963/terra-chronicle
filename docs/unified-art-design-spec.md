@@ -249,7 +249,44 @@ UI 必须像一套完整游戏系统，而不是临时拼的网页组件。
 2. 它和现有羊皮纸手账风怎么统一？
 3. 它能否复用到卡牌、UI、图鉴、商店或战斗演出里？
 
-如果答案不清楚，就先别画，先定规范。
+### 16. Unified Style Reference Packs
+
+Terra visual production must use clustered style reference packs instead of one loose mixed bag of assets.
+
+Required reference clusters:
+- Environment / world backgrounds
+- Battle / magic / card art
+- Route node / map UI
+- Soft farm / pet / crop / button / scroll UI
+
+Rules:
+1. New generated assets must reference the matching cluster first.
+2. Do not cross-pollinate clusters unless the asset itself must bridge them.
+3. For a new card, use battle/magic references; for a new node, use node UI references; for a new background, use environment references.
+4. When a cluster is unstable or inconsistent, regenerate within that cluster instead of borrowing from another cluster.
+5. Keep one manifest/contact sheet per cluster and one top-level pack manifest.
+
+### 17. Asset Classification Workflow
+
+Every Terra asset must be classified into one of three buckets before new work continues:
+- Keep: can remain live as-is or with only minor cleanup.
+- Reference only: can inspire future generation but should not be treated as final shipped standard.
+- Replace: must be regenerated or reprocessed before it can be used as a standard asset.
+
+Classification workflow:
+1. Inspect current public screenshots and the live asset in-game.
+2. Compare the asset against the cluster reference pack.
+3. Mark obvious mismatches, mixed styles, or low-readability items as `Replace`.
+4. Save the classification to the project reference pack.
+5. Use `Keep` assets as reference anchors for future generation only if they are visually consistent.
+
+### 18. Gen-Image Prompting Rule
+
+For all future Terra image generation:
+- Prefer image-to-image, reference-guided generation, or style transfer from the relevant cluster.
+- Do not prompt from scratch when an existing Terra reference cluster already exists.
+- Keep the target asset within the visual language of its cluster.
+- If the asset must be part of a set, generate the whole set together so edges, materials, and proportions stay consistent.
 
 ---
 
