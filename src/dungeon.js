@@ -69,14 +69,15 @@ function injectStyle(){
 function generateMap(){
   // 3 floors, vertical linear progression: 1-2 nodes per floor, BOSS at end
   const floors=[[],[],[]];
-  const types=['combat','elite','rest'];
+
 
   // Floor 0: 2 combat nodes
   floors[0].push({type:'combat', id:'0_0'});
   floors[0].push({type:'combat', id:'0_1'});
 
-  // Floor 1: 1 elite or rest node
-  floors[1].push({type:types[(Math.random()*types.length)|0], id:'1_0'});
+  // Floor 1: non-combat choice layer, making event/chest systems visible every run
+  floors[1].push({type:'event', id:'1_0'});
+  floors[1].push({type:'chest', id:'1_1'});
 
   // Floor 2: BOSS
   floors[2].push({type:'boss',id:'2_0'});
@@ -89,6 +90,8 @@ function rewardPreviewFor(type){
     combat:'材料或临时祝福 · 影响下一战',
     elite:'精英残响 + 根甲护佑',
     rest:'恢复整备 · 保留路线节奏',
+    event:'地脉事件 · 选择风险收益',
+    chest:'遗物宝箱 · 材料或卡牌补给',
     boss:'深渊核心 · 工坊突破材料'
   })[type]||'未知回响';
 }
@@ -105,6 +108,26 @@ function consumeRunBuffs(){
   runBuffs=runBuffs.map(b=>({...b,fights:(b.fights||1)-1})).filter(b=>(b.fights||0)>0);
 }
 function activeBuffSummary(){ return runBuffs.length?`当前祝福: ${runBuffs.map(b=>`${buffName(b)}×${b.fights||1}`).join(' / ')}`:''; }
+
+function grantLoot(loot){
+  if(!loot || !window.Terra?.farm) return '';
+  const f=window.Terra.farm, labels=[];
+  if(loot.buff){ addRunBuff(loot.buff); labels.push(buffName(loot.buff)); }
+  for(const [k,v] of Object.entries(loot)){
+    if(k==='buff') continue;
+    if(k==='beast'){
+      f.beasts ??= [];
+      const id=`${v.species||'beast'}_${Date.now().toString(36)}`;
+      f.beasts.push({id,...v,stamina:100,xp:0,evolution:{diet:{},laborHistory:{}}});
+      window.normalizeBeasts?.(); window.updateBeastRosterUI?.(); labels.push('春露兽');
+      continue;
+    }
+    f.inventory.materials[k]=(f.inventory.materials[k]||0)+v;
+    labels.push(`${k}×${v}`);
+  }
+  window.Terra.save();
+  return labels.join(' · ');
+}
 
 function showToast(title, body, after){
   injectStyle();
@@ -130,7 +153,7 @@ function buildDOM(){
       <h2>深渊星图</h2>
       <div class="sub">选择一条路线进入污染地脉。战斗奖励会带回农场，改变下一轮锻造、灵兽和工坊升级方向。</div>
     </div>
-    <div class="legend"><span>⚔ 战斗</span><span>◆ 精英</span><span>🔥 休息</span><span>♛ 深渊核心</span></div>
+    <div class="legend"><span>⚔ 战斗</span><span>◆ 精英</span><span>🔥 休息</span><span>✦ 事件</span><span>▣ 宝箱</span><span>♛ 深渊核心</span></div>
     <div class="mapWrap"><div class="mapCanvas"></div></div>
     <div class="closeBtn">×</div>
   `;
@@ -179,8 +202,8 @@ function renderMap(){
       nd.style.left=(x-size/2)+'px';
       nd.style.top=(y-size/2)+'px';
 
-      const icons={combat:'icon_combat.png',elite:'◆',rest:'🔥',boss:'icon_boss.png'};
-      const labels={combat:'战斗',elite:'精英',rest:'篝火',boss:'深渊核心'};
+      const icons={combat:'icon_combat.png',elite:'◆',rest:'🔥',event:'✦',chest:'▣',boss:'icon_boss.png'};
+      const labels={combat:'战斗',elite:'精英',rest:'篝火',event:'地脉事件',chest:'遗物宝箱',boss:'深渊核心'};
       const icon=icons[node.type]||'?';
       const iconHTML = icon.endsWith?.('.png')
         ? `<img src="assets/ui/${icon}" class="icon" alt="${labels[node.type]||node.type}"/>`
@@ -204,23 +227,7 @@ function selectNode(node){
       buffs: runBuffs.map(b=>({...b})),
       onWin(loot){
         if(!loot) loot={};
-        if(loot.buff) addRunBuff(loot.buff);
-        if(window.Terra && window.Terra.farm){
-          const f=window.Terra.farm;
-          for(const [k,v] of Object.entries(loot)){
-            if(k==='buff') continue;
-            if(k==='beast'){
-              f.beasts ??= [];
-              const id=`${v.species||'beast'}_${Date.now().toString(36)}`;
-              f.beasts.push({id,...v,stamina:100,xp:0,evolution:{diet:{},laborHistory:{}}});
-              if(window.normalizeBeasts) window.normalizeBeasts();
-              if(window.updateBeastRosterUI) window.updateBeastRosterUI();
-              continue;
-            }
-            f.inventory.materials[k]=(f.inventory.materials[k]||0)+v;
-          }
-          window.Terra.save();
-        }
+        grantLoot(loot);
         consumeRunBuffs();
         progress.floor++;
         if(progress.floor>=mapData.length){ showToast('深渊征服', '战利品已带回农场，回到地表休整。'); return; }
@@ -232,6 +239,18 @@ function selectNode(node){
     });
   } else if(node.type==='rest'){
     showToast('篝火休整', '你在篝火旁恢复体力，保留路线节奏。');
+    progress.floor++;
+    if(progress.floor>=mapData.length){ showToast('深渊征服', '路线已完成，返回农场整备。', close); return; }
+    renderMap();
+  } else if(node.type==='event'){
+    const summary=grantLoot({buff:{id:'ember_focus',energyFirstTurn:1,fights:1}, blight_seed:1});
+    showToast('地脉事件', `你稳定了污染裂隙，获得 ${summary || '余烬专注'}。`);
+    progress.floor++;
+    if(progress.floor>=mapData.length){ showToast('深渊征服', '路线已完成，返回农场整备。', close); return; }
+    renderMap();
+  } else if(node.type==='chest'){
+    const summary=grantLoot({wood:3, beast_soul:1});
+    showToast('遗物宝箱', `开启旧世木箱，获得 ${summary}。`);
     progress.floor++;
     if(progress.floor>=mapData.length){ showToast('深渊征服', '路线已完成，返回农场整备。', close); return; }
     renderMap();
@@ -252,5 +271,5 @@ function close(){
   setTimeout(()=>{if(root)root.style.display='none';},500);
 }
 
-window.DungeonMap = { open, close };
+window.DungeonMap = { open, close, grantLoot };
 })();

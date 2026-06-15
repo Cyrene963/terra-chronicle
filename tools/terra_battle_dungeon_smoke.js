@@ -26,7 +26,7 @@ fs.mkdirSync(OUT, { recursive: true });
   await page.waitForFunction(() => window.Battle && window.DungeonMap && window.__dbg?.ready, null, { timeout: 30000 });
 
   const scripts = await page.evaluate(() => Array.from(document.scripts).map(s => s.src).filter(Boolean));
-  const versionsOk = scripts.some(s => s.includes('battle.js?v=54')) && scripts.some(s => s.includes('dungeon.js?v=43'));
+  const versionsOk = scripts.some(s => s.includes('battle.js?v=54')) && scripts.some(s => s.includes('dungeon.js?v=44'));
 
   await page.evaluate(() => {
     window.Battle.enter({
@@ -92,7 +92,12 @@ fs.mkdirSync(OUT, { recursive: true });
     rewards: Array.from(document.querySelectorAll('#dungeonMap .node .reward')).map(e => e.textContent.trim()),
     hasSpecificPreview: Array.from(document.querySelectorAll('#dungeonMap .node .reward')).some(e => e.textContent.includes('临时祝福') || e.textContent.includes('根甲护佑') || e.textContent.includes('深渊核心'))
   }));
-  if (!dungeonState.hasSpecificPreview) throw new Error('dungeon reward preview missing');
+  if (!dungeonState.hasSpecificPreview || !dungeonState.rewards.some(t => t.includes('地脉事件') || t.includes('遗物宝箱'))) throw new Error('dungeon reward preview missing');
+
+  const dungeonLoot = await page.evaluate(() => {
+    return window.DungeonMap.grantLoot({ wood: 2, beast_soul: 1, buff: { id: 'ember_focus', energyFirstTurn: 1, fights: 1 } });
+  });
+  if (!dungeonLoot.includes('wood×2') || !dungeonLoot.includes('beast_soul×1')) throw new Error(`grantLoot failed: ${dungeonLoot}`);
 
   const capturePage = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
   capturePage.on('console', msg => {
