@@ -55,13 +55,23 @@ function intentFor(turn, enemy){
   const weakCycle=['earth','fire','metal','light'];
   const weak=weakCycle[turn%weakCycle.length];
   if(type==='boss'){
-    const cycle=[
-      {kind:'charge',val:0,weak:'earth',hint:'聚瘴:下回合重击'},
-      {kind:'heavy',val:18+Math.floor(turn/3),weak:'fire',hint:'深渊重击'},
-      {kind:'def',val:12,weak:'metal',hint:'结壳蓄防'},
-      {kind:'atk',val:12+Math.floor(turn/4),weak:'light',hint:'污染藤鞭'}
-    ];
-    return cycle[(turn-1)%cycle.length];
+    const phase=enemy.phase||1;
+    const cycle=phase===1
+      ? [
+          {kind:'charge',val:0,weak:'earth',hint:'聚瘴:下回合重击'},
+          {kind:'heavy',val:18+Math.floor(turn/3),weak:'fire',hint:'深渊重击'},
+          {kind:'def',val:12,weak:'metal',hint:'结壳蓄防'},
+          {kind:'atk',val:12+Math.floor(turn/4),weak:'light',hint:'污染藤鞭'}
+        ]
+      : [
+          {kind:'heavy',val:24+Math.floor(turn/2),weak:'fire',hint:'狂化重击'},
+          {kind:'atk',val:16+Math.floor(turn/3),weak:'light',hint:'连锁藤鞭'},
+          {kind:'charge',val:0,weak:'earth',hint:'深渊聚势:连击蓄力'},
+          {kind:'debuff',val:1,weak:'metal',hint:'瘴潮压制:能量侵蚀'}
+        ];
+    const intent={...cycle[(turn-1)%cycle.length], phase};
+    if(phase===2 && intent.kind==='charge') intent.hint='深渊聚势:下一击更凶猛';
+    return intent;
   }
   if(type==='elite'){
     const cycle=[
@@ -166,6 +176,8 @@ function injectStyle(){
   #battle .topbar{position:absolute;top:22px;left:0;right:0;text-align:center;}
   #battle .topbar .t{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:15px;letter-spacing:.3em;opacity:.7;}
   #battle .buffline{margin-top:8px;font-size:11px;letter-spacing:.18em;color:#f4d03f;opacity:.82;text-shadow:0 2px 8px rgba(0,0,0,.7);}
+  #battle .bossphase{margin-top:6px;font-size:12px;letter-spacing:.22em;color:#ffb86c;opacity:.92;text-shadow:0 2px 10px rgba(0,0,0,.75);}
+  #battle .bossphase.enraged{color:#ff8e6c;}
   #battle .deckcount{position:absolute;bottom:104px;font-size:11px;letter-spacing:.2em;opacity:.55;}
   #battle .deckcount.draw{left:34px;} #battle .deckcount.disc{right:34px;}
   #battle .result{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;
@@ -192,7 +204,7 @@ function buildDOM(){
   root=document.createElement('div'); root.id='battle';
   root.innerHTML=`
     <div class="arena">
-      <div class="topbar"><div class="t" id="b_turn">深渊副本 · 第 1 回合</div><div class="buffline" id="b_buffs"></div></div>
+      <div class="topbar"><div class="t" id="b_turn">深渊副本 · 第 1 回合</div><div class="buffline" id="b_buffs"></div><div class="bossphase" id="b_bphase"></div></div>
       <div class="enemyZone">
         <div class="enemy" id="b_enemy">
           <div class="ename" id="b_ename">污染木灵</div>
@@ -323,6 +335,17 @@ function render(){
   r('#b_turn').textContent=`深渊副本 · 第 ${S.turn} 回合`;
   const buffEl=r('#b_buffs');
   if(buffEl) buffEl.textContent=(S.runBuffs||[]).length?`远征祝福 · ${(S.runBuffs||[]).map(buffName).join(' / ')}`:'';
+  const phaseEl=r('#b_bphase');
+  if(phaseEl){
+    if(S.enemy.type==='boss'){
+      const phase=S.enemy.phase||1;
+      phaseEl.textContent=phase===1 ? '深渊主核 · 第一阶段' : '深渊主核 · 暴走阶段';
+      phaseEl.className='bossphase'+(phase===2?' enraged':'');
+    } else {
+      phaseEl.textContent='';
+      phaseEl.className='bossphase';
+    }
+  }
   r('#b_ehpbar').style.transform=`scaleX(${Math.max(0,S.enemy.hp/S.enemy.max)})`;
   r('#b_ehptxt').textContent=`${Math.max(0,S.enemy.hp)} / ${S.enemy.max}`;
   const it=S.enemy.intent, iEl=r('#b_intent');
@@ -386,6 +409,15 @@ function playCard(i, el){
       const b=root.querySelector('#b_eimg').getBoundingClientRect();
       floatNum('-'+dmg+(c.elem&&S.enemy.intent?.weak===c.elem?' 破绽!':''),'#ff9b7a', b.left+b.width/2, b.top+b.height*0.4);
       const e=root.querySelector('#b_enemy'); e.classList.add('hit'); setTimeout(()=>e.classList.remove('hit'),300);
+      if(S.enemy.type==='boss' && (S.enemy.phase||1)===1 && S.enemy.hp>0 && S.enemy.hp<=Math.ceil(S.enemy.max*0.45)){
+        S.enemy.phase=2;
+        S.enemy.block=0;
+        S.enemy.intent={kind:'charge',val:0,weak:'earth',hint:'暴走转阶段:深渊正在苏醒',phase:2};
+        if(window.TerraSound) TerraSound.play('click', 0.9);
+        floatNum('暴走!','#ff8e6c', b.left+b.width/2, b.top-20);
+        const phaseEl=root.querySelector('#b_bphase'); if(phaseEl) phaseEl.textContent='深渊主核 · 暴走阶段';
+        hitFlash(); chromaticAberration(); screenShake(24, 360);
+      }
       if(S.enemy.hp<=0){ render(); return finish(true); }
       render();
     },175);
