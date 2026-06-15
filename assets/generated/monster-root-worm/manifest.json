@@ -1,0 +1,41 @@
+{
+  "asset": "monster_root_worm",
+  "candidates": [
+    {
+      "id": 1,
+      "name": "monster_root_worm_candidate_01",
+      "path": "/root/terra-chronicle-game/assets/generated/monster-root-worm/monster_root_worm_candidate_01.png",
+      "source": "/root/.hermes/cache/images/openai_gpt-image-2-high_20260615_111532_5714248e.png"
+    },
+    {
+      "id": 2,
+      "name": "monster_root_worm_candidate_02",
+      "path": "/root/terra-chronicle-game/assets/generated/monster-root-worm/monster_root_worm_candidate_02.png",
+      "source": "/root/.hermes/cache/images/openai_gpt-image-2-high_20260615_111625_57038bc8.png"
+    },
+    {
+      "id": 3,
+      "name": "monster_root_worm_candidate_03",
+      "path": "/root/terra-chronicle-game/assets/generated/monster-root-worm/monster_root_worm_candidate_03.png",
+      "source": "/root/.hermes/cache/images/openai_gpt-image-2-high_20260615_111734_a4ba8625.png"
+    },
+    {
+      "id": 4,
+      "name": "monster_root_worm_candidate_04",
+      "path": "/root/terra-chronicle-game/assets/generated/monster-root-worm/monster_root_worm_candidate_04.png",
+      "source": "/root/.hermes/cache/images/openai_gpt-image-2-high_20260615_111843_4ddfa874.png"
+    },
+    {
+      "id": 5,
+      "name": "monster_root_worm_candidate_05",
+      "path": "/root/terra-chronicle-game/assets/generated/monster-root-worm/monster_root_worm_candidate_05.png",
+      "source": "/root/.hermes/cache/images/openai_gpt-image-2-high_20260615_111937_5230f79f.png"
+    },
+    {
+      "id": 6,
+      "name": "monster_root_worm_candidate_06",
+      "path": "/root/terra-chronicle-game/assets/generated/monster-root-worm/monster_root_worm_candidate_06.png",
+      "source": "/root/.hermes/cache/images/openai_gpt-image-2-high_20260615_112130_ad0f68e4.png"
+    }
+  ]
+}
