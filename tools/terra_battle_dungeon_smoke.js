@@ -26,11 +26,17 @@ fs.mkdirSync(OUT, { recursive: true });
   await page.waitForFunction(() => window.Battle && window.DungeonMap && window.__dbg?.ready, null, { timeout: 30000 });
 
   const scripts = await page.evaluate(() => Array.from(document.scripts).map(s => s.src).filter(Boolean));
-  const versionsOk = scripts.some(s => s.includes('battle.js?v=50')) && scripts.some(s => s.includes('dungeon.js?v=42'));
+  const versionsOk = scripts.some(s => s.includes('battle.js?v=51')) && scripts.some(s => s.includes('dungeon.js?v=42'));
 
   await page.evaluate(() => {
     window.Battle.enter({
       deck: [
+        { name: '划击', type: 'atk', val: 6, cost: 1, desc: '造成 6 点伤害' },
+        { name: '格挡', type: 'def', val: 5, cost: 1, desc: '获得 5 点护甲' },
+        { name: '蓄能', type: 'atk', val: 9, cost: 2, desc: '造成 9 点伤害' },
+        { name: '新芽愈合', type: 'heal', val: 5, cost: 1, desc: '恢复 5 点生命' }
+      ],
+      debugHand: [
         { name: '划击', type: 'atk', val: 6, cost: 1, desc: '造成 6 点伤害' },
         { name: '格挡', type: 'def', val: 5, cost: 1, desc: '获得 5 点护甲' },
         { name: '蓄能', type: 'atk', val: 9, cost: 2, desc: '造成 9 点伤害' },

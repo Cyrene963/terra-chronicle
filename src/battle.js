@@ -35,6 +35,7 @@ function buildDeck(crafted){
     {name:'格挡',type:'def',val:5,cost:1,desc:'获得 5 点护甲'},
     {name:'格挡',type:'def',val:5,cost:1,desc:'获得 5 点护甲'},
     {name:'蓄能',type:'atk',val:9,cost:2,desc:'造成 9 点伤害'},
+    {name:'新芽愈合',type:'heal',val:6,cost:1,desc:'恢复 6 点生命'},
   ];
   const made=(crafted||[]).map(c=>{
     const atk=Number.isFinite(c.atk)?c.atk:(c.type==='atk'?c.val||6:0);
@@ -597,7 +598,9 @@ const Battle={
         setTimeout(()=>fadeFromBlack(),300);  // 战斗场景显示后淡入
       });
       Battle.active=true;
-      startPlayerTurn(); startMiasma();
+      startPlayerTurn();
+      if(Array.isArray(cb.debugHand)){ S.hand=cb.debugHand.map(c=>buildDeck([c]).find(x=>x.name===c.name)||c); render(); }
+      startMiasma();
     });
   },
 };
