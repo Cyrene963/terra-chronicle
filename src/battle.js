@@ -211,8 +211,8 @@ function buildDOM(){
       <div class="topbar"><div class="t" id="b_turn">深渊副本 · 第 1 回合</div><div class="buffline" id="b_buffs"></div><div class="bossphase" id="b_bphase"></div></div>
       <div class="enemyZone">
         <div class="enemy" id="b_enemy">
-          <div class="ename" id="b_ename">污染木灵</div>
-          <img id="b_eimg" src="assets/sprites/enemy_blight.png?v=6" alt="">
+          <div class="ename" id="b_ename">根蚀虫</div>
+          <img id="b_eimg" src="assets/sprites/enemy_root_worm.png?v=1" alt="">
           <div class="ehp"><i id="b_ehpbar"></i><span id="b_ehptxt"></span></div>
           <div class="intent" id="b_intent"></div>
         </div>
@@ -237,6 +237,23 @@ function buildDOM(){
     </div>`;
   document.body.appendChild(root);
   root.querySelector('#b_end').onclick=endTurn;
+}
+
+function setEnemyPresentation(){
+  if(!root||!S?.enemy) return;
+  const name=root.querySelector('#b_ename');
+  const img=root.querySelector('#b_eimg');
+  const type=S.enemy.type;
+  if(type==='boss'){
+    if(name) name.textContent='深渊主核';
+    if(img){ img.src='assets/sprites/enemy_blight.png?v=6'; img.style.width='440px'; }
+  } else if(type==='elite'){
+    if(name) name.textContent='菌甲精英';
+    if(img){ img.src='assets/sprites/enemy_root_worm.png?v=1'; img.style.width='420px'; }
+  } else {
+    if(name) name.textContent='根蚀虫';
+    if(img){ img.src='assets/sprites/enemy_root_worm.png?v=1'; img.style.width='400px'; }
+  }
 }
 
 function floatNum(text,color,x,y){                 // 抛物线弹跳伤害数字(FCT)
@@ -543,6 +560,7 @@ const Battle={
       if(cb.isBoss){ S.pMax=80; S.pHP=80; S.enemy.max=S.enemy.hp=90; }
       else if(cb.isElite){ S.enemy.max=S.enemy.hp=70; }
       applyRunBuffs();
+      setEnemyPresentation();
       root.style.display='block'; root.querySelector('#b_result').classList.remove('on');
       const ar=root.querySelector('.arena'); if(ar) ar.style.transform='';
       requestAnimationFrame(()=>{

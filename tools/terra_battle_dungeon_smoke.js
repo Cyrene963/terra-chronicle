@@ -26,7 +26,7 @@ fs.mkdirSync(OUT, { recursive: true });
   await page.waitForFunction(() => window.Battle && window.DungeonMap && window.__dbg?.ready, null, { timeout: 30000 });
 
   const scripts = await page.evaluate(() => Array.from(document.scripts).map(s => s.src).filter(Boolean));
-  const versionsOk = scripts.some(s => s.includes('battle.js?v=42')) && scripts.some(s => s.includes('dungeon.js?v=41'));
+  const versionsOk = scripts.some(s => s.includes('battle.js?v=43')) && scripts.some(s => s.includes('dungeon.js?v=41'));
 
   await page.evaluate(() => {
     window.Battle.enter({
@@ -55,9 +55,14 @@ fs.mkdirSync(OUT, { recursive: true });
       buffLine: document.querySelector('#b_buffs')?.textContent || '',
       shieldBar: document.querySelector('#b_shbar')?.style.transform || '',
       turnText: document.querySelector('#b_turn')?.textContent || '',
+      enemyName: document.querySelector('#b_ename')?.textContent || '',
+      enemySrc: document.querySelector('#b_eimg')?.getAttribute('src') || '',
     };
   });
   if (!battleState.cardBackground.includes('card_template.png')) throw new Error('battle card template not applied');
+  if (!battleState.enemyName.includes('菌甲精英') || !battleState.enemySrc.includes('enemy_root_worm.png')) {
+    throw new Error(`root worm enemy not applied: ${JSON.stringify(battleState)}`);
+  }
   if (!battleState.hpText.includes('68') || battleState.energy !== '4' || !battleState.buffLine.includes('深渊活力')) {
     throw new Error(`battle buffs not applied: ${JSON.stringify(battleState)}`);
   }
