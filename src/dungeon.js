@@ -45,7 +45,7 @@ function injectStyle(){
     display:flex;align-items:center;justify-content:center;transition:transform .28s ease,box-shadow .28s ease,border-color .28s ease;flex-direction:column;gap:7px;overflow:hidden;}
   #dungeonMap .node::before{content:'';position:absolute;inset:-45% -30% auto auto;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,rgba(244,208,117,.22),transparent 68%);}
   #dungeonMap .node:hover{transform:translateY(-8px) scale(1.04);border-color:#ffe0a0;box-shadow:0 28px 70px rgba(0,0,0,.58),0 0 32px rgba(244,208,117,.16);}
-  #dungeonMap .node.locked{opacity:.34;cursor:default;pointer-events:none;filter:saturate(.55);}
+  #dungeonMap .node.locked{opacity:.5;cursor:default;pointer-events:none;filter:saturate(.68);}
   #dungeonMap .node.completed{opacity:.72;border-color:rgba(125,211,151,.5);}
   #dungeonMap .node.completed::after{content:'✓';position:absolute;top:10px;right:12px;font-size:22px;color:#8ee5a4;text-shadow:0 0 14px rgba(74,222,128,.6);}
   #dungeonMap .node.current{animation:nodePulse 2.2s ease-in-out infinite;border-color:#ffe0a0;}
@@ -54,7 +54,9 @@ function injectStyle(){
   #dungeonMap .node .icon{position:relative;width:44px;height:44px;filter:drop-shadow(0 8px 18px rgba(0,0,0,.75));}
   #dungeonMap .node .emoji{position:relative;font-size:42px;line-height:1;filter:drop-shadow(0 8px 18px rgba(0,0,0,.75));}
   #dungeonMap .node .label{position:relative;font-size:15px;letter-spacing:.12em;color:#fff4d0;font-weight:800;text-shadow:0 2px 8px rgba(0,0,0,.75);}
-  #dungeonMap .node .reward{position:relative;font-size:11px;letter-spacing:.04em;color:#ffe2a8;opacity:1;text-align:center;max-width:108px;line-height:1.28;text-shadow:0 2px 8px rgba(0,0,0,.75);}
+  #dungeonMap .node .reward{position:relative;font-size:11px;letter-spacing:.04em;color:#ffe6b6;opacity:1;text-align:center;max-width:110px;line-height:1.3;text-shadow:0 2px 8px rgba(0,0,0,.85);background:rgba(12,8,10,.24);border-radius:8px;padding:2px 4px;}
+  #dungeonMap .node.locked .label{color:#e9d5a4;} #dungeonMap .node.locked .reward{color:#d7c197;background:rgba(10,8,10,.36);}
+  #dungeonMap .node.boss .label{color:#f4d075;} #dungeonMap .node.boss .reward{color:#f2d9aa;}
   #dungeonMap .node.current::after{content:'可选';position:absolute;top:9px;right:10px;font-size:10px;letter-spacing:.12em;color:#2a1b0d;background:#f4d075;border-radius:999px;padding:3px 7px;box-shadow:0 3px 10px rgba(0,0,0,.36);}
   #dungeonMap .closeBtn{position:absolute;top:36px;right:42px;font-size:32px;cursor:pointer;color:#f6d99d;opacity:.72;transition:all .25s;
     width:46px;height:46px;display:grid;place-items:center;border-radius:50%;border:1px solid rgba(244,208,117,.28);background:rgba(0,0,0,.26);z-index:2;}
