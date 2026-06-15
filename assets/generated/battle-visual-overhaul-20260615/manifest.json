@@ -1,0 +1,82 @@
+[
+  {
+    "id": "boss_01",
+    "kind": "boss",
+    "file": "/root/terra-chronicle-game/assets/generated/battle-visual-overhaul-20260615/boss_01.png"
+  },
+  {
+    "id": "boss_02",
+    "kind": "boss",
+    "file": "/root/terra-chronicle-game/assets/generated/battle-visual-overhaul-20260615/boss_02.png"
+  },
+  {
+    "id": "boss_03",
+    "kind": "boss",
+    "file": "/root/terra-chronicle-game/assets/generated/battle-visual-overhaul-20260615/boss_03.png"
+  },
+  {
+    "id": "boss_04",
+    "kind": "boss",
+    "file": "/root/terra-chronicle-game/assets/generated/battle-visual-overhaul-20260615/boss_04.png"
+  },
+  {
+    "id": "boss_05",
+    "kind": "boss",
+    "file": "/root/terra-chronicle-game/assets/generated/battle-visual-overhaul-20260615/boss_05.png"
+  },
+  {
+    "id": "route_01",
+    "kind": "route",
+    "file": "/root/terra-chronicle-game/assets/generated/battle-visual-overhaul-20260615/route_01.png"
+  },
+  {
+    "id": "route_02",
+    "kind": "route",
+    "file": "/root/terra-chronicle-game/assets/generated/battle-visual-overhaul-20260615/route_02.png"
+  },
+  {
+    "id": "route_03",
+    "kind": "route",
+    "file": "/root/terra-chronicle-game/assets/generated/battle-visual-overhaul-20260615/route_03.png"
+  },
+  {
+    "id": "route_04",
+    "kind": "route",
+    "file": "/root/terra-chronicle-game/assets/generated/battle-visual-overhaul-20260615/route_04.png"
+  },
+  {
+    "id": "route_05",
+    "kind": "route",
+    "file": "/root/terra-chronicle-game/assets/generated/battle-visual-overhaul-20260615/route_05.png"
+  },
+  {
+    "id": "card_frame_01",
+    "kind": "card_frame_existing",
+    "file": "/root/terra-chronicle-game/assets/generated/battle-visual-overhaul-20260615/card_frame_01.png"
+  },
+  {
+    "id": "card_frame_02",
+    "kind": "card_frame_existing",
+    "file": "/root/terra-chronicle-game/assets/generated/battle-visual-overhaul-20260615/card_frame_02.png"
+  },
+  {
+    "id": "card_frame_03",
+    "kind": "card_frame_existing",
+    "file": "/root/terra-chronicle-game/assets/generated/battle-visual-overhaul-20260615/card_frame_03.png"
+  },
+  {
+    "id": "card_frame_04",
+    "kind": "card_frame_existing",
+    "file": "/root/terra-chronicle-game/assets/generated/battle-visual-overhaul-20260615/card_frame_04.png"
+  },
+  {
+    "id": "card_frame_05",
+    "kind": "card_frame_existing",
+    "file": "/root/terra-chronicle-game/assets/generated/battle-visual-overhaul-20260615/card_frame_05.png"
+  },
+  {
+    "id": "card_frame_06",
+    "kind": "card_frame_existing",
+    "file": "/root/terra-chronicle-game/assets/generated/battle-visual-overhaul-20260615/card_frame_06.png"
+  }
+]

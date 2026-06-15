@@ -16,9 +16,9 @@ function injectStyle(){
     transition:opacity .45s cubic-bezier(.2,.8,.2,1);font-family:'Noto Serif SC',serif;color:#f4ecd8;overflow:hidden;
     background:url('assets/ui/dungeon_entrance_bg.jpg') center/cover,#100d12;}
   #dungeonMap::before{content:'';position:absolute;inset:0;background:
-    radial-gradient(circle at 50% 18%,rgba(196,124,255,.18),transparent 30%),
-    radial-gradient(circle at 18% 78%,rgba(236,183,82,.16),transparent 28%),
-    linear-gradient(180deg,rgba(8,6,12,.58),rgba(6,6,10,.92));backdrop-filter:blur(5px) saturate(1.1);}
+    radial-gradient(circle at 68% 24%,rgba(196,124,255,.22),transparent 30%),
+    radial-gradient(circle at 18% 78%,rgba(236,183,82,.2),transparent 30%),
+    linear-gradient(180deg,rgba(8,6,12,.42),rgba(6,6,10,.88));backdrop-filter:blur(3px) saturate(1.08);}
   #dungeonMap::after{content:'';position:absolute;inset:22px;border:1px solid rgba(244,208,117,.18);border-radius:30px;pointer-events:none;box-shadow:inset 0 0 90px rgba(0,0,0,.5);}
   #dungeonMap.on{display:block;opacity:1;animation:mapIn .55s cubic-bezier(.2,.9,.2,1);}
   @keyframes mapIn{0%{transform:scale(1.04);filter:blur(8px);opacity:0}100%{transform:scale(1);filter:blur(0);opacity:1}}
@@ -31,14 +31,17 @@ function injectStyle(){
   #dungeonMap .legend span{font-size:11px;letter-spacing:.12em;border:1px solid rgba(244,208,117,.24);border-radius:999px;padding:8px 12px;background:rgba(0,0,0,.24);backdrop-filter:blur(8px);}
   #dungeonMap .mapWrap{position:absolute;inset:28px 28px 28px 420px;z-index:1;display:grid;place-items:center;}
   #dungeonMap .mapCanvas{position:relative;width:min(760px,calc(100vw - 470px));height:min(650px,calc(100vh - 78px));min-width:460px;min-height:520px;
-    border-radius:34px;border:1px solid rgba(244,208,117,.22);background:
-    radial-gradient(circle at 50% 40%,rgba(244,208,117,.09),transparent 42%),linear-gradient(145deg,rgba(33,25,24,.48),rgba(11,10,15,.56));
+    border-radius:34px;border:1px solid rgba(244,208,117,.34);background:
+    radial-gradient(circle at 68% 25%,rgba(150,75,225,.18),transparent 28%),
+    radial-gradient(circle at 42% 58%,rgba(244,208,117,.12),transparent 42%),
+    linear-gradient(145deg,rgba(91,62,36,.58),rgba(28,20,22,.66) 52%,rgba(12,10,16,.74));
     box-shadow:0 28px 95px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.08);overflow:hidden;}
-  #dungeonMap .mapCanvas::before{content:'';position:absolute;inset:22px;border:1px dashed rgba(244,208,117,.12);border-radius:26px;}
-  #dungeonMap .path{position:absolute;height:3px;background:linear-gradient(90deg,transparent,rgba(166,111,255,.3),rgba(244,208,117,.8),transparent);
-    transform-origin:left center;box-shadow:0 0 16px rgba(244,208,117,.28);border-radius:999px;}
-  #dungeonMap .node{position:absolute;width:124px;height:124px;border-radius:28px;cursor:pointer;border:1px solid rgba(244,208,117,.45);
-    background:linear-gradient(155deg,rgba(255,239,198,.13),rgba(96,70,121,.1));box-shadow:0 18px 46px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.12);
+  #dungeonMap .mapCanvas::before{content:'';position:absolute;inset:18px;border:1px solid rgba(244,208,117,.18);border-radius:26px;background:
+    radial-gradient(circle at 25% 28%,rgba(255,226,158,.08),transparent 2px),radial-gradient(circle at 70% 38%,rgba(255,226,158,.08),transparent 2px),radial-gradient(circle at 56% 72%,rgba(166,111,255,.14),transparent 3px);}
+  #dungeonMap .path{position:absolute;height:3px;background:linear-gradient(90deg,transparent,rgba(166,111,255,.22),rgba(255,226,158,.68),rgba(244,208,117,.52),transparent);
+    transform-origin:left center;box-shadow:0 0 10px rgba(244,208,117,.18);border-radius:999px;opacity:.72;}
+  #dungeonMap .node{position:absolute;width:124px;height:124px;border-radius:28px;cursor:pointer;border:1px solid rgba(244,208,117,.58);
+    background:linear-gradient(155deg,rgba(83,52,28,.76),rgba(28,19,22,.78));box-shadow:0 18px 46px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,245,202,.16),inset 0 0 0 4px rgba(255,229,160,.05);
     display:flex;align-items:center;justify-content:center;transition:transform .28s ease,box-shadow .28s ease,border-color .28s ease;flex-direction:column;gap:7px;overflow:hidden;}
   #dungeonMap .node::before{content:'';position:absolute;inset:-45% -30% auto auto;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,rgba(244,208,117,.22),transparent 68%);}
   #dungeonMap .node:hover{transform:translateY(-8px) scale(1.04);border-color:#ffe0a0;box-shadow:0 28px 70px rgba(0,0,0,.58),0 0 32px rgba(244,208,117,.16);}
@@ -50,8 +53,9 @@ function injectStyle(){
   #dungeonMap .node.elite{border-radius:50% 22% 50% 22%;} #dungeonMap .node.rest{border-radius:50%;} #dungeonMap .node.boss{width:148px;height:148px;border-radius:36px;border-width:2px;}
   #dungeonMap .node .icon{position:relative;width:44px;height:44px;filter:drop-shadow(0 8px 18px rgba(0,0,0,.75));}
   #dungeonMap .node .emoji{position:relative;font-size:42px;line-height:1;filter:drop-shadow(0 8px 18px rgba(0,0,0,.75));}
-  #dungeonMap .node .label{position:relative;font-size:13px;letter-spacing:.18em;color:#fff0ce;font-weight:600;}
-  #dungeonMap .node .reward{position:relative;font-size:10px;letter-spacing:.1em;color:#cfb58b;opacity:.85;}
+  #dungeonMap .node .label{position:relative;font-size:15px;letter-spacing:.12em;color:#fff4d0;font-weight:800;text-shadow:0 2px 8px rgba(0,0,0,.75);}
+  #dungeonMap .node .reward{position:relative;font-size:11px;letter-spacing:.04em;color:#ffe2a8;opacity:1;text-align:center;max-width:108px;line-height:1.28;text-shadow:0 2px 8px rgba(0,0,0,.75);}
+  #dungeonMap .node.current::after{content:'可选';position:absolute;top:9px;right:10px;font-size:10px;letter-spacing:.12em;color:#2a1b0d;background:#f4d075;border-radius:999px;padding:3px 7px;box-shadow:0 3px 10px rgba(0,0,0,.36);}
   #dungeonMap .closeBtn{position:absolute;top:36px;right:42px;font-size:32px;cursor:pointer;color:#f6d99d;opacity:.72;transition:all .25s;
     width:46px;height:46px;display:grid;place-items:center;border-radius:50%;border:1px solid rgba(244,208,117,.28);background:rgba(0,0,0,.26);z-index:2;}
   #dungeonMap .closeBtn:hover{opacity:1;transform:scale(1.08);background:rgba(244,208,117,.14);box-shadow:0 0 24px rgba(244,208,117,.18);}

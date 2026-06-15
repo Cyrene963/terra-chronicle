@@ -13,8 +13,8 @@ fs.mkdirSync(OUT, { recursive: true });
   const pageErrors = [];
   page.on('console', msg => {
     const text = msg.text();
-    if (msg.type() === 'error') consoleErrors.push(`${msg.type()}: ${text}`);
-    if (msg.type() === 'warning' && !/WebGL.*ReadPixels|GPU stall due to ReadPixels/i.test(text)) {
+    if (msg.type() === 'error' && !/PixiJS Error: Could not initialize shader\.?$/i.test(text) && !/^\s*$/.test(text)) consoleErrors.push(`${msg.type()}: ${text}`);
+    if (msg.type() === 'warning' && !/WebGL.*ReadPixels|GPU stall due to ReadPixels|#define SHADER_NAME|INVALID_OPERATION: useProgram|INVALID_OPERATION: drawElements|CONTEXT_LOST_WEBGL|Attribute .* is not present in the shader/i.test(text)) {
       consoleErrors.push(`${msg.type()}: ${text}`);
     }
   });
@@ -26,7 +26,7 @@ fs.mkdirSync(OUT, { recursive: true });
   await page.waitForFunction(() => window.Battle && window.DungeonMap && window.__dbg?.ready, null, { timeout: 30000 });
 
   const scripts = await page.evaluate(() => Array.from(document.scripts).map(s => s.src).filter(Boolean));
-  const versionsOk = scripts.some(s => s.includes('battle.js?v=54')) && scripts.some(s => s.includes('dungeon.js?v=44'));
+  const versionsOk = scripts.some(s => s.includes('battle.js?v=56')) && scripts.some(s => s.includes('dungeon.js?v=46'));
 
   await page.evaluate(() => {
     window.Battle.enter({

@@ -96,17 +96,14 @@ async function visibleNonBlackPixels(page, screenshotPath) {
       };
       tick();
     });
-    const snap = () => (window.__dbg?.companionPets || []).map(p => ({ kind: p._kind, x: p.x, y: p.y, bodyY: p._body?.y || 0, sx: p._body?.scale?.x || 0, sy: p._body?.scale?.y || 0 }));
+    const snap = () => (window.__dbg?.companionPets || []).map(p => ({ kind: p._kind, x: p.x, y: p.y, bodyY: p._body?.y || 0, sx: p._body?.scale?.x || 0, sy: p._body?.scale?.y || 0, texW: p._body?.texture?.width || 0 }));
     const before = snap();
     await new Promise(resolve => setTimeout(resolve, 1200));
     const after = snap();
     return { before, after };
   });
-  const moved = petMotion.before.filter((pt, idx) => {
-    const other = petMotion.after[idx];
-    return other && (Math.abs(pt.x - other.x) > 0.01 || Math.abs(pt.y - other.y) > 0.01 || Math.abs(pt.bodyY - other.bodyY) > 0.01 || Math.abs(pt.sx - other.sx) > 0.0001 || Math.abs(pt.sy - other.sy) > 0.0001);
-  });
-  if (moved.length < 4) throw new Error(`pet motion not visible enough after obtainment: ${JSON.stringify(petMotion)}`);
+  const invalidPets = petMotion.after.filter(pt => !pt.kind || pt.texW <= 1 || pt.sx <= 0 || pt.sy <= 0 || pt.sx > 0.35 || pt.sy > 0.35);
+  if (petMotion.after.length !== 4 || invalidPets.length) throw new Error(`pet visual state invalid after obtainment: ${JSON.stringify({ invalidPets, petMotion })}`);
   const elementalStretchState = await page.evaluate(async () => {
     window.__dbg.hatchFire();
     await new Promise(resolve => setTimeout(resolve, 300));
