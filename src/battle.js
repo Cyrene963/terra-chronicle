@@ -161,6 +161,8 @@ function injectStyle(){
     border:1px solid rgba(218,176,91,.66);box-shadow:0 16px 34px rgba(0,0,0,.52),inset 0 0 0 1px rgba(255,240,196,.18);
     padding:14px 12px 12px;display:flex;flex-direction:column;color:#f9ecd0;text-shadow:0 2px 5px rgba(20,10,4,.75);
     transform-origin:bottom center;transition:transform .22s cubic-bezier(.2,.8,.2,1),box-shadow .22s;position:relative;}
+  #battle .card.playing{animation:cardPlay .34s cubic-bezier(.2,.8,.2,1) forwards;z-index:20;}
+  @keyframes cardPlay{0%{transform:translateY(0) scale(1) rotate(0deg)}40%{transform:translateY(-92px) scale(1.18) rotate(-2deg)}100%{transform:translateY(-28px) scale(.9) rotate(2deg);opacity:0}}
   #battle .card::after{content:'';position:absolute;inset:10px;border-radius:10px;border:1px solid rgba(91,58,32,.36);pointer-events:none;mix-blend-mode:multiply;}
   #battle .card:hover{transform:translateY(-26px) scale(1.07);box-shadow:0 28px 54px rgba(0,0,0,.64),0 0 26px rgba(218,176,91,.22);z-index:5;}
   #battle .card.atk{border-color:rgba(226,146,99,.78);} #battle .card.def{border-color:rgba(142,185,198,.78);} #battle .card.heal{border-color:rgba(150,203,136,.78);}
@@ -391,6 +393,7 @@ function startPlayerTurn(){
 function playCard(i, el){
   const c=S.hand[i]; if(!c||S.energy<c.cost||S.phase!=='player'||S.over) return;
   S.energy-=c.cost; S.discard.push(c); S.hand.splice(i,1);
+  if(el) el.classList.add('playing');
   if(window.TerraSound) TerraSound.play('whoosh', 0.8);
   S.playedTypes.push(c.type);
   if(hasAffix(c,'工坊精炼')&&!S.refinedUsed){ S.refinedUsed=true; S.energy=Math.min(S.energyMax,S.energy+1); floatNum('+1能量','#f4d03f', innerWidth/2, innerHeight-220); }
