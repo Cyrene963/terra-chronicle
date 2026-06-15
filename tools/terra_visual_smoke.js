@@ -39,21 +39,35 @@ async function visibleNonBlackPixels(page, screenshotPath) {
   page.on('console', msg => { if (badConsole(msg)) consoleErrors.push(`${msg.type()}: ${msg.text()}`); });
   page.on('pageerror', err => consoleErrors.push(`pageerror: ${err.message}`));
 
-  await page.goto('https://terra.bz9.me/?smoke=v39-visual', { waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.goto('https://terra.bz9.me/?smoke=v52-pets', { waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.waitForSelector('#enter', { timeout: 20000 });
   await page.waitForTimeout(1200);
   await page.screenshot({ path: path.join(OUT, '01_title.png'), fullPage: false });
 
   const scripts = await page.evaluate(() => [...document.scripts].map(s => s.src).filter(Boolean));
-  if (!scripts.some(src => src.includes('alchemy.js?v=38'))) throw new Error('public page did not load alchemy.js?v=38');
-  if (!scripts.some(src => src.includes('main.js?v=51'))) throw new Error('public page did not load main.js?v=51');
+  if (!scripts.some(src => src.includes('alchemy.js?v=39'))) throw new Error('public page did not load alchemy.js?v=39');
+  if (!scripts.some(src => src.includes('main.js?v=52'))) throw new Error('public page did not load main.js?v=52');
 
   await page.click('#enter');
   await page.waitForFunction(() => window.__dbg && window.__dbg.ready, null, { timeout: 12000 });
   await page.waitForTimeout(1800);
+  const petState = await page.evaluate(() => {
+    const required = ['beast_shrine_fox_spirit', 'beast_sacred_fawnling', 'beast_white_serpent_shrine', 'beast_deepsea_noble'];
+    const beastSpecies = (window.__dbg?.beasts || []).map(b => b.species);
+    const petKinds = (window.__dbg?.companionPets || []).map(p => p._kind);
+    return { required, beastSpecies, petKinds };
+  });
+  const missingPets = petState.required.filter(id => !petState.beastSpecies.includes(id) || !petState.petKinds.includes(id));
+  if (missingPets.length) throw new Error(`selected pets missing in game: ${JSON.stringify({ missingPets, petState })}`);
   const worldPath = path.join(OUT, '02_world.png');
   await page.screenshot({ path: worldPath, fullPage: false });
   const worldPixels = await visibleNonBlackPixels(page, worldPath);
+
+  await page.evaluate(() => {
+    const tx = 22, ty = 28;
+    window.__dbg.commandTo(tx * 64 + 32, ty * 64 + 32);
+  });
+  await page.waitForTimeout(1200);
 
   const evolutionState = await page.evaluate(() => {
     const farm = window.__dbg.farm;
@@ -72,9 +86,8 @@ async function visibleNonBlackPixels(page, screenshotPath) {
 
   await page.evaluate(() => {
     const farm = window.__dbg.farm;
-    farm.inventory.crops.starwheat = [
-      { originFertility: 92 }, { originFertility: 88 }, { originFertility: 91 }
-    ];
+    farm.inventory.crops.starwheat = [{ originFertility: 92 }, { originFertility: 88 }, { originFertility: 91 }];
+    farm.inventory.crops.dewberry = [{ originFertility: 95 }, { originFertility: 90 }, { originFertility: 93 }];
     farm.inventory.materials.wood = 2;
     window.updateDock && window.updateDock();
     window.Alchemy.open();
@@ -88,9 +101,36 @@ async function visibleNonBlackPixels(page, screenshotPath) {
   await page.click('#addWood');
   await page.click('#addWood');
   await page.click('#alchemyBrew');
-  await page.waitForSelector('#cardReveal.on', { timeout: 7000 });
-  await page.waitForTimeout(900);
+  await page.waitForTimeout(1800);
+  const firstCardName = await page.evaluate(() => document.querySelector('#cvName')?.textContent || '');
+  if (firstCardName !== '新芽守卫') throw new Error(`first card missing: ${firstCardName}`);
   await page.screenshot({ path: path.join(OUT, '04_card_reveal.png'), fullPage: false });
+
+  await page.evaluate(() => {
+    document.querySelector('#cardReveal')?.classList.remove('on');
+    window.Alchemy.close();
+    const farm = window.__dbg.farm;
+    farm.inventory.crops.dewberry = [{ originFertility: 96 }, { originFertility: 94 }, { originFertility: 91 }];
+    farm.inventory.materials.wood = 1;
+    window.Alchemy.open();
+  });
+  await page.waitForSelector('#alchemyUI.on', { timeout: 5000 });
+  await page.click('#addDewberry');
+  await page.click('#addDewberry');
+  await page.click('#addDewberry');
+  await page.click('#addWood');
+  await page.click('#alchemyBrew');
+  await page.waitForFunction(() => {
+    const cards = window.__dbg?.farm?.inventory?.cards || [];
+    const last = cards[cards.length - 1] || {};
+    return last.name === '河川祝福' && last.recipeId === 'card_river_blessing';
+  }, null, { timeout: 5000 });
+  const riverCard = await page.evaluate(() => {
+    const cards = window.__dbg.farm.inventory.cards || [];
+    const last = cards[cards.length - 1] || {};
+    return { name: last.name || '', recipeId: last.recipeId || '' };
+  });
+  if (riverCard.name !== '河川祝福' || riverCard.recipeId !== 'card_river_blessing') throw new Error(`river card missing: ${JSON.stringify(riverCard)}`);
 
   const result = await page.evaluate(() => ({
     titleVisible: !!document.querySelector('#title'),

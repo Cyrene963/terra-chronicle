@@ -40,8 +40,13 @@ const ASSETS = {
               bladesSrc: 'assets/sprites/windmill_blades.png', bladesW: 92, hubY: -0.74 },
   fence:    { src: 'assets/sprites/fence.png',       w: 66,  h: 53,  anchorY: 0.9 },
   crop:     { src: 'assets/sprites/crop.png',        w: 48,  h: 58,  anchorY: 1.0 },
+  crop_dewberry:{ src:'assets/sprites/crop_dewberry.png',w: 52, h: 56, anchorY: 1.0 },
   beast_water:{ src:'assets/sprites/beast_water.png',w: 82,  h: 88,  anchorY: 0.88 },
   beast_fire:{ src:'assets/sprites/beast_fire.png', w: 58,  h: 66,  anchorY: 0.86 },
+  beast_shrine_fox_spirit:{ src:'assets/sprites/beast_shrine_fox_spirit.png', w: 80, h: 82, anchorY: 0.88 },
+  beast_sacred_fawnling:{ src:'assets/sprites/beast_sacred_fawnling.png', w: 78, h: 82, anchorY: 0.90 },
+  beast_white_serpent_shrine:{ src:'assets/sprites/beast_white_serpent_shrine.png', w: 84, h: 88, anchorY: 0.90 },
+  beast_deepsea_noble:{ src:'assets/sprites/beast_deepsea_noble.png', w: 80, h: 86, anchorY: 0.88 },
   portal:   { src: 'assets/sprites/portal.png',      w: 120, h: 132, anchorY: 0.92, collideR: 26 },
   incubator:{ src: 'assets/sprites/incubator.png',   w: 96,  h: 104, anchorY: 0.92, collideR: 30 },
   furnace:  { src: 'assets/sprites/furnace.png',     w: 104, h: 96,  anchorY: 0.92, collideR: 30 },
@@ -1133,7 +1138,7 @@ app.ticker.add(tk=>{
   for(const key in planted){ const pc=planted[key];
     if(!pc.mature){ pc.grown=(pc.grown||0)+dt*timeScale*(pc.boost?1.8:1);
       if(pc.grown>=GROW_SECONDS) pc.mature=true; } }
-  if(entered){ updateEcology(dt); beastStep(dt); stepWaterDrops(dt); stepTrails(dt); fireStep(dt); stepEmbers(dt);
+  if(entered){ updateEcology(dt); beastStep(dt); stepWaterDrops(dt); stepTrails(dt); fireStep(dt); stepEmbers(dt); stepCompanionPets(dt);
     if(chopLoop.obj){ const o=chopLoop.obj;
       if(o.felled||staminaUsed>=6) chopLoop.obj=null;
       else if(Math.hypot(o.node.x-player.x,o.node.y-player.y)>100) chopLoop.obj=null;
@@ -1271,6 +1276,18 @@ function normalizeBeasts(){
   if(!farm.beasts.some(b=>b.species==='water_spirit')){
     farm.beasts.unshift({id:'water_spirit_starter',species:'water_spirit',element:'water',level:1,xp:0,stamina:100,evolution:{diet:{},laborHistory:{}},assignment:'irrigate'});
   }
+  if(!farm.beasts.some(b=>b.species==='beast_shrine_fox_spirit')){
+    farm.beasts.push({id:'shrine_fox_spirit_companion',species:'beast_shrine_fox_spirit',element:'spirit',level:1,xp:0,stamina:100,evolution:{diet:{},laborHistory:{}},assignment:'idle'});
+  }
+  if(!farm.beasts.some(b=>b.species==='beast_sacred_fawnling')){
+    farm.beasts.push({id:'sacred_fawnling_companion',species:'beast_sacred_fawnling',element:'earth',level:1,xp:0,stamina:100,evolution:{diet:{},laborHistory:{}},assignment:'idle'});
+  }
+  if(!farm.beasts.some(b=>b.species==='beast_white_serpent_shrine')){
+    farm.beasts.push({id:'white_serpent_companion',species:'beast_white_serpent_shrine',element:'water',level:1,xp:0,stamina:100,evolution:{diet:{},laborHistory:{}},assignment:'idle'});
+  }
+  if(!farm.beasts.some(b=>b.species==='beast_deepsea_noble')){
+    farm.beasts.push({id:'deepsea_noble_companion',species:'beast_deepsea_noble',element:'water',level:1,xp:0,stamina:100,evolution:{diet:{},laborHistory:{}},assignment:'idle'});
+  }
   const seen=new Set();
   farm.beasts=farm.beasts.filter(b=>{
     const key=b.species;
@@ -1367,12 +1384,14 @@ function interactFarm(key){
   if(!pc){                                        // 播种
     if(staminaUsed>=6){ toastHint('体力耗尽 · 待明日恢复'); return; }
     staminaUsed++; syncLeaves();
-    const c=makeNode('crop');
+    const meta=tileMeta[key];
+    const species=(meta.moist>=72 || meta.mana>=72)?'dewberry':'starwheat';
+    const c=makeNode(species==='dewberry'?'crop_dewberry':'crop');
     const [tx,ty]=key.split(',').map(Number);
     c.x=tx*TS+TS/2; c.y=ty*TS+TS/2+16; c._shadow.visible=false; c.scale.set(.32);
     overlayL.addChild(c); crops.push(c);
-    planted[key]={node:c, grown:0, mature:false, watered:false, boost:false, species:'starwheat'};
-    toastHint('播种 星麦 · 静待生长');
+    planted[key]={node:c, grown:0, mature:false, watered:false, boost:false, species};
+    toastHint(`播种 ${species==='dewberry'?'露莓':'星麦'} · 静待生长`);
   } else if(pc.mature){                           // 收获:质量继承土壤四维与灵兽灌溉
     const meta=tileMeta[key];
     const q=calcHarvestQuality(meta, pc);
@@ -1380,8 +1399,8 @@ function interactFarm(key){
     const bonus=farm.upgrades?.includes('farmland_2') ? 1 : 0;
     const total=1+bonus;
     for(let i=0;i<total;i++){
-      (farm.inventory.crops.starwheat ??= []).push({
-        species:'starwheat', quality:+(q/100).toFixed(2), originFertility:q,
+      (farm.inventory.crops[pc.species] ??= []).push({
+        species:pc.species, quality:+(q/100).toFixed(2), originFertility:q,
         grade:pc.grade, watered:!!pc.watered,
         soil:{fert:meta.fert,moist:meta.moist,pest:meta.pest,mana:meta.mana} });
     }
@@ -1398,6 +1417,31 @@ function calcHarvestQuality(meta, pc){
   return Math.round(Math.max(35, Math.min(110, raw)));
 }
 function harvestGrade(q){ return q>=92?'灵脉':q>=80?'珍品':q>=65?'良品':'粗麦'; }
+const companionPets=[];
+function spawnCompanionPet(kind, tx, ty, phase=0){
+  const node=makeNode(kind);
+  node.x=tx*TS+TS/2; node.y=ty*TS+TS/2; node.zIndex=node.y;
+  node._petBaseY=node.y; node._petPhase=phase; node._shadow.alpha=.18;
+  objL.addChild(node); companionPets.push(node);
+  return node;
+}
+spawnCompanionPet('beast_shrine_fox_spirit', 18.6, 30.7, 0.1);
+spawnCompanionPet('beast_sacred_fawnling', 19.8, 31.2, 1.4);
+spawnCompanionPet('beast_white_serpent_shrine', 16.4, 30.6, 2.1);
+spawnCompanionPet('beast_deepsea_noble', 28.2, 31.1, 2.8);
+function stepCompanionPets(dt){
+  for(const p of companionPets){
+    p._petPhase+=dt*2.2;
+    p.y=p._petBaseY+Math.sin(p._petPhase)*3.2;
+    p.zIndex=p.y;
+    if(p._body){
+      if(p._bw===undefined && p._body.texture && p._body.texture.width>1){ p._bw=p._body.scale.x; p._bh=p._body.scale.y; }
+      const bw=p._bw||p._body.scale.x||1, bh=p._bh||p._body.scale.y||1;
+      const br=Math.sin(p._petPhase)*0.025;
+      p._body.scale.set(bw*(1-br), bh*(1+br));
+    }
+  }
+}
 function interact(){                              // 空格:在当前位置就近交互
   const key=playerTileKey();
   if(tileMeta[key]){ interactFarm(key); return; }
@@ -1416,7 +1460,8 @@ function updateHint(){
   if(tileMeta[key]){
     const pc=planted[key];
     if(pc&&pc.mature){ const q=calcHarvestQuality(tileMeta[key],pc); pc.grade=harvestGrade(q); }
-    txt.textContent = !pc? '播种 · 体力×1' : pc.mature? `收获${pc.grade||'成熟'}星麦` : (pc.watered?'已灌溉 · 成长加速':'成长中 · 等待灌溉');
+    const cropName=pc?.species==='dewberry'?'露莓':'星麦';
+    txt.textContent = !pc? '播种 · 体力×1' : pc.mature? `收获${pc.grade||'成熟'}${cropName}` : (pc.watered?'已灌溉 · 成长加速':'成长中 · 等待灌溉');
     el.style.opacity = (!pc||pc.mature)? 1 : .55;
     return;
   }
@@ -1491,7 +1536,7 @@ $('enter').onclick=enterWorld;
 window.__dbg={app,world,groundL,waterL,snowL,overlayL,objL,fxScreen,player,cam,beast,beastAI,
   seasonFilter, findPath, planted, commandTo, interactFarm, enterWorld,
   beastStep, get ecology(){return ecoState}, get quality(){return quality}, get fps(){return fpsLast}, get fireBeast(){return fireBeast}, get forgeHot(){return forgeHot}, openBreed,
-  get beasts(){return farm.beasts},
+  get beasts(){return farm.beasts}, get companionPets(){return companionPets},
   get ready(){return entered && !!app?.renderer && app.screen.width>0 && app.screen.height>0},
   get farm(){return Terra.farm},
   get scripts(){return [...document.scripts].map(s=>s.src).filter(Boolean)},
