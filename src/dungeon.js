@@ -209,6 +209,14 @@ function selectNode(node){
           const f=window.Terra.farm;
           for(const [k,v] of Object.entries(loot)){
             if(k==='buff') continue;
+            if(k==='beast'){
+              f.beasts ??= [];
+              const id=`${v.species||'beast'}_${Date.now().toString(36)}`;
+              f.beasts.push({id,...v,stamina:100,xp:0,evolution:{diet:{},laborHistory:{}}});
+              if(window.normalizeBeasts) window.normalizeBeasts();
+              if(window.updateBeastRosterUI) window.updateBeastRosterUI();
+              continue;
+            }
             f.inventory.materials[k]=(f.inventory.materials[k]||0)+v;
           }
           window.Terra.save();

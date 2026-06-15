@@ -529,7 +529,8 @@ function rewardChoices(){
     {name:'污染种子', loot:{blight_seed:1}, desc:'灵兽孵化与后续防御科技材料'},
     {name:'深渊活力', loot:{buff:{id:'abyss_vigor',hpMax:8,fights:2}}, desc:'临时祝福:接下来 2 场战斗生命上限 +8'},
     {name:'余烬专注', loot:{buff:{id:'ember_focus',energyFirstTurn:1,fights:1}}, desc:'临时祝福:下一场战斗开局额外 +1 能量'},
-    {name:'远征木箱', loot:{wood:4}, desc:'直接补足锻造与农场扩建木材'}
+    {name:'远征木箱', loot:{wood:4}, desc:'直接补足锻造与农场扩建木材'},
+    {name:'驯化春露兽', loot:{beast:{species:'spring_drop',element:'water',level:1,assignment:'irrigate'}}, desc:'捕获一只水系灵兽幼体，回到农场后自动加入巡田灌溉'}
   ];
   if(cb?.isElite) base.push({name:'精英残响', loot:{beast_soul:1, blight_seed:1, buff:{id:'root_guard',shield:6,fights:2}}, desc:'双资源 + 临时祝福:接下来 2 场开局护甲 +6'});
   if(cb?.isBoss) base.push({name:'深渊核心', loot:{beast_soul:2, blight_seed:2}, desc:'Boss 战利品,可连续推动工坊升级'});
@@ -540,6 +541,13 @@ function pickReward(loot){
   if(!S||!S.over) return;
   S._loot=loot;
   exit();
+}
+function pickRewardByName(name){
+  if(!S||!S.over) return false;
+  const reward=rewardChoices().find(r=>r.name===name || r.name.includes(name));
+  if(!reward) return false;
+  pickReward(reward.loot);
+  return true;
 }
 
 function finish(win){
@@ -568,12 +576,12 @@ function finish(win){
 }
 function exit(){
   if(!Battle.active) return;
-  const win=S?S._win:false, c=cb;
+  const win=S?S._win:false, loot=S?S._loot||{}:{}, c=cb;
   Battle.active=false; cb=null; stopMiasma();
   fadeToBlack(()=>{
     root.classList.remove('on');
     setTimeout(()=>{ root.style.display='none'; S=null; fadeFromBlack(); }, 200);
-    if(win&&c&&c.onWin) c.onWin(S?S._loot||{}:{});
+    if(win&&c&&c.onWin) c.onWin(loot);
     else if(!win&&c&&c.onLose) c.onLose();
   });
 }
@@ -605,6 +613,7 @@ const Battle={
       startMiasma();
     });
   },
+  pickRewardByName,
 };
 window.Battle=Battle;
 })();

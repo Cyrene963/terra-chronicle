@@ -26,7 +26,7 @@ fs.mkdirSync(OUT, { recursive: true });
   await page.waitForFunction(() => window.Battle && window.DungeonMap && window.__dbg?.ready, null, { timeout: 30000 });
 
   const scripts = await page.evaluate(() => Array.from(document.scripts).map(s => s.src).filter(Boolean));
-  const versionsOk = scripts.some(s => s.includes('battle.js?v=52')) && scripts.some(s => s.includes('dungeon.js?v=42'));
+  const versionsOk = scripts.some(s => s.includes('battle.js?v=54')) && scripts.some(s => s.includes('dungeon.js?v=43'));
 
   await page.evaluate(() => {
     window.Battle.enter({
@@ -94,8 +94,56 @@ fs.mkdirSync(OUT, { recursive: true });
   }));
   if (!dungeonState.hasSpecificPreview) throw new Error('dungeon reward preview missing');
 
+  const capturePage = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
+  capturePage.on('console', msg => {
+    const text = msg.text();
+    if (msg.type() === 'error') consoleErrors.push(`${msg.type()}: ${text}`);
+  });
+  capturePage.on('pageerror', err => pageErrors.push(err.stack || String(err)));
+  await capturePage.goto('https://terra.bz9.me/?v=54-capture-smoke', { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await capturePage.waitForSelector('#enter', { timeout: 20000 });
+  await capturePage.click('#enter');
+  await capturePage.waitForFunction(() => window.Battle && window.__dbg?.ready, null, { timeout: 30000 });
+  await capturePage.evaluate(() => {
+    window.Battle.enter({
+      deck: [{ name: '划击', type: 'atk', val: 60, cost: 0, desc: '测试秒杀' }],
+      debugHand: [{ name: '划击', type: 'atk', val: 60, cost: 0, desc: '测试秒杀' }],
+      onWin(loot) {
+        window.__captureLoot = loot;
+        const f = window.Terra.farm;
+        if (loot?.beast) {
+          f.beasts ??= [];
+          f.beasts.push({ id: `smoke_${Date.now()}`, ...loot.beast, stamina: 100, xp: 0, evolution: { diet: {}, laborHistory: {} } });
+          window.normalizeBeasts?.();
+          window.updateBeastRosterUI?.();
+          window.Terra.save();
+        }
+      },
+      onLose() {}
+    });
+  });
+  await capturePage.waitForSelector('#battle.on .card', { timeout: 30000 });
+  await capturePage.click('#battle .card');
+  await capturePage.waitForSelector('#battle .result.on .rewardChoice', { timeout: 30000 });
+  const captureRewardTexts = await capturePage.evaluate(() => Array.from(document.querySelectorAll('#battle .rewardChoice')).map(el => el.textContent.trim()));
+  await capturePage.evaluate(() => {
+    if (!window.Battle.pickRewardByName('驯化春露兽')) throw new Error('capture reward missing');
+  });
+  await capturePage.waitForTimeout(1200);
+  const captureState = await capturePage.evaluate(() => ({
+    rewardTexts: window.__captureRewardTexts || [],
+    captureLoot: window.__captureLoot || null,
+    waterBeasts: window.Terra.farm.beasts.filter(b => b.element === 'water' || b.species === 'water_spirit' || b.species === 'spring_drop').length,
+    beastName: document.querySelector('#beastName')?.textContent || '',
+    savedBeasts: JSON.parse(localStorage.getItem('terra_farm') || '{}').beasts?.filter(b => b.element === 'water' || b.species === 'water_spirit' || b.species === 'spring_drop').length || 0,
+  }));
+  if (captureState.waterBeasts < 2 || captureState.savedBeasts < 2 || !captureState.beastName.includes('春露兽群')) {
+    throw new Error(`capture loop failed: ${JSON.stringify({...captureState, captureRewardTexts})}`);
+  }
+  await capturePage.close();
+
   await browser.close();
-  const report = { ok: consoleErrors.length === 0 && pageErrors.length === 0, versionsOk, battleState, dungeonState, consoleErrors, pageErrors, outDir: OUT };
+  const report = { ok: consoleErrors.length === 0 && pageErrors.length === 0, versionsOk, battleState, dungeonState, captureState, consoleErrors, pageErrors, outDir: OUT };
   fs.writeFileSync(path.join(OUT, 'report.json'), JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));
   if (!report.ok || !versionsOk) process.exit(1);

@@ -1271,6 +1271,7 @@ function normalizeBeasts(){
     seen.add(key); return true;
   });
 }
+window.normalizeBeasts=normalizeBeasts;
 normalizeBeasts();
 const beastBySpecies=species=>farm.beasts.find(b=>b.species===species);
 const beastLevel=species=>beastBySpecies(species)?.level||1;
@@ -1431,6 +1432,13 @@ updateDock();
 /* 灵兽状态面板 */
 const BEAST_STATE={idle:'闲逛中 …',seek:'前往灌溉 …',water:'正在浇水 …'};
 function setBeastStatus(s){ const el=$('beastState'); if(el) el.textContent=`水灵兽 Lv.${beastLevel('water_spirit')} · ${BEAST_STATE[s]||'—'}`; }
+function updateBeastRosterUI(){
+  const named=$('beastName'); if(!named) return;
+  const waterCount=farm.beasts.filter(b=>b.element==='water' || b.species==='water_spirit' || b.species==='spring_drop').length;
+  named.textContent=waterCount>1?`春露兽群 · ${waterCount} 只`:'水灵兽 · 未名';
+}
+window.updateBeastRosterUI=updateBeastRosterUI;
+updateBeastRosterUI();
 setBeastStatus('idle');
 
 /* ================= 12. 标题 → 世界 转场 ================= */
