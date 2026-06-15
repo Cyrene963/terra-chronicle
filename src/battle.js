@@ -157,9 +157,9 @@ function injectStyle(){
   #battle .hand{position:absolute;bottom:96px;left:0;right:0;height:210px;display:flex;align-items:flex-end;
     justify-content:center;gap:-10px;pointer-events:none;}
   #battle .card{width:132px;height:188px;margin:0 -6px;border-radius:12px;cursor:pointer;pointer-events:auto;
-    background:linear-gradient(180deg,rgba(55,38,24,.22),rgba(16,12,16,.48)),url('assets/concept/card_template.png') center/100% 100% no-repeat;
-    border:1px solid rgba(218,176,91,.66);box-shadow:0 16px 34px rgba(0,0,0,.52),inset 0 0 0 1px rgba(255,240,196,.18);
-    padding:14px 12px 12px;display:flex;flex-direction:column;color:#f9ecd0;text-shadow:0 2px 5px rgba(20,10,4,.75);
+    background:linear-gradient(180deg,rgba(67,47,28,.16),rgba(17,12,13,.34)),url('assets/concept/card_template.png') center/100% 100% no-repeat;
+    border:1px solid rgba(218,176,91,.72);box-shadow:0 16px 34px rgba(0,0,0,.52),inset 0 0 0 1px rgba(255,240,196,.18);
+    padding:12px 10px 10px;display:flex;flex-direction:column;color:#f9ecd0;text-shadow:0 2px 5px rgba(20,10,4,.75);
     transform-origin:bottom center;transition:transform .22s cubic-bezier(.2,.8,.2,1),box-shadow .22s;position:relative;}
   #battle .card.playing{animation:cardPlay .34s cubic-bezier(.2,.8,.2,1) forwards;z-index:20;}
   @keyframes cardPlay{0%{transform:translateY(0) scale(1) rotate(0deg)}40%{transform:translateY(-92px) scale(1.18) rotate(-2deg)}100%{transform:translateY(-28px) scale(.9) rotate(2deg);opacity:0}}
@@ -169,12 +169,14 @@ function injectStyle(){
   #battle .card.disabled{filter:grayscale(.7) brightness(.6);cursor:default;}
   #battle .card .cost{position:absolute;top:-9px;left:-9px;width:34px;height:34px;border-radius:50%;
     background:radial-gradient(circle at 38% 30%,#fff0b8,#c99b45 62%,#75542a);color:#2b2417;display:flex;align-items:center;
-    justify-content:center;font-family:'Cormorant Garamond',serif;font-size:17px;border:1px solid rgba(255,236,174,.75);box-shadow:0 3px 12px rgba(0,0,0,.55),0 0 16px rgba(201,162,75,.24);}
-  #battle .card .cname{font-size:14px;letter-spacing:.12em;text-align:center;margin-top:7px;color:#ffe3a7;font-weight:600;}
-  #battle .card .cart{flex:1;margin:9px 5px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:28px;
-    color:#f5d48c;background:radial-gradient(circle at 50% 35%,rgba(246,220,145,.18),rgba(63,36,22,.5) 64%,rgba(21,12,10,.72));
-    border:1px solid rgba(220,175,91,.3);box-shadow:inset 0 0 22px rgba(0,0,0,.34);}
-  #battle .card .cdesc{font-size:10.5px;line-height:1.42;text-align:center;opacity:.92;letter-spacing:.035em;background:rgba(30,18,10,.38);border-radius:8px;padding:5px 6px;}
+    justify-content:center;font-family:'Cormorant Garamond',serif;font-size:17px;border:1px solid rgba(255,236,174,.75);box-shadow:0 3px 12px rgba(0,0,0,.55),0 0 16px rgba(201,162,75,.24);z-index:2;}
+  #battle .card .cname{font-size:12px;letter-spacing:.08em;text-align:center;margin:4px 13px 7px;color:#4a2f16;font-weight:700;
+    background:linear-gradient(180deg,rgba(248,222,165,.92),rgba(209,156,80,.76));border:1px solid rgba(102,61,28,.45);border-radius:999px;padding:3px 5px;text-shadow:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #battle .card .cart{height:66px;margin:0 5px 6px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:28px;
+    color:#f5d48c;background:radial-gradient(circle at 50% 35%,rgba(246,220,145,.22),rgba(63,36,22,.5) 64%,rgba(21,12,10,.72));
+    border:1px solid rgba(220,175,91,.42);box-shadow:inset 0 0 22px rgba(0,0,0,.34),0 0 10px rgba(201,162,75,.1);}
+  #battle .card .ctype{font-size:8.5px;letter-spacing:.16em;text-align:center;color:#c58a45;opacity:.96;margin:0 0 4px;text-shadow:0 1px 3px rgba(0,0,0,.45);}
+  #battle .card .cdesc{font-size:9.6px;line-height:1.34;text-align:center;opacity:.96;letter-spacing:.02em;background:rgba(245,218,166,.18);border:1px solid rgba(229,185,105,.16);border-radius:8px;padding:5px 5px;color:#f8e8c8;min-height:34px;}
   #battle .topbar{position:absolute;top:22px;left:0;right:0;text-align:center;}
   #battle .topbar .t{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:15px;letter-spacing:.3em;opacity:.7;}
   #battle .buffline{margin-top:8px;font-size:11px;letter-spacing:.18em;color:#f4d03f;opacity:.82;text-shadow:0 2px 8px rgba(0,0,0,.7);}
@@ -372,8 +374,9 @@ function render(){
     const playable = S.turn>0 && !S.over && S.phase==='player' && S.energy>=c.cost;
     const el=$('div','card '+c.type+(playable?'':' disabled'),hand);
     const icon=c.type==='atk'?'刃':c.type==='heal'?'芽':'盾';
+    const typeLabel=c.type==='atk'?'ATTACK · EARTH':c.type==='heal'?'HEAL · SPROUT':'GUARD · ROOT';
     el.innerHTML=`<div class="cost">${c.cost}</div><div class="cname">${c.name}</div>
-      <div class="cart">${icon}</div><div class="cdesc">${c.desc}</div>`;
+      <div class="cart">${icon}</div><div class="ctype">${typeLabel}</div><div class="cdesc">${c.desc}</div>`;
     if(playable) el.onclick=(ev)=>playCard(i, ev.currentTarget);
   });
 }
