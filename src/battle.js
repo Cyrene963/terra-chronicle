@@ -165,6 +165,7 @@ function injectStyle(){
   #battle .card .cdesc{font-size:10.5px;line-height:1.42;text-align:center;opacity:.92;letter-spacing:.035em;background:rgba(30,18,10,.38);border-radius:8px;padding:5px 6px;}
   #battle .topbar{position:absolute;top:22px;left:0;right:0;text-align:center;}
   #battle .topbar .t{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:15px;letter-spacing:.3em;opacity:.7;}
+  #battle .buffline{margin-top:8px;font-size:11px;letter-spacing:.18em;color:#f4d03f;opacity:.82;text-shadow:0 2px 8px rgba(0,0,0,.7);}
   #battle .deckcount{position:absolute;bottom:104px;font-size:11px;letter-spacing:.2em;opacity:.55;}
   #battle .deckcount.draw{left:34px;} #battle .deckcount.disc{right:34px;}
   #battle .result{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;
@@ -191,7 +192,7 @@ function buildDOM(){
   root=document.createElement('div'); root.id='battle';
   root.innerHTML=`
     <div class="arena">
-      <div class="topbar"><div class="t" id="b_turn">深渊副本 · 第 1 回合</div></div>
+      <div class="topbar"><div class="t" id="b_turn">深渊副本 · 第 1 回合</div><div class="buffline" id="b_buffs"></div></div>
       <div class="enemyZone">
         <div class="enemy" id="b_enemy">
           <div class="ename" id="b_ename">污染木灵</div>
@@ -282,6 +283,24 @@ function stopMiasma(){ if(miasmaTimer){ clearInterval(miasmaTimer); miasmaTimer=
 function elemName(e){ return ({earth:'土',fire:'火',metal:'金',light:'光',water:'水'})[e]||e||'—'; }
 function hasAffix(c, name){ return (c.affixes||[]).includes(name); }
 function cardTag(c){ return c.archetype||'plain'; }
+function buffName(b){ return ({
+  abyss_vigor:'深渊活力',
+  ember_focus:'余烬专注',
+  root_guard:'根甲护佑'
+})[b?.id]||b?.name||'未知祝福'; }
+function applyRunBuffs(){
+  const buffs=Array.isArray(cb?.buffs)?cb.buffs:[];
+  S.runBuffs=buffs.map(b=>({ ...b }));
+  buffs.forEach(b=>{
+    if(b.id==='abyss_vigor'){
+      S.pMax+=b.hpMax||8; S.pHP+=b.hpMax||8;
+    } else if(b.id==='ember_focus'){
+      S.energyMax+=b.energyMax||1; S.energy+=b.energyFirstTurn||1;
+    } else if(b.id==='root_guard'){
+      S.startShield=(S.startShield||0)+(b.shield||6);
+    }
+  });
+}
 function spawnSlashes(){                                 // 在敌人身上划出 2-3 道斜斩剑气
   const img=root.querySelector('#b_eimg'); if(!img) return;
   const r=img.getBoundingClientRect();
@@ -302,6 +321,8 @@ function chromaticAberration(){                          // 全屏色差畸变 0
 function render(){
   const r=id=>root.querySelector(id);
   r('#b_turn').textContent=`深渊副本 · 第 ${S.turn} 回合`;
+  const buffEl=r('#b_buffs');
+  if(buffEl) buffEl.textContent=(S.runBuffs||[]).length?`远征祝福 · ${(S.runBuffs||[]).map(buffName).join(' / ')}`:'';
   r('#b_ehpbar').style.transform=`scaleX(${Math.max(0,S.enemy.hp/S.enemy.max)})`;
   r('#b_ehptxt').textContent=`${Math.max(0,S.enemy.hp)} / ${S.enemy.max}`;
   const it=S.enemy.intent, iEl=r('#b_intent');
@@ -339,7 +360,7 @@ function drawCards(n){
   }
 }
 function startPlayerTurn(){
-  S.phase='player'; S.energy=Math.max(2,S.energyMax-(S.energyPenalty||0)); S.energyPenalty=0; S.shield=0;
+  S.phase='player'; S.energy=Math.max(2,S.energyMax-(S.energyPenalty||0)); S.energyPenalty=0; S.shield=(S.turn===1?(S.startShield||0):0)+(S.startShieldCarry||0);
   S.playedTypes=[]; S.refinedUsed=false;
   S.enemy.intent=S.enemy.intent||intentFor(S.turn,S.enemy);
   drawCards(5); render();
@@ -419,10 +440,11 @@ function endTurn(){
 function rewardChoices(){
   const base=[
     {name:'污染种子', loot:{blight_seed:1}, desc:'灵兽孵化与后续防御科技材料'},
-    {name:'灵兽灵魂', loot:{beast_soul:1}, desc:'升级工坊、进化灵兽的核心资源'},
+    {name:'深渊活力', loot:{buff:{id:'abyss_vigor',hpMax:8,fights:2}}, desc:'临时祝福:接下来 2 场战斗生命上限 +8'},
+    {name:'余烬专注', loot:{buff:{id:'ember_focus',energyFirstTurn:1,fights:1}}, desc:'临时祝福:下一场战斗开局额外 +1 能量'},
     {name:'远征木箱', loot:{wood:4}, desc:'直接补足锻造与农场扩建木材'}
   ];
-  if(cb?.isElite) base.push({name:'精英残响', loot:{beast_soul:1, blight_seed:1}, desc:'少量双资源,更快进入升级路线'});
+  if(cb?.isElite) base.push({name:'精英残响', loot:{beast_soul:1, blight_seed:1, buff:{id:'root_guard',shield:6,fights:2}}, desc:'双资源 + 临时祝福:接下来 2 场开局护甲 +6'});
   if(cb?.isBoss) base.push({name:'深渊核心', loot:{beast_soul:2, blight_seed:2}, desc:'Boss 战利品,可连续推动工坊升级'});
   return base;
 }
@@ -482,6 +504,7 @@ const Battle={
       S.enemy.intent=intentFor(1,S.enemy);
       if(cb.isBoss){ S.pMax=80; S.pHP=80; S.enemy.max=S.enemy.hp=90; }
       else if(cb.isElite){ S.enemy.max=S.enemy.hp=70; }
+      applyRunBuffs();
       root.style.display='block'; root.querySelector('#b_result').classList.remove('on');
       const ar=root.querySelector('.arena'); if(ar) ar.style.transform='';
       requestAnimationFrame(()=>{

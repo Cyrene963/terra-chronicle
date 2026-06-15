@@ -26,7 +26,7 @@ fs.mkdirSync(OUT, { recursive: true });
   await page.waitForFunction(() => window.Battle && window.DungeonMap && window.__dbg?.ready, null, { timeout: 30000 });
 
   const scripts = await page.evaluate(() => Array.from(document.scripts).map(s => s.src).filter(Boolean));
-  const versionsOk = scripts.some(s => s.includes('battle.js?v=40')) && scripts.some(s => s.includes('dungeon.js?v=40'));
+  const versionsOk = scripts.some(s => s.includes('battle.js?v=41')) && scripts.some(s => s.includes('dungeon.js?v=41'));
 
   await page.evaluate(() => {
     window.Battle.enter({
@@ -34,6 +34,7 @@ fs.mkdirSync(OUT, { recursive: true });
         { name: '测试新芽', atk: 8, def: 14, heal: 0, element: 'earth', quality: 0.86, affixes: ['同季共鸣'], archetype: 'sprout', effectText: '验证实体卡样式' }
       ],
       isElite: true,
+      buffs: [{ id: 'abyss_vigor', hpMax: 8, fights: 2 }, { id: 'ember_focus', energyFirstTurn: 1, fights: 1 }, { id: 'root_guard', shield: 6, fights: 2 }],
       onWin() {},
       onLose() {}
     });
@@ -49,10 +50,16 @@ fs.mkdirSync(OUT, { recursive: true });
       cardCount: document.querySelectorAll('#battle .card').length,
       cardBackground: style?.backgroundImage || '',
       cardText: card?.innerText || '',
+      hpText: document.querySelector('#b_vnum')?.textContent || '',
+      energy: document.querySelector('#b_orb')?.textContent || '',
+      buffLine: document.querySelector('#b_buffs')?.textContent || '',
       rewardVisible: !!rewardCard
     };
   });
   if (!battleState.cardBackground.includes('card_template.png')) throw new Error('battle card template not applied');
+  if (!battleState.hpText.includes('68') || battleState.energy !== '4' || !battleState.buffLine.includes('深渊活力')) {
+    throw new Error(`battle buffs not applied: ${JSON.stringify(battleState)}`);
+  }
 
   await page.evaluate(() => {
     const battle = document.querySelector('#battle');
@@ -64,7 +71,7 @@ fs.mkdirSync(OUT, { recursive: true });
   const dungeonState = await page.evaluate(() => ({
     active: !!document.querySelector('#dungeonMap.on'),
     rewards: Array.from(document.querySelectorAll('#dungeonMap .node .reward')).map(e => e.textContent.trim()),
-    hasSpecificPreview: Array.from(document.querySelectorAll('#dungeonMap .node .reward')).some(e => e.textContent.includes('污染种子') || e.textContent.includes('深渊核心'))
+    hasSpecificPreview: Array.from(document.querySelectorAll('#dungeonMap .node .reward')).some(e => e.textContent.includes('临时祝福') || e.textContent.includes('根甲护佑') || e.textContent.includes('深渊核心'))
   }));
   if (!dungeonState.hasSpecificPreview) throw new Error('dungeon reward preview missing');
 

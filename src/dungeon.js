@@ -7,7 +7,7 @@
 (function(){
 const $=(t,c,p)=>{const e=document.createElement(t);if(c)e.className=c;if(p)p.appendChild(e);return e;};
 
-let root=null, injected=false, mapData=null, progress={floor:0,path:[]};
+let root=null, injected=false, mapData=null, progress={floor:0,path:[]}, runBuffs=[];
 
 function injectStyle(){
   if(injected) return; injected=true;
@@ -80,12 +80,25 @@ function generateMap(){
 
 function rewardPreviewFor(type){
   return ({
-    combat:'污染种子 / 灵兽灵魂 / 远征木箱',
-    elite:'含精英残响 · 双资源路线',
+    combat:'材料或临时祝福 · 影响下一战',
+    elite:'精英残响 + 根甲护佑',
     rest:'恢复整备 · 保留路线节奏',
     boss:'深渊核心 · 工坊突破材料'
   })[type]||'未知回响';
 }
+
+function buffName(b){ return ({abyss_vigor:'深渊活力',ember_focus:'余烬专注',root_guard:'根甲护佑'})[b?.id]||b?.name||'未知祝福'; }
+function addRunBuff(buff){
+  if(!buff) return;
+  const next={...buff, fights:buff.fights||1};
+  const existing=runBuffs.find(b=>b.id===next.id);
+  if(existing) existing.fights=Math.max(existing.fights||1,next.fights||1);
+  else runBuffs.push(next);
+}
+function consumeRunBuffs(){
+  runBuffs=runBuffs.map(b=>({...b,fights:(b.fights||1)-1})).filter(b=>(b.fights||0)>0);
+}
+function activeBuffSummary(){ return runBuffs.length?`当前祝福: ${runBuffs.map(b=>`${buffName(b)}×${b.fights||1}`).join(' / ')}`:''; }
 
 function buildDOM(){
   if(root) return;
@@ -105,6 +118,8 @@ function buildDOM(){
 }
 
 function renderMap(){
+  const sub=root.querySelector('.header .sub');
+  if(sub) sub.innerHTML=`选择一条路线进入污染地脉。战斗奖励会带回农场，并让临时祝福影响下一场战斗。${activeBuffSummary()?'<br><span style="color:#f4d03f">'+activeBuffSummary()+'</span>':''}`;
   const canvas=root.querySelector('.mapCanvas');
   canvas.innerHTML='';
   const w=canvas.clientWidth||760, h=canvas.clientHeight||620;
@@ -166,15 +181,19 @@ function selectNode(node){
     window.Battle.enter({
       deck: window.Terra?.farm?.inventory?.cards||[],
       isBoss, isElite,
+      buffs: runBuffs.map(b=>({...b})),
       onWin(loot){
         if(!loot) loot={};
+        if(loot.buff) addRunBuff(loot.buff);
         if(window.Terra && window.Terra.farm){
           const f=window.Terra.farm;
           for(const [k,v] of Object.entries(loot)){
+            if(k==='buff') continue;
             f.inventory.materials[k]=(f.inventory.materials[k]||0)+v;
           }
           window.Terra.save();
         }
+        consumeRunBuffs();
         progress.floor++;
         if(progress.floor>=mapData.length){ alert('深渊征服!回到农场休整。'); return; }
         open();
