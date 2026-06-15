@@ -407,6 +407,8 @@ function makeNode(kind){
         }
       };
     });
+    anim._baseScaleX=1; anim._baseScaleY=1;
+    node._bw=1; node._bh=1;
     node.addChild(anim); node._body=anim; node._graded=true; node._kind=kind;
     return node;
   }
@@ -794,10 +796,7 @@ function beastStep(dt){
   const moving = !!(beastAI.path && beastAI.path.length);
   beast._body?._tick?.(dt);
   if(beast._body){
-    if(beast._bw===undefined && beast._body.texture && beast._body.texture.width>1){
-      beast._bw=beast._body.scale.x; beast._bh=beast._body.scale.y;   // 捕获加载后的基准缩放
-    }
-    const bw=beast._bw||beast._body.scale.x||1, bh=beast._bh||beast._body.scale.y||1;
+    const bw=beast._body._baseScaleX||beast._bw||1, bh=beast._body._baseScaleY||beast._bh||1;
     if(beastAI.state==='water'){                  // 浇水:等比脉冲+上浮,不拉伸脸/身体
       beastAI.bob+=dt*10; const pulse=Math.abs(Math.sin(beastAI.bob));
       const s=1+pulse*0.045;
@@ -911,8 +910,7 @@ function fireStep(dt){
   const moving=!!(fireAI.path&&fireAI.path.length);
   fireBeast._body?._tick?.(dt);
   if(fireBeast._body){
-    if(fireBeast._bw===undefined && fireBeast._body.texture && fireBeast._body.texture.width>1){ fireBeast._bw=fireBeast._body.scale.x; fireBeast._bh=fireBeast._body.scale.y; }
-    const bw=fireBeast._bw||fireBeast._body.scale.x||1, bh=fireBeast._bh||fireBeast._body.scale.y||1;
+    const bw=fireBeast._body._baseScaleX||fireBeast._bw||1, bh=fireBeast._body._baseScaleY||fireBeast._bh||1;
     if(moving){ fireAI.hop+=dt*9; const h=Math.abs(Math.sin(fireAI.hop)); const s=1+h*0.025; fireBeast._body.y=-h*8; fireBeast._body.rotation=Math.sin(fireAI.hop*.55)*0.022; fireBeast._body.scale.set(bw*s,bh*s); }
     else { fireAI.bob+=dt*3; const br=Math.sin(fireAI.bob)*0.016; fireBeast._body.y=Math.sin(fireAI.bob)*2; fireBeast._body.rotation=Math.sin(fireAI.bob*.5)*0.014; fireBeast._body.scale.set(bw*(1+br),bh*(1+br)); }
   }

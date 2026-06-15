@@ -49,7 +49,7 @@ async function visibleNonBlackPixels(page, screenshotPath) {
 
   const scripts = await page.evaluate(() => [...document.scripts].map(s => s.src).filter(Boolean));
   if (!scripts.some(src => src.includes('alchemy.js?v=40'))) throw new Error('public page did not load alchemy.js?v=40');
-  if (!scripts.some(src => src.includes('main.js?v=59'))) throw new Error('public page did not load main.js?v=59');
+  if (!scripts.some(src => src.includes('main.js?v=60'))) throw new Error('public page did not load main.js?v=60');
 
   await page.click('#enter');
   await page.waitForFunction(() => window.__dbg && window.__dbg.ready, null, { timeout: 12000 });
@@ -113,13 +113,19 @@ async function visibleNonBlackPixels(page, screenshotPath) {
     const samples=[];
     for(let i=0;i<6;i++){
       const w=window.__dbg.beast._body, f=window.__dbg.fireBeast._body;
-      samples.push({wr:w.scale.x/w.scale.y, fr:f.scale.x/f.scale.y});
+      samples.push({wr:w.scale.x/w.scale.y, fr:f.scale.x/f.scale.y, ws:w.scale.x, fs:f.scale.x});
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     const spread=arr=>Math.max(...arr)-Math.min(...arr);
-    return {waterSpread:spread(samples.map(s=>s.wr)), fireSpread:spread(samples.map(s=>s.fr)), samples};
+    return {
+      waterSpread:spread(samples.map(s=>s.wr)),
+      fireSpread:spread(samples.map(s=>s.fr)),
+      waterMax:Math.max(...samples.map(s=>s.ws)),
+      fireMax:Math.max(...samples.map(s=>s.fs)),
+      samples
+    };
   });
-  if (elementalStretchState.waterSpread > 0.0001 || elementalStretchState.fireSpread > 0.0001) throw new Error(`elemental beast stretch detected: ${JSON.stringify(elementalStretchState)}`);
+  if (elementalStretchState.waterSpread > 0.0001 || elementalStretchState.fireSpread > 0.0001 || elementalStretchState.waterMax > 1.08 || elementalStretchState.fireMax > 1.05) throw new Error(`elemental beast stretch/scale runaway detected: ${JSON.stringify(elementalStretchState)}`);
   if (!foxAfter || foxAfter.level < 2 || foxAfter.branch === '未分支' || foxAfter.passive !== '狐火巡界') throw new Error(`selected pet awakening failed: ${JSON.stringify(petLoopState)}`);
   await page.waitForTimeout(1800);
   const worldPath = path.join(OUT, '02_world.png');
