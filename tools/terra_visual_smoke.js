@@ -49,7 +49,7 @@ async function visibleNonBlackPixels(page, screenshotPath) {
 
   const scripts = await page.evaluate(() => [...document.scripts].map(s => s.src).filter(Boolean));
   if (!scripts.some(src => src.includes('alchemy.js?v=40'))) throw new Error('public page did not load alchemy.js?v=40');
-  if (!scripts.some(src => src.includes('main.js?v=55'))) throw new Error('public page did not load main.js?v=55');
+  if (!scripts.some(src => src.includes('main.js?v=56'))) throw new Error('public page did not load main.js?v=56');
 
   await page.click('#enter');
   await page.waitForFunction(() => window.__dbg && window.__dbg.ready, null, { timeout: 12000 });
