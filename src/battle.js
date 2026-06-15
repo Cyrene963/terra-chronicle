@@ -355,6 +355,17 @@ function chromaticAberration(){                          // 全屏色差畸变 0
   ar.classList.add('chroma'); setTimeout(()=>ar.classList.remove('chroma'), 200);
 }
 
+function cardVisual(c){
+  const name=c?.name||'';
+  if(name.includes('蓄能')) return {icon:'✦烈刃✦', label:'STRIKE · FIRE'};
+  if(name.includes('格挡')||c?.type==='def') return {icon:'⬟根盾⬟', label:'GUARD · ROOT'};
+  if(name.includes('愈')||name.includes('芽')||c?.type==='heal') return {icon:'✦新芽✦', label:'HEAL · SPROUT'};
+  if(name.includes('划击')) return {icon:'⌁芽刃⌁', label:'ATTACK · EARTH'};
+  if(c?.elem==='fire') return {icon:'✦火纹✦', label:'ATTACK · FIRE'};
+  if(c?.elem==='metal') return {icon:'⬡金痕⬡', label:'ATTACK · METAL'};
+  return c?.type==='atk' ? {icon:'⌁刃光⌁', label:'ATTACK · EARTH'} : {icon:'✦灵纹✦', label:'RUNE · TERRA'};
+}
+
 function render(){
   const r=id=>root.querySelector(id);
   r('#b_turn').textContent=`深渊副本 · 第 ${S.turn} 回合`;
@@ -394,10 +405,9 @@ function render(){
   S.hand.forEach((c,i)=>{
     const playable = S.turn>0 && !S.over && S.phase==='player' && S.energy>=c.cost;
     const el=$('div','card '+c.type+(playable?'':' disabled'),hand);
-    const icon=c.type==='atk'?'⌁刃⌁':c.type==='heal'?'✦芽✦':'⬟盾⬟';
-    const typeLabel=c.type==='atk'?'ATTACK · EARTH':c.type==='heal'?'HEAL · SPROUT':'GUARD · ROOT';
+    const visual=cardVisual(c);
     el.innerHTML=`<div class="cost">${c.cost}</div><div class="cname">${c.name}</div>
-      <div class="cart">${icon}</div><div class="ctype">${typeLabel}</div><div class="cdesc">${c.desc}</div>`;
+      <div class="cart">${visual.icon}</div><div class="ctype">${visual.label}</div><div class="cdesc">${c.desc}</div>`;
     if(playable) el.onclick=(ev)=>playCard(i, ev.currentTarget);
   });
 }
