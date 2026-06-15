@@ -28,7 +28,9 @@
       "assets/sprites/crop_dewberry.png",
       "assets/sprites/crop_star_wheat.png",
       "assets/sprites/button_frame.png",
-      "assets/sprites/scroll_paper.png"
+      "assets/sprites/scroll_paper.png",
+      "assets/sprites/water_serpent.png",
+      "assets/sprites/fire_fox.png"
     ]
   },
   "reference_only": {
@@ -41,7 +43,9 @@
     "soft_farm": [
       "assets/sprites/beast_deepsea_noble.png",
       "assets/sprites/beast_shrine_fox_spirit.png",
-      "assets/sprites/beast_white_serpent_shrine.png"
+      "assets/sprites/beast_white_serpent_shrine.png",
+      "assets/sprites/_backup_before_soft_farm_unification_20260615/beast_water.png",
+      "assets/sprites/_backup_before_soft_farm_unification_20260615/beast_fire.png"
     ],
     "ui": [
       "assets/ui/dungeon_route_reference_terra.png",
@@ -68,8 +72,10 @@
       "assets/sprites/light_fairy.png",
       "assets/sprites/earth_golem.png",
       "assets/sprites/wind_bird.png",
-      "assets/sprites/fire_fox.png",
-      "assets/sprites/water_serpent.png"
+      "assets/sprites/crop_dewberry.png",
+      "assets/sprites/crop_star_wheat.png",
+      "assets/sprites/button_frame.png",
+      "assets/sprites/scroll_paper.png"
     ]
   }
 }

@@ -1,0 +1,240 @@
+[
+  {
+    "file": "assets/sprites/thunder_cat.png",
+    "size": [
+      392,
+      512
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      392,
+      512
+    ],
+    "opaque_ratio": 0.442
+  },
+  {
+    "file": "assets/sprites/forest_deer.png",
+    "size": [
+      377,
+      512
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      377,
+      512
+    ],
+    "opaque_ratio": 0.389
+  },
+  {
+    "file": "assets/sprites/magma_lizard.png",
+    "size": [
+      512,
+      499
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      512,
+      499
+    ],
+    "opaque_ratio": 0.417
+  },
+  {
+    "file": "assets/sprites/ice_bear.png",
+    "size": [
+      512,
+      489
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      512,
+      489
+    ],
+    "opaque_ratio": 0.531
+  },
+  {
+    "file": "assets/sprites/shadow_wolf.png",
+    "size": [
+      428,
+      512
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      428,
+      512
+    ],
+    "opaque_ratio": 0.386
+  },
+  {
+    "file": "assets/sprites/light_fairy.png",
+    "size": [
+      512,
+      465
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      512,
+      465
+    ],
+    "opaque_ratio": 0.422
+  },
+  {
+    "file": "assets/sprites/earth_golem.png",
+    "size": [
+      421,
+      512
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      421,
+      512
+    ],
+    "opaque_ratio": 0.609
+  },
+  {
+    "file": "assets/sprites/wind_bird.png",
+    "size": [
+      489,
+      512
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      489,
+      512
+    ],
+    "opaque_ratio": 0.325
+  },
+  {
+    "file": "assets/sprites/fire_fox.png",
+    "size": [
+      439,
+      512
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      439,
+      512
+    ],
+    "opaque_ratio": 0.422
+  },
+  {
+    "file": "assets/sprites/water_serpent.png",
+    "size": [
+      421,
+      512
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      421,
+      512
+    ],
+    "opaque_ratio": 0.484
+  },
+  {
+    "file": "assets/sprites/beast_water.png",
+    "size": [
+      328,
+      352
+    ],
+    "alpha_bbox": [
+      17,
+      0,
+      311,
+      352
+    ],
+    "opaque_ratio": 0.468
+  },
+  {
+    "file": "assets/sprites/beast_fire.png",
+    "size": [
+      232,
+      264
+    ],
+    "alpha_bbox": [
+      12,
+      0,
+      220,
+      264
+    ],
+    "opaque_ratio": 0.471
+  },
+  {
+    "file": "assets/sprites/beast_sacred_fawnling.png",
+    "size": [
+      512,
+      512
+    ],
+    "alpha_bbox": [
+      41,
+      24,
+      470,
+      489
+    ],
+    "opaque_ratio": 0.229
+  },
+  {
+    "file": "assets/sprites/crop_dewberry.png",
+    "size": [
+      512,
+      512
+    ],
+    "alpha_bbox": [
+      126,
+      248,
+      387,
+      431
+    ],
+    "opaque_ratio": 0.108
+  },
+  {
+    "file": "assets/sprites/crop_star_wheat.png",
+    "size": [
+      512,
+      512
+    ],
+    "alpha_bbox": [
+      112,
+      85,
+      375,
+      451
+    ],
+    "opaque_ratio": 0.132
+  },
+  {
+    "file": "assets/sprites/button_frame.png",
+    "size": [
+      256,
+      128
+    ],
+    "alpha_bbox": [
+      3,
+      3,
+      254,
+      126
+    ],
+    "opaque_ratio": 0.293
+  },
+  {
+    "file": "assets/sprites/scroll_paper.png",
+    "size": [
+      512,
+      512
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      512,
+      512
+    ],
+    "opaque_ratio": 0.932
+  }
+]

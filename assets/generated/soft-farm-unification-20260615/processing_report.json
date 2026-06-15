@@ -1,0 +1,71 @@
+{
+  "created_at": "2026-06-15T23:05:14.989410",
+  "cluster": "soft_farm",
+  "method": "reuse reviewed high-detail existing Terra creature assets; standardize transparent canvas; no baked shadow; no non-uniform stretch",
+  "report": [
+    {
+      "replaced": "assets/sprites/beast_water.png",
+      "selected_source": "assets/sprites/water_serpent.png",
+      "output_size": [
+        512,
+        512
+      ],
+      "alpha_bbox": [
+        79,
+        49,
+        433,
+        479
+      ],
+      "opaque_ratio": 0.284,
+      "baked_shadow": false
+    },
+    {
+      "replaced": "assets/sprites/beast_fire.png",
+      "selected_source": "assets/sprites/fire_fox.png",
+      "output_size": [
+        512,
+        512
+      ],
+      "alpha_bbox": [
+        71,
+        49,
+        440,
+        479
+      ],
+      "opaque_ratio": 0.259,
+      "baked_shadow": false
+    }
+  ],
+  "walk_sheets": {
+    "created_at": "2026-06-15T23:12:57.341926",
+    "method": "derive subtle 4-frame equal-ratio runtime sheets from unified transparent sprites; frames are transitional source only, runtime motion supplies smooth 60fps feel",
+    "report": [
+      {
+        "sheet": "assets/sprites/beast_water_walk_sheet.png",
+        "source": "assets/sprites/beast_water.png",
+        "size": [
+          512,
+          128
+        ],
+        "frame_size": [
+          128,
+          128
+        ],
+        "backup": "assets/sprites/_backup_before_soft_farm_unification_20260615/beast_water_walk_sheet.png"
+      },
+      {
+        "sheet": "assets/sprites/beast_fire_walk_sheet.png",
+        "source": "assets/sprites/beast_fire.png",
+        "size": [
+          512,
+          128
+        ],
+        "frame_size": [
+          128,
+          128
+        ],
+        "backup": "assets/sprites/_backup_before_soft_farm_unification_20260615/beast_fire_walk_sheet.png"
+      }
+    ]
+  }
+}

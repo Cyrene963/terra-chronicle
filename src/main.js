@@ -387,7 +387,7 @@ function makeNode(kind){
       const sp=new PIXI.Sprite(); sp.anchor.set(.5, a.anchorY??1); sp.visible=i===0;
       fr.push(sp); anim.addChild(sp);
     }
-    loadTex(`assets/sprites/${sheetKind}.png`).then(tex=>{
+    loadTex(`assets/sprites/${sheetKind}.png?v=2`).then(tex=>{
       const source=tex.source;
       const cols=4;
       const fw=Math.floor(source.width/cols);
