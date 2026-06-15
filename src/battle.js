@@ -27,6 +27,20 @@ function fadeFromBlack(){
   fadeEl.style.opacity='0';
 }
 
+function normalizeCardForBattle(c){
+  const atk=Number.isFinite(c.atk)?c.atk:(c.type==='atk'?c.val||6:0);
+  const def=Number.isFinite(c.def)?c.def:(c.type==='def'?c.val||5:0);
+  const heal=Number.isFinite(c.heal)?c.heal:(c.type==='heal'?c.val||5:0);
+  const qualityTag=c.quality?` · 产地${Math.round(c.quality*100)}`:'';
+  const affixTag=c.affixes?.length?` · ${c.affixes.join('/')}`:'';
+  if(heal>0) return {name:c.name,type:'heal',val:heal,cost:heal>=24?2:(c.cost||1),
+    desc:c.desc||`恢复 ${heal} 点生命${qualityTag}${affixTag}${c.effectText?' · '+c.effectText:''}`,elem:c.element,quality:c.quality,affixes:c.affixes||[],archetype:c.archetype||'plain',effectText:c.effectText||''};
+  if(def>=atk) return {name:c.name,type:'def',val:def,cost:def>=24?2:(c.cost||1),
+    desc:c.desc||`获得 ${def} 点护甲${qualityTag}${affixTag}${c.effectText?' · '+c.effectText:''}`,elem:c.element,quality:c.quality,affixes:c.affixes||[],archetype:c.archetype||'plain',effectText:c.effectText||''};
+  return {name:c.name,type:'atk',val:atk,cost:atk>=22?2:(c.cost||1),
+    desc:c.desc||`造成 ${atk} 点伤害${qualityTag}${affixTag}${c.effectText?' · '+c.effectText:''}`,elem:c.element,quality:c.quality,affixes:c.affixes||[],archetype:c.archetype||'plain',effectText:c.effectText||''};
+}
+
 /* ---- 把锻造卡转成战斗牌;补充基础牌 ---- */
 function buildDeck(crafted){
   const base=[
@@ -37,19 +51,7 @@ function buildDeck(crafted){
     {name:'蓄能',type:'atk',val:9,cost:2,desc:'造成 9 点伤害'},
     {name:'新芽愈合',type:'heal',val:6,cost:1,desc:'恢复 6 点生命'},
   ];
-  const made=(crafted||[]).map(c=>{
-    const atk=Number.isFinite(c.atk)?c.atk:(c.type==='atk'?c.val||6:0);
-    const def=Number.isFinite(c.def)?c.def:(c.type==='def'?c.val||5:0);
-    const heal=Number.isFinite(c.heal)?c.heal:(c.type==='heal'?c.val||5:0);
-    const qualityTag=c.quality?` · 产地${Math.round(c.quality*100)}`:'';
-    const affixTag=c.affixes?.length?` · ${c.affixes.join('/')}`:'';
-    if(heal>0) return {name:c.name,type:'heal',val:heal,cost:heal>=24?2:(c.cost||1),
-      desc:c.desc||`恢复 ${heal} 点生命${qualityTag}${affixTag}${c.effectText?' · '+c.effectText:''}`,elem:c.element,quality:c.quality,affixes:c.affixes||[],archetype:c.archetype||'plain',effectText:c.effectText||''};
-    if(def>=atk) return {name:c.name,type:'def',val:def,cost:def>=24?2:(c.cost||1),
-      desc:c.desc||`获得 ${def} 点护甲${qualityTag}${affixTag}${c.effectText?' · '+c.effectText:''}`,elem:c.element,quality:c.quality,affixes:c.affixes||[],archetype:c.archetype||'plain',effectText:c.effectText||''};
-    return {name:c.name,type:'atk',val:atk,cost:atk>=22?2:(c.cost||1),
-      desc:c.desc||`造成 ${atk} 点伤害${qualityTag}${affixTag}${c.effectText?' · '+c.effectText:''}`,elem:c.element,quality:c.quality,affixes:c.affixes||[],archetype:c.archetype||'plain',effectText:c.effectText||''};
-  });
+  const made=(crafted||[]).map(normalizeCardForBattle);
   return [...base,...made];
 }
 
@@ -599,7 +601,7 @@ const Battle={
       });
       Battle.active=true;
       startPlayerTurn();
-      if(Array.isArray(cb.debugHand)){ S.hand=cb.debugHand.map(c=>buildDeck([c]).find(x=>x.name===c.name)||c); render(); }
+      if(Array.isArray(cb.debugHand)){ S.hand=cb.debugHand.map(normalizeCardForBattle); render(); }
       startMiasma();
     });
   },

@@ -1126,7 +1126,7 @@ app.ticker.add(tk=>{
   for(const key in planted){ const pc=planted[key];
     if(!pc.mature){ pc.grown=(pc.grown||0)+dt*timeScale*(pc.boost?1.8:1);
       if(pc.grown>=GROW_SECONDS) pc.mature=true; } }
-  if(entered){ beastStep(dt); stepWaterDrops(dt); stepTrails(dt); fireStep(dt); stepEmbers(dt);
+  if(entered){ updateEcology(dt); beastStep(dt); stepWaterDrops(dt); stepTrails(dt); fireStep(dt); stepEmbers(dt);
     if(chopLoop.obj){ const o=chopLoop.obj;
       if(o.felled||staminaUsed>=6) chopLoop.obj=null;
       else if(Math.hypot(o.node.x-player.x,o.node.y-player.y)>100) chopLoop.obj=null;
@@ -1150,7 +1150,7 @@ app.ticker.add(tk=>{
   spawnParticles(st,dt,night>.62); updateParticles(dt,((Math.floor(st)%4)+4)%4);
 
   hudClock-=dt;
-  if(hudClock<=0){ hudClock=.1; updateHUD(st,Math.floor(elapsed/DAY_SECONDS)); }
+  if(hudClock<=0){ hudClock=.1; updateHUD(st,Math.floor(elapsed/DAY_SECONDS)); updateEcoHUD(); }
   springTick(dt);
 });
 
@@ -1287,6 +1287,43 @@ const playerTileKey=()=>Math.floor(player.x/TS)+','+Math.floor((player.y-4)/TS);
 
 /* 伐木 */
 const fellQueue=[];
+const ecoState={score:72,pest:18,soil:76,predator:0,status:'平衡',detail:'虫害低 · 水灵兽巡田 · 土壤稳定',clock:0};
+function updateEcology(dt){
+  ecoState.clock+=dt;
+  if(ecoState.clock<.8) return;
+  ecoState.clock=0;
+  const plantedKeys=Object.keys(planted);
+  const day=Math.floor(elapsed/DAY_SECONDS);
+  const season=((Math.floor(elapsed/(DAY_SECONDS*7))%4)+4)%4;
+  if(plantedKeys.length===0){
+    ecoState.pest=Math.max(4, [8,14,18,10][season]-(waterSpirit()?6:0));
+    ecoState.soil=78+(waterSpirit()?4:0);
+    ecoState.predator=waterSpirit()?12+beastLevel('water_spirit')*4:0;
+    ecoState.score=Math.max(0,Math.min(100,Math.round(ecoState.soil*.72 + (100-ecoState.pest)*.28)));
+    ecoState.status=ecoState.score>=78?'休耕丰饶':'休耕稳定';
+    ecoState.detail=`暂无作物 · 虫害${ecoState.pest<28?'低':'中'} · ${waterSpirit()?`水灵兽巡田 Lv.${beastLevel('water_spirit')}`:'等待灵兽巡田'}`;
+    return;
+  }
+  const avgMeta=plantedKeys.reduce((a,k)=>{ const m=tileMeta[k]||{}; a.f+=(m.fert||60); a.m+=(m.moist||50); a.p+=(m.pest||20); return a; },{f:0,m:0,p:0});
+  const count=Math.max(1,plantedKeys.length);
+  const waterBonus=waterSpirit()?12+beastLevel('water_spirit')*4:0;
+  const firePenalty=forgeHot?4:0;
+  const seasonPest=[4,12,18,8][season];
+  ecoState.pest=Math.max(0,Math.min(100,Math.round(avgMeta.p/count + plantedKeys.length*2 + seasonPest - waterBonus*.45 + firePenalty)));
+  ecoState.soil=Math.max(0,Math.min(100,Math.round(avgMeta.f/count*.72 + avgMeta.m/count*.18 + (waterSpirit()?8:0) - ecoState.pest*.18)));
+  ecoState.predator=waterBonus;
+  ecoState.score=Math.max(0,Math.min(100,Math.round(ecoState.soil*.72 + (100-ecoState.pest)*.28)));
+  ecoState.status=ecoState.score>=78?'丰饶':ecoState.score>=58?'平衡':ecoState.score>=38?'失衡':'虫潮';
+  ecoState.detail=`虫害${ecoState.pest<28?'低':ecoState.pest<55?'中':'高'} · ${waterSpirit()?`水灵兽巡田 Lv.${beastLevel('water_spirit')}`:'缺少巡田灵兽'} · 土壤${ecoState.soil>=70?'稳定':ecoState.soil>=48?'波动':'衰退'}`;
+}
+function updateEcoHUD(){
+  const panel=$('ecoPanel'); if(!panel) return;
+  panel.className=ecoState.score<38?'danger':ecoState.score<58?'warn':'';
+  $('ecoStatus').textContent=ecoState.status;
+  $('ecoScore').textContent=ecoState.score;
+  $('ecoBar').style.transform=`scaleX(${ecoState.score/100})`;
+  $('ecoDetail').textContent=ecoState.detail;
+}
 function nearestChoppable(){
   let best=null,bd=1e9;
   for(const o of OBJECTS){
@@ -1341,7 +1378,8 @@ function interactFarm(key){
   } else toastHint('成长中 · 再等等');
 }
 function calcHarvestQuality(meta, pc){
-  const raw=meta.fert*.65 + meta.moist*.15 + meta.mana*.12 - meta.pest*.18 + (pc.watered?10:0) + (pc.boost?4:0);
+  const pestPressure=Math.max(meta.pest||0, ecoState.pest||0);
+  const raw=meta.fert*.65 + meta.moist*.15 + meta.mana*.12 - pestPressure*.18 + (pc.watered?10:0) + (pc.boost?4:0) + Math.max(0,ecoState.score-70)*.08;
   return Math.round(Math.max(35, Math.min(110, raw)));
 }
 function harvestGrade(q){ return q>=92?'灵脉':q>=80?'珍品':q>=65?'良品':'粗麦'; }
@@ -1430,7 +1468,7 @@ $('enter').onclick=enterWorld;
 /* 调试句柄(性能排查/控制台实验用) */
 window.__dbg={app,world,groundL,waterL,snowL,overlayL,objL,fxScreen,player,cam,beast,beastAI,
   seasonFilter, findPath, planted, commandTo, interactFarm, enterWorld,
-  beastStep, get quality(){return quality}, get fps(){return fpsLast}, get fireBeast(){return fireBeast}, get forgeHot(){return forgeHot}, openBreed,
+  beastStep, get ecology(){return ecoState}, get quality(){return quality}, get fps(){return fpsLast}, get fireBeast(){return fireBeast}, get forgeHot(){return forgeHot}, openBreed,
   get beasts(){return farm.beasts},
   get ready(){return entered && !!app?.renderer && app.screen.width>0 && app.screen.height>0},
   get farm(){return Terra.farm},
