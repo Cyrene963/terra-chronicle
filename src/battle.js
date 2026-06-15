@@ -303,7 +303,8 @@ function startMiasma(){ stopMiasma();
   miasmaTimer=setInterval(()=>{
     if(!Battle.active){ stopMiasma(); return; }
     const z=root.querySelector('.enemyZone'); if(!z) return;
-    const m=$('div','miasma',z); const sz=14+Math.random()*28; m.style.width=m.style.height=sz+'px';
+    if(z.querySelectorAll('.miasma').length>=5) return;
+    const m=$('div','miasma',z); const sz=12+Math.random()*22; m.style.width=m.style.height=sz+'px';
     m.style.left=(z.clientWidth/2+(Math.random()-.5)*190)+'px';
     m.style.top=(z.clientHeight*0.52+(Math.random()-.5)*120)+'px';
     const t0=performance.now(),drift=(Math.random()-.5)*46,rise=34+Math.random()*44;
@@ -313,7 +314,7 @@ function startMiasma(){ stopMiasma();
       m.style.opacity=(t<.3? t/.3 : (1-t)/.7)*0.65;
       requestAnimationFrame(a);
     })();
-  }, 300);
+  }, 700);
 }
 function stopMiasma(){ if(miasmaTimer){ clearInterval(miasmaTimer); miasmaTimer=null; } }
 function elemName(e){ return ({earth:'土',fire:'火',metal:'金',light:'光',water:'水'})[e]||e||'—'; }

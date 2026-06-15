@@ -344,10 +344,8 @@ function swapSeason(idx){
 
 /* —— 视口剔除: 只渲染镜头附近的瓦片/物件(性能核心) —— */
 function cullWorld(){
-  for(const sp of tileSprites) sp.visible=true;
-  for(const sn of snowAt) if(sn) sn.visible=true;
-  for(const o of OBJECTS) o.node.visible = !o.felled;
-  for(const c of crops) c.visible = true;
+  // Previous broad culling pass was disabled for render stability. Keep this as a no-op so the ticker
+  // does not re-touch every tile/object every 120ms.
 }
 
 /* ================= 6. 精灵节点工厂(占位符 ⇄ 贴图) ================= */
@@ -979,11 +977,12 @@ function spawnParticles(st,dt,night){
   const vw=app.screen.width, vh=app.screen.height;
   wind=Math.sin(elapsed*.13)*.6+Math.sin(elapsed*.047)*.4;        // 缓慢阵风
   /* 按"每秒个数"发射(与帧率解耦,杜绝低帧率下整行同时落下) */
-  const rate = s===1?(night?3:0) : s===3?9 : 6;
+  const rateBase = s===1?(night?2:0) : s===3?5 : 3.5;
+  const rate = quality===2 ? rateBase : rateBase*.55;
   emitAcc+=dt*rate;
   while(emitAcc>=1){
     emitAcc-=1;
-    if(parts.length>(quality===2?140:60)) break;
+    if(parts.length>(quality===2?72:34)) break;
     let p;
     const sc=.45+Math.random()*.65;                               // 大小≈景深
     if(s===1&&night){
@@ -1030,10 +1029,10 @@ function updateParticles(dt,curSeason){
 
 /* ================= 10. 时间系统与主循环 ================= */
 let elapsed=0, timeScale=1, entered=false;
-let recolorClock=0, cullClock=0, curWaterBase=[84,150,164], curCrop=0x96be64;
+let recolorClock=0, cullClock=0, hudClock=0, curWaterBase=[84,150,164], curCrop=0x96be64;
 
 /* —— 自适应画质: FPS 不足时逐级降载(软渲染/低端机自救) —— */
-let quality=2, fpsN=0, fpsT0=performance.now(), seasonFilterOn=true;
+let quality=2, fpsN=0, fpsT0=performance.now(), fpsLast=0, seasonFilterOn=true;
 function setQuality(q){
   if(q>=quality) return; quality=q;
   if(q===1){ app.renderer.resolution=1; cloudShadows.forEach(c=>c.visible=false); }
@@ -1057,7 +1056,7 @@ app.ticker.add(tk=>{
   fpsN++;
   const fnow=performance.now();
   if(fnow-fpsT0>=2500){
-    const f=fpsN*1000/(fnow-fpsT0); fpsN=0; fpsT0=fnow;
+    const f=fpsN*1000/(fnow-fpsT0); fpsLast=f; fpsN=0; fpsT0=fnow;
     if(!window.__lockQ){ if(f<15) setQuality(0); else if(f<30) setQuality(1); }
   }
   elapsed+=dt*timeScale;
@@ -1150,7 +1149,8 @@ app.ticker.add(tk=>{
   for(const c of cloudShadows){ c.x+=c._v*dt; if(c.x>MAP*TS+600)c.x=-600; }
   spawnParticles(st,dt,night>.62); updateParticles(dt,((Math.floor(st)%4)+4)%4);
 
-  updateHUD(st,Math.floor(elapsed/DAY_SECONDS));
+  hudClock-=dt;
+  if(hudClock<=0){ hudClock=.1; updateHUD(st,Math.floor(elapsed/DAY_SECONDS)); }
   springTick(dt);
 });
 
@@ -1430,7 +1430,7 @@ $('enter').onclick=enterWorld;
 /* 调试句柄(性能排查/控制台实验用) */
 window.__dbg={app,world,groundL,waterL,snowL,overlayL,objL,fxScreen,player,cam,beast,beastAI,
   seasonFilter, findPath, planted, commandTo, interactFarm, enterWorld,
-  beastStep, get quality(){return quality}, get fireBeast(){return fireBeast}, get forgeHot(){return forgeHot}, openBreed,
+  beastStep, get quality(){return quality}, get fps(){return fpsLast}, get fireBeast(){return fireBeast}, get forgeHot(){return forgeHot}, openBreed,
   get beasts(){return farm.beasts},
   get ready(){return entered && !!app?.renderer && app.screen.width>0 && app.screen.height>0},
   get farm(){return Terra.farm},
