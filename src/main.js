@@ -61,6 +61,25 @@ const ASSETS = {
   },
 };
 
+const SELECTED_PET_DEFS = {
+  beast_shrine_fox_spirit:{
+    name:'神社狐灵', element:'spirit', role:'侦察 / 符咒', branches:['巡界狐','御札狐','稻荷狐'],
+    passive:'狐火巡界', active:'御札标记', effect:{rare:0.08,pest:-4,spiritCharm:1}, cost:{beast_soul:1}
+  },
+  beast_sacred_fawnling:{
+    name:'御鹿幼灵', element:'earth', role:'土壤 / 成长', branches:['林冠鹿','晨露鹿','祭铃鹿'],
+    passive:'鹿鸣丰壤', active:'踏青祝福', effect:{soil:7,grow:0.15,quality:3}, cost:{beast_soul:1}
+  },
+  beast_white_serpent_shrine:{
+    name:'白蛇社灵', element:'water', role:'水脉 / 净化', branches:['社泉蛇','白虹蛇','神乐蛇'],
+    passive:'社泉守护', active:'蛇行净流', effect:{water:0.8,pest:-7,quality:2}, cost:{beast_soul:1,blight_seed:1}
+  },
+  beast_deepsea_noble:{
+    name:'深海贵族', element:'water', role:'高级灌溉 / 灵脉调律', branches:['珍珠侍从','蓝宝石公爵','月潮王裔'],
+    passive:'潮汐礼仪', active:'蓝宝石潮声', effect:{water:1.2,dewberryQuality:5,grow:0.12}, cost:{beast_soul:2}
+  }
+};
+
 /* ================= 2. 世界常量与调色脚本 ================= */
 const TS = 64, MAP = 56;                       // 瓦片尺寸 / 地图边长
 const DAY_SECONDS = 30, SEASON_DAYS = 7;       // demo 时间节奏
@@ -357,18 +376,49 @@ function cullWorld(){
 function makeNode(kind){
   const a=ASSETS[kind];
   const node=new PIXI.Container();
-  // 柔和落影
   const sh=new PIXI.Sprite(TEX_SHADOW); sh.anchor.set(.5);
   sh.width=a.w*1.15; sh.height=a.w*.42; sh.y=-2; node.addChild(sh); node._shadow=sh;
+  if(kind==='beast_water' || kind==='beast_fire'){
+    const sheetKind=kind==='beast_water' ? 'beast_water_walk_sheet' : 'beast_fire_walk_sheet';
+    const anim=new PIXI.Container();
+    anim.anchor={x:.5,y:(a.anchorY??1)};
+    const fr=[];
+    for(let i=0;i<4;i++){
+      const sp=new PIXI.Sprite(); sp.anchor.set(.5, a.anchorY??1); sp.visible=i===0;
+      fr.push(sp); anim.addChild(sp);
+    }
+    loadTex(`assets/sprites/${sheetKind}.png`).then(tex=>{
+      const source=tex.source;
+      const cols=4;
+      const fw=Math.floor(source.width/cols);
+      const fh=source.height;
+      fr.forEach((sp,i)=>{
+        const frame=new PIXI.Rectangle(i*fw,0,fw,fh);
+        sp.texture=PIXI.Texture.from(source);
+        sp.texture.frame=frame;
+        sp.texture.updateUvs();
+        sp.width=a.w; sp.height=a.h;
+      });
+      let idx=0, acc=0;
+      anim._tick=(dt)=>{
+        acc+=dt;
+        if(acc>=0.1){
+          acc=0; fr[idx].visible=false; idx=(idx+1)%fr.length; fr[idx].visible=true;
+        }
+      };
+    });
+    node.addChild(anim); node._body=anim; node._graded=true; node._kind=kind;
+    return node;
+  }
   if(a.src){
     const sp=new PIXI.Sprite(); sp.anchor.set(.5, a.anchorY??1);
     loadTex(a.src).then(tex=>{sp.texture=tex; sp.width=a.w; sp.height=a.h;});
     node.addChild(sp); node._body=sp; node._graded=true; node._kind=kind;
-    if(a.season){                                 // 季节专属贴图交叉淡入备用层
+    if(a.season){
       const alt=new PIXI.Sprite(); alt.anchor.set(.5, a.anchorY??1); alt.alpha=0;
       node.addChild(alt); node._alt=alt; node._seasonIdx=1; node._fadeT=1;
     }
-    if(a.bladesSrc){                              // 风车叶片(独立子节点,主循环旋转)
+    if(a.bladesSrc){
       const bl=new PIXI.Sprite(); bl.anchor.set(.5);
       loadTex(a.bladesSrc).then(tex=>{bl.texture=tex; bl.width=a.bladesW; bl.height=a.bladesW;});
       bl.y=a.h*(a.hubY||-0.6); node.addChild(bl); node._blades=bl;
@@ -380,7 +430,6 @@ function makeNode(kind){
     }
     return node;
   }
-  // —— 占位符(有设计感的极简形状,非最终美术) ——
   const g=new PIXI.Graphics(); node.addChild(g); node._body=g;
   const W=a.w,H=a.h;
   if(kind==='tree'||kind==='cherry'){
@@ -402,8 +451,8 @@ function makeNode(kind){
   } else if(kind==='house'){
     g.rect(-W*.4,-H*.52,W*.8,H*.52).fill(0xe7ddc8);
     g.poly([-W*.48,-H*.5, 0,-H*.92, W*.48,-H*.5]).fill(0x9c5a40);
-    g.rect(-W*.07,-H*.30,W*.14,H*.30).fill(0x6b4a34);          // 门
-    g.rect(-W*.30,-H*.40,W*.12,W*.055).fill(0x8fb6c9);          // 窗
+    g.rect(-W*.07,-H*.30,W*.14,H*.30).fill(0x6b4a34);
+    g.rect(-W*.30,-H*.40,W*.12,W*.055).fill(0x8fb6c9);
     g.rect(W*.18,-H*.40,W*.12,W*.055).fill(0x8fb6c9);
     const lamp=new PIXI.Sprite(TEX_GLOW); lamp.anchor.set(.5);
     lamp.width=lamp.height=W*.6; lamp.y=-H*.36; lamp.tint=0xffc878;
@@ -424,7 +473,8 @@ function makeNode(kind){
     g.rect(W*.35,-H*.8,7,H*.8).fill(0x8a6a48);
   } else if(kind==='crop'){
     const cv=new PIXI.Graphics(); node.addChild(cv); node._canopy=cv; node._isCrop=true;
-  } else if(kind==='player'){ /* 主角占位在 makePlayer 内 */ }
+  } else if(kind==='player'){
+  }
   return node;
 }
 
@@ -742,6 +792,7 @@ function beastGoto(tx,ty){
 }
 function beastStep(dt){
   const moving = !!(beastAI.path && beastAI.path.length);
+  beast._body?._tick?.(dt);
   if(beast._body){
     if(beast._bw===undefined && beast._body.texture && beast._body.texture.width>1){
       beast._bw=beast._body.scale.x; beast._bh=beast._body.scale.y;   // 捕获加载后的基准缩放
@@ -853,6 +904,7 @@ function fireGoto(tx,ty){ const sx=Math.floor(fireBeast.x/TS),sy=Math.floor(fire
 function fireStep(dt){
   if(!fireBeast) return;
   const moving=!!(fireAI.path&&fireAI.path.length);
+  fireBeast._body?._tick?.(dt);
   if(fireBeast._body){
     if(fireBeast._bw===undefined && fireBeast._body.texture && fireBeast._body.texture.width>1){ fireBeast._bw=fireBeast._body.scale.x; fireBeast._bh=fireBeast._body.scale.y; }
     const bw=fireBeast._bw||fireBeast._body.scale.x||1, bh=fireBeast._bh||fireBeast._body.scale.y||1;
@@ -949,6 +1001,28 @@ function openBreed(){
     ()=>{ farm.inventory.materials.beast_soul--; farm.inventory.materials.blight_seed--; const w=waterSpirit(); w.level=Math.min(9,(w.level||1)+1); w.xp=(w.xp||0)+1; w.evolutionBranch='mana';
       if(beast._bw){ beast._bw*=1.05; beast._bh*=1.12; }
       Terra.save(); updateDock(); updateBeastRosterUI(); toastHint(`汲泉型进化 Lv.${w.level} · 灵脉共鸣增强`); openBreed(); }));
+  for(const [species,def] of Object.entries(SELECTED_PET_DEFS)){
+    const pet=beastBySpecies(species);
+    if(!pet) continue;
+    const branch=pet.evolutionBranch || def.branches[0];
+    const mat=def.cost||{};
+    const needSoul=mat.beast_soul||0, needSeed=mat.blight_seed||0;
+    const enabled=soul>=needSoul && seed>=needSeed;
+    opts.appendChild(breedBtn(
+      `${def.name} · ${pet.evolutionBranch?'进阶':'觉醒'} ${branch} Lv.${pet.level||1} → Lv.${Math.min(9,(pet.level||1)+1)}`,
+      `消耗 ${needSoul?`灵兽灵魂×${needSoul}`:''}${needSoul&&needSeed?' + ':''}${needSeed?`污染种子×${needSeed}`:''} · ${def.passive} / ${def.active} · ${def.role}`,
+      enabled,
+      ()=>{
+        farm.inventory.materials.beast_soul-=needSoul;
+        farm.inventory.materials.blight_seed-=needSeed;
+        pet.level=Math.min(9,(pet.level||1)+1);
+        pet.xp=(pet.xp||0)+1;
+        pet.evolutionBranch=branch;
+        pet.activeSkill=def.active;
+        pet.passiveSkill=def.passive;
+        Terra.save(); updateDock(); updateBeastRosterUI(); toastHint(`${def.name} ${branch} Lv.${pet.level} · ${def.passive} 生效`); openBreed();
+      }));
+  }
   breedEl.style.opacity='1'; breedEl.style.pointerEvents='auto'; breedEl.style.transform='translate(-50%,-50%) scale(1)';
 }
 function closeBreed(){ if(!breedEl)return; breedEl.style.opacity='0'; breedEl.style.pointerEvents='none'; breedEl.style.transform='translate(-50%,-50%) scale(.88)'; }
@@ -1299,9 +1373,24 @@ window.normalizeBeasts=normalizeBeasts;
 normalizeBeasts();
 const beastBySpecies=species=>farm.beasts.find(b=>b.species===species);
 const beastLevel=species=>beastBySpecies(species)?.level||1;
+const selectedPetEntries=()=>farm.beasts.filter(b=>SELECTED_PET_DEFS[b.species]);
+function selectedPetPower(){
+  return selectedPetEntries().reduce((acc,b)=>{
+    const def=SELECTED_PET_DEFS[b.species], level=b.level||1, branch=b.evolutionBranch||'';
+    const branchBonus=branch ? 1.25 : 1;
+    for(const [key,val] of Object.entries(def.effect||{})) acc[key]=(acc[key]||0)+val*level*branchBonus;
+    return acc;
+  },{water:0,grow:0,quality:0,soil:0,pest:0,rare:0,dewberryQuality:0,spiritCharm:0});
+}
+function selectedPetSummary(){
+  return selectedPetEntries().map(b=>{
+    const def=SELECTED_PET_DEFS[b.species];
+    return {species:b.species,name:def.name,level:b.level||1,branch:b.evolutionBranch||'未分支',passive:def.passive,active:def.active,role:def.role};
+  });
+}
 const waterSpirit=()=>beastBySpecies('water_spirit');
 const waterBeasts=()=>farm.beasts.filter(b=>b.element==='water'||b.species==='water_spirit'||b.species==='spring_drop');
-function waterPower(){ return waterBeasts().reduce((sum,b)=>sum+(b.level||1)+(b.evolutionBranch==='mana'?.35:0),0); }
+function waterPower(){ return waterBeasts().reduce((sum,b)=>sum+(b.level||1)+(b.evolutionBranch==='mana'?.35:0),0)+(selectedPetPower().water||0); }
 const fireSpirit=()=>beastBySpecies('fire_spirit');
 farm.inventory.materials.wood ??= 8;           // 初始木材(伐木系统未上线前)
 if(fireSpirit()) hatchFire();
@@ -1323,25 +1412,27 @@ function updateEcology(dt){
   const day=Math.floor(elapsed/DAY_SECONDS);
   const season=((Math.floor(elapsed/(DAY_SECONDS*7))%4)+4)%4;
   if(plantedKeys.length===0){
-    ecoState.pest=Math.max(4, [8,14,18,10][season]-Math.min(12,waterPower()*3));
-    ecoState.soil=78+Math.min(10,waterPower()*2);
-    ecoState.predator=waterPower()*5;
+    const petPower=selectedPetPower();
+    ecoState.pest=Math.max(4, [8,14,18,10][season]-Math.min(18,waterPower()*3)-(petPower.pest<0?Math.abs(petPower.pest):0));
+    ecoState.soil=78+Math.min(18,waterPower()*2+(petPower.soil||0));
+    ecoState.predator=waterPower()*5+(petPower.rare||0)*50;
     ecoState.score=Math.max(0,Math.min(100,Math.round(ecoState.soil*.72 + (100-ecoState.pest)*.28)));
     ecoState.status=ecoState.score>=78?'休耕丰饶':'休耕稳定';
-    ecoState.detail=`暂无作物 · 虫害${ecoState.pest<28?'低':'中'} · ${waterPower()>0?`水系灵兽巡田 Lv.${waterPower().toFixed(1)}`:'等待灵兽巡田'}`;
+    ecoState.detail=`暂无作物 · 虫害${ecoState.pest<28?'低':'中'} · ${waterPower()>0?`水系灵兽巡田 Lv.${waterPower().toFixed(1)}`:'等待灵兽巡田'}${selectedPetEntries().length?` · 精选灵兽 ${selectedPetEntries().length}只`:''}`;
     return;
   }
   const avgMeta=plantedKeys.reduce((a,k)=>{ const m=tileMeta[k]||{}; a.f+=(m.fert||60); a.m+=(m.moist||50); a.p+=(m.pest||20); return a; },{f:0,m:0,p:0});
   const count=Math.max(1,plantedKeys.length);
   const waterBonus=waterPower()*5;
+  const petPower=selectedPetPower();
   const firePenalty=forgeHot?4:0;
   const seasonPest=[4,12,18,8][season];
-  ecoState.pest=Math.max(0,Math.min(100,Math.round(avgMeta.p/count + plantedKeys.length*2 + seasonPest - waterBonus*.45 + firePenalty)));
-  ecoState.soil=Math.max(0,Math.min(100,Math.round(avgMeta.f/count*.72 + avgMeta.m/count*.18 + (waterSpirit()?8:0) - ecoState.pest*.18)));
+  ecoState.pest=Math.max(0,Math.min(100,Math.round(avgMeta.p/count + plantedKeys.length*2 + seasonPest - waterBonus*.45 + firePenalty + Math.min(0,petPower.pest||0))));
+  ecoState.soil=Math.max(0,Math.min(100,Math.round(avgMeta.f/count*.72 + avgMeta.m/count*.18 + (waterSpirit()?8:0) + (petPower.soil||0) - ecoState.pest*.18)));
   ecoState.predator=waterBonus;
   ecoState.score=Math.max(0,Math.min(100,Math.round(ecoState.soil*.72 + (100-ecoState.pest)*.28)));
   ecoState.status=ecoState.score>=78?'丰饶':ecoState.score>=58?'平衡':ecoState.score>=38?'失衡':'虫潮';
-  ecoState.detail=`虫害${ecoState.pest<28?'低':ecoState.pest<55?'中':'高'} · ${waterPower()>0?`水系灵兽巡田 Lv.${waterPower().toFixed(1)}`:'缺少巡田灵兽'} · 土壤${ecoState.soil>=70?'稳定':ecoState.soil>=48?'波动':'衰退'}`;
+  ecoState.detail=`虫害${ecoState.pest<28?'低':ecoState.pest<55?'中':'高'} · ${waterPower()>0?`水系灵兽巡田 Lv.${waterPower().toFixed(1)}`:'缺少巡田灵兽'} · 土壤${ecoState.soil>=70?'稳定':ecoState.soil>=48?'波动':'衰退'}${selectedPetEntries().length?` · ${selectedPetEntries().map(b=>SELECTED_PET_DEFS[b.species].passive).join(' / ')}`:''}`;
 }
 function updateEcoHUD(){
   const panel=$('ecoPanel'); if(!panel) return;
@@ -1413,11 +1504,19 @@ function interactFarm(key){
 }
 function calcHarvestQuality(meta, pc){
   const pestPressure=Math.max(meta.pest||0, ecoState.pest||0);
-  const raw=meta.fert*.65 + meta.moist*.15 + meta.mana*.12 - pestPressure*.18 + (pc.watered?10:0) + (pc.boost?4:0) + Math.max(0,ecoState.score-70)*.08 + waterBeasts().filter(b=>b.evolutionBranch==='mana').length*3;
-  return Math.round(Math.max(35, Math.min(110, raw)));
+  const petPower=selectedPetPower();
+  const cropPetBonus=(pc.species==='dewberry'?(petPower.dewberryQuality||0):0)+(petPower.quality||0);
+  const raw=meta.fert*.65 + meta.moist*.15 + meta.mana*.12 - pestPressure*.18 + (pc.watered?10:0) + (pc.boost?4:0) + Math.max(0,ecoState.score-70)*.08 + waterBeasts().filter(b=>b.evolutionBranch==='mana').length*3 + cropPetBonus;
+  return Math.round(Math.max(35, Math.min(118, raw)));
 }
 function harvestGrade(q){ return q>=92?'灵脉':q>=80?'珍品':q>=65?'良品':'粗麦'; }
 const companionPets=[];
+const companionBehaviors={
+  beast_shrine_fox_spirit:{float:2.0, bob:2.0, sway:0.08, hop:5.0, mode:'fox'},
+  beast_sacred_fawnling:{float:1.4, bob:1.2, sway:0.03, hop:0.0, mode:'deer'},
+  beast_white_serpent_shrine:{float:1.2, bob:0.8, sway:0.12, hop:0.0, mode:'serpent'},
+  beast_deepsea_noble:{float:0.9, bob:0.7, sway:0.06, hop:0.0, mode:'deepsea'},
+};
 function spawnCompanionPet(kind, tx, ty, phase=0){
   const node=makeNode(kind);
   node.x=tx*TS+TS/2; node.y=ty*TS+TS/2; node.zIndex=node.y;
@@ -1432,13 +1531,24 @@ spawnCompanionPet('beast_deepsea_noble', 28.2, 31.1, 2.8);
 function stepCompanionPets(dt){
   for(const p of companionPets){
     p._petPhase+=dt*2.2;
-    p.y=p._petBaseY+Math.sin(p._petPhase)*3.2;
+    const behavior=companionBehaviors[p._kind] || {float:1.6, bob:1.6, sway:0.04, hop:0.0, mode:'default'};
+    const bob=Math.sin(p._petPhase*behavior.bob)*3.2*behavior.float;
+    p.y=p._petBaseY+bob;
     p.zIndex=p.y;
     if(p._body){
       if(p._bw===undefined && p._body.texture && p._body.texture.width>1){ p._bw=p._body.scale.x; p._bh=p._body.scale.y; }
       const bw=p._bw||p._body.scale.x||1, bh=p._bh||p._body.scale.y||1;
-      const br=Math.sin(p._petPhase)*0.025;
+      const br=Math.sin(p._petPhase)*behavior.sway;
       p._body.scale.set(bw*(1-br), bh*(1+br));
+      if(behavior.mode==='fox'){
+        p._body.y=-Math.abs(Math.sin(p._petPhase*3.2))*3.5;
+      } else if(behavior.mode==='deer'){
+        p._body.y=Math.sin(p._petPhase*1.3)*1.6;
+      } else if(behavior.mode==='serpent'){
+        p._body.y=Math.sin(p._petPhase*1.8)*2.0;
+      } else if(behavior.mode==='deepsea'){
+        p._body.y=Math.sin(p._petPhase*1.1)*1.8;
+      }
     }
   }
 }
@@ -1535,8 +1645,9 @@ $('enter').onclick=enterWorld;
 /* 调试句柄(性能排查/控制台实验用) */
 window.__dbg={app,world,groundL,waterL,snowL,overlayL,objL,fxScreen,player,cam,beast,beastAI,
   seasonFilter, findPath, planted, commandTo, interactFarm, enterWorld,
-  beastStep, get ecology(){return ecoState}, get quality(){return quality}, get fps(){return fpsLast}, get fireBeast(){return fireBeast}, get forgeHot(){return forgeHot}, openBreed,
-  get beasts(){return farm.beasts}, get companionPets(){return companionPets},
+  beastStep, get ecology(){return ecoState}, get quality(){return quality}, get fps(){return fpsLast}, get fireBeast(){return fireBeast}, get forgeHot(){return forgeHot}, openBreed, hatchFire,
+  get beasts(){return farm.beasts}, get companionPets(){return companionPets}, get companionBehaviors(){return companionBehaviors},
+  get selectedPets(){return selectedPetSummary()},
   get ready(){return entered && !!app?.renderer && app.screen.width>0 && app.screen.height>0},
   get farm(){return Terra.farm},
   get scripts(){return [...document.scripts].map(s=>s.src).filter(Boolean)},
