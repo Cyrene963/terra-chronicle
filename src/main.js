@@ -798,18 +798,23 @@ function beastStep(dt){
       beast._bw=beast._body.scale.x; beast._bh=beast._body.scale.y;   // 捕获加载后的基准缩放
     }
     const bw=beast._bw||beast._body.scale.x||1, bh=beast._bh||beast._body.scale.y||1;
-    if(beastAI.state==='water'){                  // 浇水:剧烈膨胀+回弹
-      beastAI.bob+=dt*10; const pf=Math.abs(Math.sin(beastAI.bob))*0.22;
-      beast._body.y=-Math.abs(Math.sin(beastAI.bob))*6;
-      beast._body.scale.set(bw*(1+pf), bh*(1+pf));
-    } else if(moving){                            // 移动:弹跳+落地挤压(squash&stretch)
-      beastAI.hop=(beastAI.hop||0)+dt*9; const h=Math.abs(Math.sin(beastAI.hop)), land=1-h;
-      beast._body.y=-h*9;
-      beast._body.scale.set(bw*(1+land*0.12), bh*(1-land*0.14));
-    } else {                                      // 待机:呼吸
-      beastAI.bob+=dt*2.6; const br=Math.sin(beastAI.bob)*0.035;
+    if(beastAI.state==='water'){                  // 浇水:等比脉冲+上浮,不拉伸脸/身体
+      beastAI.bob+=dt*10; const pulse=Math.abs(Math.sin(beastAI.bob));
+      const s=1+pulse*0.045;
+      beast._body.y=-pulse*7;
+      beast._body.rotation=Math.sin(beastAI.bob*.5)*0.025;
+      beast._body.scale.set(bw*s, bh*s);
+    } else if(moving){                            // 移动:弹跳+轻微等比放大,不做 squash/stretch
+      beastAI.hop=(beastAI.hop||0)+dt*9; const h=Math.abs(Math.sin(beastAI.hop));
+      const s=1+h*0.025;
+      beast._body.y=-h*10;
+      beast._body.rotation=Math.sin(beastAI.hop*.5)*0.018;
+      beast._body.scale.set(bw*s, bh*s);
+    } else {                                      // 待机:等比呼吸
+      beastAI.bob+=dt*2.6; const br=Math.sin(beastAI.bob)*0.018;
       beast._body.y=Math.sin(beastAI.bob)*2.4;
-      beast._body.scale.set(bw*(1-br), bh*(1+br));
+      beast._body.rotation=Math.sin(beastAI.bob*.42)*0.012;
+      beast._body.scale.set(bw*(1+br), bh*(1+br));
     }
   }
   beast._shadow.alpha=.22+ (moving? Math.abs(Math.sin(beastAI.hop||0))*0.12 : 0);
@@ -908,8 +913,8 @@ function fireStep(dt){
   if(fireBeast._body){
     if(fireBeast._bw===undefined && fireBeast._body.texture && fireBeast._body.texture.width>1){ fireBeast._bw=fireBeast._body.scale.x; fireBeast._bh=fireBeast._body.scale.y; }
     const bw=fireBeast._bw||fireBeast._body.scale.x||1, bh=fireBeast._bh||fireBeast._body.scale.y||1;
-    if(moving){ fireAI.hop+=dt*9; const h=Math.abs(Math.sin(fireAI.hop)); fireBeast._body.y=-h*8; fireBeast._body.scale.set(bw*(1+(1-h)*0.1),bh*(1-(1-h)*0.12)); }
-    else { fireAI.bob+=dt*3; const br=Math.sin(fireAI.bob)*0.04; fireBeast._body.y=Math.sin(fireAI.bob)*2; fireBeast._body.scale.set(bw*(1-br),bh*(1+br)); }
+    if(moving){ fireAI.hop+=dt*9; const h=Math.abs(Math.sin(fireAI.hop)); const s=1+h*0.025; fireBeast._body.y=-h*8; fireBeast._body.rotation=Math.sin(fireAI.hop*.55)*0.022; fireBeast._body.scale.set(bw*s,bh*s); }
+    else { fireAI.bob+=dt*3; const br=Math.sin(fireAI.bob)*0.016; fireBeast._body.y=Math.sin(fireAI.bob)*2; fireBeast._body.rotation=Math.sin(fireAI.bob*.5)*0.014; fireBeast._body.scale.set(bw*(1+br),bh*(1+br)); }
   }
   fireBeast._shadow.alpha=.2;
   if(moving){ const wp=fireAI.path[0]; let dx=wp.wx-fireBeast.x,dy=wp.wy-fireBeast.y; const d=Math.hypot(dx,dy);

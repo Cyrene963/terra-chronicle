@@ -49,7 +49,7 @@ async function visibleNonBlackPixels(page, screenshotPath) {
 
   const scripts = await page.evaluate(() => [...document.scripts].map(s => s.src).filter(Boolean));
   if (!scripts.some(src => src.includes('alchemy.js?v=40'))) throw new Error('public page did not load alchemy.js?v=40');
-  if (!scripts.some(src => src.includes('main.js?v=58'))) throw new Error('public page did not load main.js?v=58');
+  if (!scripts.some(src => src.includes('main.js?v=59'))) throw new Error('public page did not load main.js?v=59');
 
   await page.click('#enter');
   await page.waitForFunction(() => window.__dbg && window.__dbg.ready, null, { timeout: 12000 });
@@ -107,6 +107,19 @@ async function visibleNonBlackPixels(page, screenshotPath) {
     return other && (Math.abs(pt.x - other.x) > 0.01 || Math.abs(pt.y - other.y) > 0.01 || Math.abs(pt.bodyY - other.bodyY) > 0.01 || Math.abs(pt.sx - other.sx) > 0.0001 || Math.abs(pt.sy - other.sy) > 0.0001);
   });
   if (moved.length < 4) throw new Error(`pet motion not visible enough after obtainment: ${JSON.stringify(petMotion)}`);
+  const elementalStretchState = await page.evaluate(async () => {
+    window.__dbg.hatchFire();
+    await new Promise(resolve => setTimeout(resolve, 300));
+    const samples=[];
+    for(let i=0;i<6;i++){
+      const w=window.__dbg.beast._body, f=window.__dbg.fireBeast._body;
+      samples.push({wr:w.scale.x/w.scale.y, fr:f.scale.x/f.scale.y});
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    const spread=arr=>Math.max(...arr)-Math.min(...arr);
+    return {waterSpread:spread(samples.map(s=>s.wr)), fireSpread:spread(samples.map(s=>s.fr)), samples};
+  });
+  if (elementalStretchState.waterSpread > 0.0001 || elementalStretchState.fireSpread > 0.0001) throw new Error(`elemental beast stretch detected: ${JSON.stringify(elementalStretchState)}`);
   if (!foxAfter || foxAfter.level < 2 || foxAfter.branch === '未分支' || foxAfter.passive !== '狐火巡界') throw new Error(`selected pet awakening failed: ${JSON.stringify(petLoopState)}`);
   await page.waitForTimeout(1800);
   const worldPath = path.join(OUT, '02_world.png');

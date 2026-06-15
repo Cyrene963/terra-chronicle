@@ -250,3 +250,57 @@ UI 必须像一套完整游戏系统，而不是临时拼的网页组件。
 3. 它能否复用到卡牌、UI、图鉴、商店或战斗演出里？
 
 如果答案不清楚，就先别画，先定规范。
+
+---
+
+## 15. Visual Quality Gate — Mandatory Update 2026-06-15
+
+Terra Chronicle is a visual-first game. Game visuals, UI, effects, animation, material quality, and overall presentation have higher priority than quickly shipping a technically functional feature.
+
+A feature is not considered complete if it functions but looks cheap, stretched, icon-like, visually inconsistent, or unfinished.
+
+### Candidate-First Asset Workflow
+
+For any core visual asset — pets, monsters, bosses, card art, UI panels, icons, spritesheets, VFX motifs, or major scene props — do not directly integrate the first generated image or a hand-drawn/programmatic placeholder as final art.
+
+Required workflow:
+1. Generate or source at least 5 candidates per asset direction.
+2. Prefer 8–10 candidates for important or uncertain assets.
+3. Build a labeled contact sheet and manifest.
+4. Inspect candidates visually before implementation.
+5. Use vision/model review where possible, but still make a direct in-game aesthetic judgement.
+6. Reject candidates that look like cheap icons, stickers, QQ/emote blobs, generic AI creatures, full-scene concept art, wrong perspective, or inconsistent UI/style.
+7. Select the best 1–2 candidates only after review.
+8. Cut out, remove magenta/pink fringe, crop, resize, and process only selected candidates.
+9. Verify alpha/bounding box and inspect the processed image directly.
+10. Verify in the real public game at target size, not only as a local file.
+11. Archive candidates, contact sheet, processing report, selected source, processed asset, and old asset backup when replacing existing art.
+
+### Animation Standard
+
+Terra animation should feel 60fps smooth. A 4-frame sheet may be used only as a temporary texture source or prototype, never as the final animation quality claim.
+
+Allowed ways to reach 60fps feel:
+- Real 12–24+ drawn/generated frames for important characters.
+- Spine-like or part-based rig animation.
+- Shader/VFX layers plus stable sprite frames.
+- Smooth programmatic runtime motion.
+- Additive effects such as particles, glow, water bubbles, fire embers, ear/tail secondary motion.
+
+Forbidden for final-looking assets:
+- Stretching or squashing the whole pet sprite so the face/body deforms badly.
+- Calling 4 visible frames finished for a premium pet.
+- Letting motion make selected art look worse than the still image.
+- Using animation tricks that break silhouette, proportions, or facial readability.
+
+### In-Game Visual QA Gate
+
+Before calling a visual task complete, verify:
+- Public URL loads the intended cache-busted bundle.
+- No page errors or console errors.
+- The asset appears in the real game surface at the intended size.
+- It does not show magenta/pink/dirty fringe on grass, parchment UI, battle backgrounds, or dark dungeon scenes.
+- Its silhouette remains readable when scaled down.
+- Animation feels smooth and does not deform the character.
+- UI around it remains readable and stylistically consistent.
+- Smoke or Playwright checks cover the specific visual state.
