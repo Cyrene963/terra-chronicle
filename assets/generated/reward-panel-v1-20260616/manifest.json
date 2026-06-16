@@ -1,0 +1,80 @@
+{
+  "manifest_id": "reward-panel-v1-20260616",
+  "project": "Terra Chronicle",
+  "asset_family": "reward_panel_icons_token_family",
+  "created_at": "2026-06-16",
+  "source_docs": [
+    "PROJECT_VISION.md",
+    "docs/unified-art-design-spec.md",
+    "docs/asset-master-list.md",
+    "docs/first-wave-asset-families.md",
+    "docs/first-wave-visual-briefs.md",
+    "docs/first-wave-generation-prompts.md",
+    "docs/second-wave-visual-prompts.md"
+  ],
+  "shared_art_direction": {
+    "cluster": "UI icons / reward tokens",
+    "format": "single centered icon/token, transparent background preferred, readable at 48px and 96px, suitable for reward settlement panel and inventory grid",
+    "style": "Terra Chronicle warm fantasy, parchment-and-bronze UI compatible, handcrafted premium game asset, clear silhouette, subtle gold rim or inner glow, not emoji, not flat web icon",
+    "palette": "warm gold, soil brown, bronze, moss green, crystal blue, ember copper, deep abyss purple used only as corruption accent",
+    "materials": "paper, leather, wood, bronze, stone, leaf, glass droplet, glowing spore, cracked abyss core",
+    "negative_prompt": "emoji, stock icon, flat app icon, plastic toy, cyberpunk neon, sci-fi UI, photoreal object, cluttered tiny details, unreadable silhouette"
+  },
+  "target_directory": "assets/generated/reward-panel-v1-20260616/",
+  "icons": [
+    {
+      "id": "blight_seed",
+      "display_name": "Blight Seed",
+      "category": "corruption_material",
+      "target_path": "assets/generated/reward-panel-v1-20260616/blight_seed.png",
+      "brief": "A corrupted seed reward token grown from polluted soil: a dark seed pod split by tiny purple fissures, faint sickly green sprout, small spore motes, clear round/oval silhouette, ominous but still botanical and Terra-native.",
+      "prompt": "A Terra Chronicle blight seed reward icon, corrupted botanical seed pod from polluted soil, cracked dark husk with muted purple fissures, tiny sickly green sprout, subtle fungal spore motes, bronze-gold token rim optional, warm fantasy parchment UI compatible, handcrafted premium game material icon, readable at 48px, not emoji, not flat icon, not sci-fi.",
+      "notes": "Use pollution language from unified art spec: dark purple, cracked soil, fungal spores, ecological imbalance. Keep it as a seed/material, not a monster."
+    },
+    {
+      "id": "abyss_vigor",
+      "display_name": "Abyss Vigor",
+      "category": "buff_token",
+      "target_path": "assets/generated/reward-panel-v1-20260616/abyss_vigor.png",
+      "brief": "A compact vitality token showing abyssal energy converted into usable strength: dark amethyst droplet or heart-core with a warm gold restraint ring, pulsing red-violet center, controlled danger rather than pure evil.",
+      "prompt": "A Terra Chronicle abyss vigor reward token, small amethyst heart-core or droplet containing controlled abyss energy, red-violet inner pulse, thin warm gold and bronze restraint ring, faint smoky purple aura, premium fantasy buff icon, parchment reward panel compatible, clear silhouette at small size, not neon cyberpunk, not generic heart emoji, not demonic gore.",
+      "notes": "Should read as a reward/buff currency: dangerous but refined by alchemy, with bronze/gold UI integration."
+    },
+    {
+      "id": "ember_focus",
+      "display_name": "Ember Focus",
+      "category": "buff_token",
+      "target_path": "assets/generated/reward-panel-v1-20260616/ember_focus.png",
+      "brief": "A forge-fire concentration token: a small ember lens or coal crystal wrapped in copper, warm orange core, clean flame point, useful for workshop/card crafting rewards.",
+      "prompt": "A Terra Chronicle ember focus reward icon, glowing coal crystal or forge ember lens wrapped in warm copper, concentrated orange flame core, small sparks, handcrafted fantasy workshop material, parchment and bronze UI compatible, premium game token, readable at 48px, not generic fireball, not fire demon, not neon, not flat app icon.",
+      "notes": "Align with forge ember/fire spirit language: warm copper, ember palette, workshop utility rather than aggressive monster fire."
+    },
+    {
+      "id": "wood_crate",
+      "display_name": "Wood Crate",
+      "category": "basic_material_bundle",
+      "target_path": "assets/generated/reward-panel-v1-20260616/wood_crate.png",
+      "brief": "A readable reward bundle crate: small wooden box with mossy bark texture, rope binding, bronze corner nail, a few leaf/soil details, simple premium material reward.",
+      "prompt": "A Terra Chronicle wood crate reward icon, small handcrafted wooden supply crate, warm brown wood grain, rope binding, tiny bronze corner nails, slight moss and bark texture, clean readable inventory and reward panel icon, parchment UI compatible, simple but premium fantasy farming material, not photo, not flat icon, not messy pile.",
+      "notes": "Derived from material_wood_raw prompt; make it a bundle/crate for reward panel readability."
+    },
+    {
+      "id": "spring_drop_capture",
+      "display_name": "Spring Drop Capture",
+      "category": "capture_token",
+      "target_path": "assets/generated/reward-panel-v1-20260616/spring_drop_capture.png",
+      "brief": "A capture token for the spring-drop water spirit: crystal water droplet inside a gentle bronze capture ring, pale blue and soft green leaf fins, friendly farm-helper feeling without drawing the full beast.",
+      "prompt": "A Terra Chronicle spring drop capture token, transparent crystal water droplet held inside a delicate bronze capture ring, small leaf-like fins or green sprout accents, pale blue soft green and crystal white palette, gentle farm-helper feeling, premium fantasy pet capture icon, parchment UI compatible, readable at 48px, not fish, not generic water elemental, not baby mascot, not flat toy style.",
+      "notes": "Use existing beast_spring_drop language and capture_ring motif. Token should imply capture/claim, not a full character portrait."
+    },
+    {
+      "id": "abyss_core",
+      "display_name": "Abyss Core",
+      "category": "rare_material",
+      "target_path": "assets/generated/reward-panel-v1-20260616/abyss_core.png",
+      "brief": "A rare abyss material: cracked black-violet stone core with restrained inner glow, faint smoke, old-gold rim fragments, strong circular silhouette for high-value reward reveal.",
+      "prompt": "A Terra Chronicle abyss core rare material icon, cracked black-violet stone orb with restrained purple inner glow, faint smoky aura, small old-gold rim fragments or bronze setting, corrupted but collectible, premium dungeon reward token, parchment and bronze UI compatible, clear circular silhouette, readable at 48px, not sci-fi reactor, not neon orb, not demon eye, not flat icon.",
+      "notes": "High rarity sibling to abyss_vigor: more material/object-like, darker and heavier, suitable for dungeon or winter void rewards."
+    }
+  ]
+}

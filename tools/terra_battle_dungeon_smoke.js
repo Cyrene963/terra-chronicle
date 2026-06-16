@@ -1,6 +1,7 @@
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
+const { scriptVersions, hasExpectedScript, badConsole } = require('./smoke_common');
 
 const ROOT = '/root/terra-chronicle-game';
 const OUT = path.join(ROOT, 'dogfood-output', 'terra-battle-dungeon-smoke');
@@ -11,13 +12,7 @@ fs.mkdirSync(OUT, { recursive: true });
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
   const consoleErrors = [];
   const pageErrors = [];
-  page.on('console', msg => {
-    const text = msg.text();
-    if (msg.type() === 'error' && !/PixiJS Error: Could not initialize shader\.?$/i.test(text) && !/^\s*$/.test(text)) consoleErrors.push(`${msg.type()}: ${text}`);
-    if (msg.type() === 'warning' && !/WebGL.*ReadPixels|GPU stall due to ReadPixels|#define SHADER_NAME|INVALID_OPERATION: useProgram|INVALID_OPERATION: drawElements|CONTEXT_LOST_WEBGL|Attribute .* is not present in the shader/i.test(text)) {
-      consoleErrors.push(`${msg.type()}: ${text}`);
-    }
-  });
+  page.on('console', msg => { if (badConsole(msg)) consoleErrors.push(`${msg.type()}: ${msg.text()}`); });
   page.on('pageerror', err => pageErrors.push(err.stack || String(err)));
 
   await page.goto('https://terra.bz9.me/?v=40-battle-dungeon-smoke', { waitUntil: 'domcontentloaded', timeout: 60000 });
@@ -26,7 +21,8 @@ fs.mkdirSync(OUT, { recursive: true });
   await page.waitForFunction(() => window.Battle && window.DungeonMap && window.__dbg?.ready, null, { timeout: 30000 });
 
   const scripts = await page.evaluate(() => Array.from(document.scripts).map(s => s.src).filter(Boolean));
-  const versionsOk = scripts.some(s => s.includes('battle.js?v=58')) && scripts.some(s => s.includes('dungeon.js?v=50'));
+  const versions = scriptVersions();
+  const versionsOk = hasExpectedScript(scripts, 'battle.js', versions) && hasExpectedScript(scripts, 'dungeon.js', versions);
 
   await page.evaluate(() => {
     window.Battle.enter({
@@ -49,6 +45,10 @@ fs.mkdirSync(OUT, { recursive: true });
     });
   });
   await page.waitForSelector('#battle.on .card', { timeout: 30000 });
+  await page.waitForFunction(() => {
+    const fade = document.querySelector('#sceneFade');
+    return !fade || Number(getComputedStyle(fade).opacity) < 0.05;
+  }, null, { timeout: 5000 }).catch(() => {});
   await page.screenshot({ path: path.join(OUT, '01_battle_cards.png'), fullPage: false });
   const battleState = await page.evaluate(() => {
     const card = document.querySelector('#battle .card');
@@ -69,7 +69,7 @@ fs.mkdirSync(OUT, { recursive: true });
       enemySrc: document.querySelector('#b_eimg')?.getAttribute('src') || '',
     };
   });
-  if (!battleState.cardBackground.includes('card_template.png')) throw new Error('battle card template not applied');
+  if (!battleState.cardBackground.includes('card_frame_terra_real.png')) throw new Error('battle real card frame not applied');
   for (const requiredArt of ['card_art_slash.png', 'card_art_guard.png', 'card_art_charge.png', 'card_art_heal.png']) {
     if (!battleState.cardArtSources.some(src => src.includes(requiredArt))) throw new Error(`missing battle card art ${requiredArt}: ${JSON.stringify(battleState)}`);
   }
@@ -150,7 +150,7 @@ fs.mkdirSync(OUT, { recursive: true });
   await capturePage.close();
 
   await browser.close();
-  const report = { ok: consoleErrors.length === 0 && pageErrors.length === 0, versionsOk, battleState, dungeonState, captureState, consoleErrors, pageErrors, outDir: OUT };
+  const report = { ok: consoleErrors.length === 0 && pageErrors.length === 0, versionsOk, versions, battleState, dungeonState, captureState, consoleErrors, pageErrors, outDir: OUT };
   fs.writeFileSync(path.join(OUT, 'report.json'), JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));
   if (!report.ok || !versionsOk) process.exit(1);

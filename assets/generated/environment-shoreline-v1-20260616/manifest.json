@@ -1,0 +1,242 @@
+{
+  "id": "environment-shoreline-v1-20260616",
+  "created_at": "2026-06-16",
+  "repo": "/root/terra-chronicle-game",
+  "output_dir": "/root/terra-chronicle-game/assets/generated/environment-shoreline-v1-20260616",
+  "lane": "environment",
+  "cluster": "Environment / world backgrounds",
+  "status": "manifest_only_no_live_asset_edits",
+  "do_not_edit_live_assets": true,
+  "source_policy": {
+    "reference_cluster_first": true,
+    "primary_reference_pack": "/root/terra-chronicle-game/assets/style-reference/terra-master-pack-20260615/clusters/environment_contact_sheet.png",
+    "supporting_style_spec": "/root/terra-chronicle-game/docs/unified-art-design-spec.md",
+    "product_vision": "/root/terra-chronicle-game/PROJECT_VISION.md",
+    "avoid_cross_cluster_mix": true
+  },
+  "current_live_assets_for_context_only": [
+    {
+      "id": "tile_water_current",
+      "path": "/root/terra-chronicle-game/assets/sprites/tile_water.png",
+      "role": "current water base tile; reference only, do not overwrite in this batch"
+    },
+    {
+      "id": "tile_grass_current",
+      "path": "/root/terra-chronicle-game/assets/sprites/tile_grass.png",
+      "role": "current grass land tile adjacent to shoreline; reference only"
+    },
+    {
+      "id": "tile_sand_current",
+      "path": "/root/terra-chronicle-game/assets/sprites/tile_sand.png",
+      "role": "current sand/shore color anchor; reference only"
+    },
+    {
+      "id": "tile_soil_current",
+      "path": "/root/terra-chronicle-game/assets/sprites/tile_soil.png",
+      "role": "current soil/farm color anchor; reference only"
+    },
+    {
+      "id": "water_diag_tl_current",
+      "path": "/root/terra-chronicle-game/assets/sprites/water_diag_tl.png",
+      "role": "existing diagonal water-land transition; reference only"
+    },
+    {
+      "id": "water_diag_tr_current",
+      "path": "/root/terra-chronicle-game/assets/sprites/water_diag_tr.png",
+      "role": "existing diagonal water-land transition; reference only"
+    },
+    {
+      "id": "water_diag_bl_current",
+      "path": "/root/terra-chronicle-game/assets/sprites/water_diag_bl.png",
+      "role": "existing diagonal water-land transition; reference only"
+    },
+    {
+      "id": "water_diag_br_current",
+      "path": "/root/terra-chronicle-game/assets/sprites/water_diag_br.png",
+      "role": "existing diagonal water-land transition; reference only"
+    },
+    {
+      "id": "water_edge_ne_current",
+      "path": "/root/terra-chronicle-game/assets/sprites/water_edge_ne.png",
+      "role": "existing orthogonal/corner water edge; reference only"
+    },
+    {
+      "id": "water_edge_nw_current",
+      "path": "/root/terra-chronicle-game/assets/sprites/water_edge_nw.png",
+      "role": "existing orthogonal/corner water edge; reference only"
+    },
+    {
+      "id": "water_edge_se_current",
+      "path": "/root/terra-chronicle-game/assets/sprites/water_edge_se.png",
+      "role": "existing orthogonal/corner water edge; reference only"
+    },
+    {
+      "id": "water_edge_sw_current",
+      "path": "/root/terra-chronicle-game/assets/sprites/water_edge_sw.png",
+      "role": "existing orthogonal/corner water edge; reference only"
+    }
+  ],
+  "target_assets": [
+    {
+      "id": "shoreline_tile_water_base_v1",
+      "kind": "tile",
+      "target_filename": "shoreline_tile_water_base_v1.png",
+      "intended_live_target_after_review": "assets/sprites/tile_water.png",
+      "required_candidates": 8,
+      "size": "512x512 source, 64x64 or engine tile-size export after approval",
+      "notes": "Premium hand-painted water base: readable at tile scale, soft inner ripples, no neon glow, no noisy photo texture. Must tile seamlessly."
+    },
+    {
+      "id": "shoreline_tile_shallow_water_v1",
+      "kind": "tile",
+      "target_filename": "shoreline_tile_shallow_water_v1.png",
+      "intended_live_target_after_review": "new optional transition source, not integrated by this batch",
+      "required_candidates": 8,
+      "size": "512x512 source, 64x64 export after approval",
+      "notes": "Shallow turquoise-green water for land-adjacent pixels; should blend into grass/sand/soil without hard outlines."
+    },
+    {
+      "id": "shoreline_edge_n_v1",
+      "kind": "water_edge",
+      "target_filename": "shoreline_edge_n_v1.png",
+      "intended_live_target_after_review": "assets/sprites/water_edge_ne.png or engine-specific north edge slot after mapping review",
+      "required_candidates": 8,
+      "size": "512x512 source, alpha PNG export after approval",
+      "notes": "North-facing water-to-land shoreline with soft foam, grass roots, wet sand/soil fringe. Keep isometric/top-down readability."
+    },
+    {
+      "id": "shoreline_edge_s_v1",
+      "kind": "water_edge",
+      "target_filename": "shoreline_edge_s_v1.png",
+      "intended_live_target_after_review": "assets/sprites/water_edge_se.png or engine-specific south edge slot after mapping review",
+      "required_candidates": 8,
+      "size": "512x512 source, alpha PNG export after approval",
+      "notes": "South-facing shoreline counterpart; maintain identical material scale and palette to north edge."
+    },
+    {
+      "id": "shoreline_edge_e_v1",
+      "kind": "water_edge",
+      "target_filename": "shoreline_edge_e_v1.png",
+      "intended_live_target_after_review": "assets/sprites/water_edge_ne.png or water_edge_se.png depending on runtime orientation",
+      "required_candidates": 8,
+      "size": "512x512 source, alpha PNG export after approval",
+      "notes": "East-facing water-to-land edge, seamless with diagonal river bends."
+    },
+    {
+      "id": "shoreline_edge_w_v1",
+      "kind": "water_edge",
+      "target_filename": "shoreline_edge_w_v1.png",
+      "intended_live_target_after_review": "assets/sprites/water_edge_nw.png or water_edge_sw.png depending on runtime orientation",
+      "required_candidates": 8,
+      "size": "512x512 source, alpha PNG export after approval",
+      "notes": "West-facing water-to-land edge, mirrored only if visual lighting still matches Terra scene lighting."
+    },
+    {
+      "id": "shoreline_diag_tl_v1",
+      "kind": "diagonal_water_edge",
+      "target_filename": "shoreline_diag_tl_v1.png",
+      "intended_live_target_after_review": "assets/sprites/water_diag_tl.png",
+      "required_candidates": 8,
+      "size": "512x512 source, alpha PNG export after approval",
+      "notes": "Top-left diagonal river bank; reduce jagged stair-step impression in diagonal rivers."
+    },
+    {
+      "id": "shoreline_diag_tr_v1",
+      "kind": "diagonal_water_edge",
+      "target_filename": "shoreline_diag_tr_v1.png",
+      "intended_live_target_after_review": "assets/sprites/water_diag_tr.png",
+      "required_candidates": 8,
+      "size": "512x512 source, alpha PNG export after approval",
+      "notes": "Top-right diagonal river bank; must match top-left edge width, foam density, and lighting."
+    },
+    {
+      "id": "shoreline_diag_bl_v1",
+      "kind": "diagonal_water_edge",
+      "target_filename": "shoreline_diag_bl_v1.png",
+      "intended_live_target_after_review": "assets/sprites/water_diag_bl.png",
+      "required_candidates": 8,
+      "size": "512x512 source, alpha PNG export after approval",
+      "notes": "Bottom-left diagonal river bank; preserve clear river silhouette at current camera zoom."
+    },
+    {
+      "id": "shoreline_diag_br_v1",
+      "kind": "diagonal_water_edge",
+      "target_filename": "shoreline_diag_br_v1.png",
+      "intended_live_target_after_review": "assets/sprites/water_diag_br.png",
+      "required_candidates": 8,
+      "size": "512x512 source, alpha PNG export after approval",
+      "notes": "Bottom-right diagonal river bank; must connect cleanly to both orthogonal and diagonal variants."
+    },
+    {
+      "id": "shoreline_corner_inner_v1",
+      "kind": "corner_water_edge",
+      "target_filename": "shoreline_corner_inner_v1.png",
+      "intended_live_target_after_review": "new optional corner transition source",
+      "required_candidates": 8,
+      "size": "512x512 source, alpha PNG export after approval",
+      "notes": "Concave shoreline corner for river bends; generated with the same set to keep material continuity."
+    },
+    {
+      "id": "shoreline_corner_outer_v1",
+      "kind": "corner_water_edge",
+      "target_filename": "shoreline_corner_outer_v1.png",
+      "intended_live_target_after_review": "new optional corner transition source",
+      "required_candidates": 8,
+      "size": "512x512 source, alpha PNG export after approval",
+      "notes": "Convex shoreline corner for land protrusions into water; avoid icon-like border outlines."
+    }
+  ],
+  "prompt_brief": {
+    "positive": "Terra Chronicle environment shoreline tile set, cohesive premium fantasy farming world, warm hand-painted storybook texture, top-down/isometric readable game tiles, gentle blue-green river water, wet sand and mossy grass bank, subtle foam and translucent shallows, artisanal painterly detail, seamless tileable edges, soft natural lighting, high-end interactive art game environment, consistent with Terra environment reference cluster.",
+    "set_generation_instruction": "Generate the whole shoreline set together as one coherent tile family: base water, shallow water, four cardinal edges, four diagonal edges, inner corner, outer corner. Use image-to-image or reference-guided generation from the environment contact sheet and current tile context; do not prompt from scratch if references are available.",
+    "negative": "no cyberpunk, no neon, no plastic UI gloss, no photorealistic water photo, no cheap mobile-game icon outline, no sticker look, no hard black border, no noisy high-frequency texture, no mismatched anime character art, no isolated full-scene illustration, no unreadable miniature details, no magenta/pink fringe."
+  },
+  "candidate_workflow": {
+    "minimum_candidates_per_target": 8,
+    "contact_sheet_required": true,
+    "contact_sheet_target": "/root/terra-chronicle-game/assets/generated/environment-shoreline-v1-20260616/contact_sheet.png",
+    "review_manifest_target": "/root/terra-chronicle-game/assets/generated/environment-shoreline-v1-20260616/review_manifest.json",
+    "selection_rule": "Select best 1-2 per target only after direct visual review at both source size and in-game tile scale.",
+    "processing_rule": "After selection, crop/resize/export alpha PNGs; check seams, alpha fringe, and tile-scale readability before any live integration."
+  },
+  "verification_screenshots_to_use": [
+    {
+      "id": "existing_baseline_world",
+      "path": "/root/terra-chronicle-game/test_screenshot.png",
+      "purpose": "Existing baseline screenshot referenced by TEST_CHECKLIST_RESULTS.md; use to compare current world/readability before new shoreline integration."
+    },
+    {
+      "id": "public_river_baseline_before",
+      "path": "/root/terra-chronicle-game/assets/generated/environment-shoreline-v1-20260616/verification_public_river_before.png",
+      "purpose": "Capture from https://terra.bz9.me before integration, centered on diagonal river/water-land boundary."
+    },
+    {
+      "id": "local_candidate_tile_sheet_preview",
+      "path": "/root/terra-chronicle-game/assets/generated/environment-shoreline-v1-20260616/verification_candidate_tile_sheet_preview.png",
+      "purpose": "Local preview of generated shoreline candidates arranged against grass, soil, sand, and water backgrounds."
+    },
+    {
+      "id": "public_river_after_candidate_overlay",
+      "path": "/root/terra-chronicle-game/assets/generated/environment-shoreline-v1-20260616/verification_public_river_after_candidate_overlay.png",
+      "purpose": "Browser screenshot after temporary/local overlay or approved integration; verify no jagged stair-stepping, no pink fringe, no black terrain blocks."
+    },
+    {
+      "id": "seasonal_winter_check",
+      "path": "/root/terra-chronicle-game/assets/generated/environment-shoreline-v1-20260616/verification_winter_shoreline.png",
+      "purpose": "Check water edge remains readable under winter/snow overlay and seasonal lighting."
+    }
+  ],
+  "acceptance_checks": [
+    "Manifest and README exist under assets/generated/environment-shoreline-v1-20260616/ only.",
+    "No files under assets/sprites/ or src/ are changed by this batch.",
+    "Generated family includes base, cardinal, diagonal, and corner shoreline coverage.",
+    "Edges are seamless at tile boundaries and readable at current Terra camera zoom.",
+    "Diagonal river tiles reduce stair-step jaggedness noted in prior river QA checklist.",
+    "No magenta/pink/dirty fringe on grass, parchment UI, battle backgrounds, or dark scenes.",
+    "Public browser verification screenshot is captured before any final integration claim."
+  ],
+  "notes": [
+    "Current src/main.js uses a lightweight procedural foam layer for water-land boundaries; future integration should review runtime mapping before assigning generated edge filenames to live slots.",
+    "ULTRACODE_V9_REPORT.md records diagonal water-land transition tiles as generated, but engine integration was still listed as future work; this batch prepares a coherent replacement/upgrade family without modifying live assets."
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "items": [
+    {
+      "id": "slash",
+      "path": "/root/terra-chronicle-game/assets/sprites/card_art_slash.png",
+      "size": [
+        256,
+        256
+      ],
+      "alpha_bbox": [
+        19,
+        22,
+        237,
+        234
+      ]
+    },
+    {
+      "id": "guard",
+      "path": "/root/terra-chronicle-game/assets/sprites/card_art_guard.png",
+      "size": [
+        256,
+        256
+      ],
+      "alpha_bbox": [
+        27,
+        19,
+        229,
+        237
+      ]
+    },
+    {
+      "id": "charge",
+      "path": "/root/terra-chronicle-game/assets/sprites/card_art_charge.png",
+      "size": [
+        256,
+        256
+      ],
+      "alpha_bbox": [
+        19,
+        19,
+        237,
+        237
+      ]
+    },
+    {
+      "id": "heal",
+      "path": "/root/terra-chronicle-game/assets/sprites/card_art_heal.png",
+      "size": [
+        256,
+        256
+      ],
+      "alpha_bbox": [
+        41,
+        20,
+        215,
+        237
+      ]
+    }
+  ],
+  "sheet": "/root/terra-chronicle-game/assets/generated/card-art-refresh-20260616/current_card_art_contact_sheet.png"
+}

@@ -1,0 +1,22 @@
+{
+  "task_name": "terra-unified-assets-20260615",
+  "task_status": "running",
+  "started_at": "2026-06-15T23:33:00+08:00",
+  "time_budget_hours": 24,
+  "current_layer": 1,
+  "layers": [
+    "inventory_existing_and_planned_assets",
+    "classify_by_reference_cluster",
+    "generate_candidate_batches",
+    "review_contact_sheets",
+    "integrate_passed_assets",
+    "public_visual_verify_and_commit"
+  ],
+  "dirty_worktree_do_not_touch": [
+    "src/main.js",
+    "tools/terra_visual_smoke.js",
+    "assets/generated/soft-farm-crop-ui-candidates-20260615/",
+    "shots/*.png deletions"
+  ],
+  "reference_pack": "assets/style-reference/terra-master-pack-20260615/"
+}

@@ -1,0 +1,168 @@
+{
+  "slash": [
+    {
+      "id": "slash_01",
+      "path": "/root/terra-chronicle-game/assets/generated/card-art-refresh-20260616/slash_01.png",
+      "size": [
+        1024,
+        1024
+      ],
+      "corner_alpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "alpha_bbox": [
+        8,
+        68,
+        1003,
+        931
+      ]
+    },
+    {
+      "id": "slash_02",
+      "path": "/root/terra-chronicle-game/assets/generated/card-art-refresh-20260616/slash_02.png",
+      "size": [
+        1024,
+        1024
+      ],
+      "corner_alpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "alpha_bbox": [
+        8,
+        79,
+        992,
+        932
+      ]
+    },
+    {
+      "id": "slash_03",
+      "path": "/root/terra-chronicle-game/assets/generated/card-art-refresh-20260616/slash_03.png",
+      "size": [
+        1024,
+        1024
+      ],
+      "corner_alpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "alpha_bbox": [
+        11,
+        68,
+        993,
+        941
+      ]
+    },
+    {
+      "id": "slash_04",
+      "path": "/root/terra-chronicle-game/assets/generated/card-art-refresh-20260616/slash_04.png",
+      "size": [
+        1024,
+        1024
+      ],
+      "corner_alpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "alpha_bbox": [
+        0,
+        80,
+        997,
+        928
+      ]
+    }
+  ],
+  "heal": [
+    {
+      "id": "heal_01",
+      "path": "/root/terra-chronicle-game/assets/generated/card-art-refresh-20260616/heal_01.png",
+      "size": [
+        1024,
+        1024
+      ],
+      "corner_alpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "alpha_bbox": [
+        35,
+        80,
+        984,
+        937
+      ]
+    },
+    {
+      "id": "heal_02",
+      "path": "/root/terra-chronicle-game/assets/generated/card-art-refresh-20260616/heal_02.png",
+      "size": [
+        1024,
+        1024
+      ],
+      "corner_alpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "alpha_bbox": [
+        85,
+        80,
+        929,
+        941
+      ]
+    },
+    {
+      "id": "heal_03",
+      "path": "/root/terra-chronicle-game/assets/generated/card-art-refresh-20260616/heal_03.png",
+      "size": [
+        1024,
+        1024
+      ],
+      "corner_alpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "alpha_bbox": [
+        38,
+        88,
+        1000,
+        962
+      ]
+    },
+    {
+      "id": "heal_04",
+      "path": "/root/terra-chronicle-game/assets/generated/card-art-refresh-20260616/heal_04.png",
+      "size": [
+        1024,
+        1024
+      ],
+      "corner_alpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "alpha_bbox": [
+        104,
+        60,
+        938,
+        958
+      ]
+    }
+  ],
+  "slash_sheet": "/root/terra-chronicle-game/assets/generated/card-art-refresh-20260616/slash_candidates.png",
+  "heal_sheet": "/root/terra-chronicle-game/assets/generated/card-art-refresh-20260616/heal_candidates.png"
+}

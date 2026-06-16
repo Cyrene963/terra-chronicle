@@ -28,11 +28,15 @@
    - 首发制作分镜
    - 定义首发资产的结构分层和制作顺序
 
-7. `docs/second-wave-asset-families.md`
+7. `docs/project-master-todo.md`
+   - 当前完整项目进度与 TODO 总表
+   - 汇总已完成、P0/P1/P2、验证门槛和下一批推荐任务
+
+8. `docs/second-wave-asset-families.md`
    - 第二批资产家族
    - 补齐地城节点、状态图标、根茎作物、菌群怪物、火系灵兽、基础材料
 
-8. `docs/second-wave-visual-prompts.md`
+9. `docs/second-wave-visual-prompts.md`
    - 第二批视觉 brief 与生成提示词
    - 可直接用于第二批资产候选生成
 

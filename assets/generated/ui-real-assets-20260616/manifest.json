@@ -1,0 +1,121 @@
+{
+  "cards": [
+    {
+      "id": "card_frame_01",
+      "path": "/root/terra-chronicle-game/assets/generated/ui-real-assets-20260616/card_frame_01.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "avg_corner_rgba": [
+        0,
+        1,
+        0,
+        255
+      ]
+    },
+    {
+      "id": "card_frame_02",
+      "path": "/root/terra-chronicle-game/assets/generated/ui-real-assets-20260616/card_frame_02.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "avg_corner_rgba": [
+        254,
+        253,
+        254,
+        255
+      ]
+    },
+    {
+      "id": "card_frame_03",
+      "path": "/root/terra-chronicle-game/assets/generated/ui-real-assets-20260616/card_frame_03.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "avg_corner_rgba": [
+        42,
+        23,
+        10,
+        0
+      ]
+    },
+    {
+      "id": "card_frame_04",
+      "path": "/root/terra-chronicle-game/assets/generated/ui-real-assets-20260616/card_frame_04.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "avg_corner_rgba": [
+        1,
+        1,
+        1,
+        255
+      ]
+    }
+  ],
+  "rewards": [
+    {
+      "id": "reward_panel_01",
+      "path": "/root/terra-chronicle-game/assets/generated/ui-real-assets-20260616/reward_panel_01.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "avg_corner_rgba": [
+        64,
+        46,
+        23,
+        0
+      ]
+    },
+    {
+      "id": "reward_panel_02",
+      "path": "/root/terra-chronicle-game/assets/generated/ui-real-assets-20260616/reward_panel_02.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "avg_corner_rgba": [
+        0,
+        1,
+        1,
+        255
+      ]
+    },
+    {
+      "id": "reward_panel_03",
+      "path": "/root/terra-chronicle-game/assets/generated/ui-real-assets-20260616/reward_panel_03.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "avg_corner_rgba": [
+        254,
+        254,
+        253,
+        255
+      ]
+    },
+    {
+      "id": "reward_panel_04",
+      "path": "/root/terra-chronicle-game/assets/generated/ui-real-assets-20260616/reward_panel_04.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "avg_corner_rgba": [
+        137,
+        115,
+        75,
+        0
+      ]
+    }
+  ],
+  "card_sheet": "/root/terra-chronicle-game/assets/generated/ui-real-assets-20260616/card_frame_contact_sheet.png",
+  "reward_sheet": "/root/terra-chronicle-game/assets/generated/ui-real-assets-20260616/reward_panel_contact_sheet.png",
+  "goal": "real generated UI assets for battle card frames and reward panel; select clean candidates before integration"
+}

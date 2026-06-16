@@ -1,0 +1,67 @@
+{
+  "id": "card-node-polish-v1-20260616",
+  "created_at": "2026-06-16",
+  "purpose": "Curated card frame and combat node candidates selected from existing generated assets for immediate use without editing live assets.",
+  "live_assets_edited": false,
+  "selection_policy": "Use existing generated candidates only; keep source paths explicit for later copy/integration by the implementation lane.",
+  "source_manifests": [
+    "/root/terra-chronicle-game/assets/generated/battle-visual-overhaul-20260615/manifest.json",
+    "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/round2/manifest.json",
+    "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/final_processing_report.json"
+  ],
+  "selected_candidates": [
+    {
+      "id": "card_frame_04",
+      "type": "card_frame",
+      "recommendation": "immediate_use",
+      "source_path": "/root/terra-chronicle-game/assets/generated/battle-visual-overhaul-20260615/card_frame_04.png",
+      "source_manifest": "/root/terra-chronicle-game/assets/generated/battle-visual-overhaul-20260615/manifest.json",
+      "dimensions": [1024, 1536],
+      "mode": "RGB",
+      "file_size_bytes": 2751453,
+      "notes": "One of the best existing card-frame candidates requested for the card polish pass. Use as a high-resolution source, not by overwriting live UI directly."
+    },
+    {
+      "id": "card_frame_05",
+      "type": "card_frame",
+      "recommendation": "immediate_use",
+      "source_path": "/root/terra-chronicle-game/assets/generated/battle-visual-overhaul-20260615/card_frame_05.png",
+      "source_manifest": "/root/terra-chronicle-game/assets/generated/battle-visual-overhaul-20260615/manifest.json",
+      "dimensions": [1024, 1536],
+      "mode": "RGB",
+      "file_size_bytes": 2452821,
+      "notes": "One of the best existing card-frame candidates requested for the card polish pass. Use as a high-resolution source, not by overwriting live UI directly."
+    },
+    {
+      "id": "card_frame_06",
+      "type": "card_frame",
+      "recommendation": "immediate_use",
+      "source_path": "/root/terra-chronicle-game/assets/generated/battle-visual-overhaul-20260615/card_frame_06.png",
+      "source_manifest": "/root/terra-chronicle-game/assets/generated/battle-visual-overhaul-20260615/manifest.json",
+      "dimensions": [1024, 1536],
+      "mode": "RGB",
+      "file_size_bytes": 2890267,
+      "notes": "One of the best existing card-frame candidates requested for the card polish pass. Use as a high-resolution source, not by overwriting live UI directly."
+    },
+    {
+      "id": "node_combat_3",
+      "type": "combat_node",
+      "recommendation": "immediate_use",
+      "source_path": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/round2/node_combat_3.png",
+      "source_manifest": "/root/terra-chronicle-game/assets/generated/corrected-battle-assets-20260615/round2/manifest.json",
+      "dimensions": [1254, 1254],
+      "mode": "RGB",
+      "file_size_bytes": 2236410,
+      "known_live_target_from_prior_report": "/root/terra-chronicle-game/assets/ui/node_combat.png",
+      "prior_processed_size": [168, 168],
+      "prior_alpha_bbox": [6, 5, 162, 163],
+      "prior_pinkish_px": 2,
+      "notes": "Best existing combat-node candidate requested for immediate use. Prior processing report already maps it to node_combat.png, but this manifest does not edit that live asset."
+    }
+  ],
+  "next_integration_notes": [
+    "Do not overwrite live assets from this manifest automatically.",
+    "If integrating card frames, downscale/crop deliberately for the target card UI and verify in-browser.",
+    "If integrating node_combat_3, use the prior processing report values as the baseline for a 168x168 UI export."
+  ]
+}

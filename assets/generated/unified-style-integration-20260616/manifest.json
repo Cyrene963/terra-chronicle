@@ -1,0 +1,28 @@
+{
+  "name": "unified-style-integration-20260616",
+  "purpose": "First-adopter integration plan for Terra Chronicle style unification",
+  "first_adopters": [
+    "ui_card_frame_terra",
+    "card_slash_sprout",
+    "card_root_guard",
+    "ui_reward_panel_terra"
+  ],
+  "recommended_order": [
+    "ui_reward_panel_terra",
+    "ui_card_frame_terra",
+    "card_root_guard",
+    "card_slash_sprout"
+  ],
+  "later_extensions": [
+    "ui_dungeon_node_terra",
+    "status_shield",
+    "crop_star_wheat",
+    "crop_moon_turnip",
+    "material_wood_raw"
+  ],
+  "risk_notes": {
+    "low_risk": ["reward panel", "card frame shell"],
+    "medium_risk": ["battle card art mapping", "dungeon node visuals"],
+    "higher_risk": ["terrain crop/shoreline tile families"]
+  }
+}

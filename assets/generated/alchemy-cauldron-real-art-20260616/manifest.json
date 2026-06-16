@@ -1,0 +1,39 @@
+{
+  "goal": "real generated alchemy cauldron art candidates; replace CSS fake pot after selection",
+  "items": [
+    {
+      "id": "cauldron_candidate_01",
+      "path": "/root/terra-chronicle-game/assets/generated/alchemy-cauldron-real-art-20260616/cauldron_candidate_01.png",
+      "size": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "cauldron_candidate_02",
+      "path": "/root/terra-chronicle-game/assets/generated/alchemy-cauldron-real-art-20260616/cauldron_candidate_02.png",
+      "size": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "cauldron_candidate_03",
+      "path": "/root/terra-chronicle-game/assets/generated/alchemy-cauldron-real-art-20260616/cauldron_candidate_03.png",
+      "size": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "id": "cauldron_candidate_04",
+      "path": "/root/terra-chronicle-game/assets/generated/alchemy-cauldron-real-art-20260616/cauldron_candidate_04.png",
+      "size": [
+        1254,
+        1254
+      ]
+    }
+  ],
+  "contact_sheet": "/root/terra-chronicle-game/assets/generated/alchemy-cauldron-real-art-20260616/contact_sheet.png",
+  "next": "review candidate; select one; cutout/prepare transparent asset; integrate into alchemy UI"
+}

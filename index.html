@@ -188,34 +188,38 @@
 
   /* 锻造卡牌揭示 */
   #cardReveal{
-    position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;gap:30px;
-    align-items:center;justify-content:center;background:rgba(8,10,14,.62);
+    position:fixed;inset:0;z-index:120;display:flex;flex-direction:column;gap:22px;
+    align-items:center;justify-content:center;background:radial-gradient(circle at 50% 38%,rgba(244,208,63,.18),transparent 34%),rgba(8,10,14,.72);backdrop-filter:blur(8px) saturate(1.1);
     opacity:0;pointer-events:none;transition:opacity .6s;
   }
   #cardReveal.on{opacity:1;pointer-events:auto}
-  #cardReveal .stage3d{perspective:1100px}
+  #cardReveal .stage3d{perspective:1100px;position:relative}
+  #cardReveal .stage3d::before{content:'工坊炼成';position:absolute;left:50%;top:-54px;transform:translateX(-50%);font-family:'Noto Serif SC',serif;font-size:13px;letter-spacing:.5em;text-indent:.5em;color:rgba(246,241,231,.7);white-space:nowrap;}
   #cardReveal .cardBox{
-    width:min(270px,62vw);aspect-ratio:2/3;position:relative;
+    width:min(310px,66vw);aspect-ratio:2/3;position:relative;
     transform:rotateY(180deg) translateY(30px) scale(.78);
     transform-style:preserve-3d;transition:transform 1.05s cubic-bezier(.2,.85,.25,1);
-    filter:drop-shadow(0 30px 60px rgba(0,0,0,.6));
+    filter:drop-shadow(0 36px 70px rgba(0,0,0,.66));
   }
   #cardReveal.on .cardBox{transform:rotateY(0) translateY(0) scale(1)}
   #cardReveal .face{
-    position:absolute;inset:0;border-radius:12px;backface-visibility:hidden;
-    background:url('assets/concept/card_template.png') center/cover;
+    position:absolute;inset:0;border-radius:18px;backface-visibility:hidden;overflow:hidden;
+    background:linear-gradient(180deg,rgba(255,248,221,.96),rgba(207,171,101,.9));border:1px solid rgba(244,208,63,.68);box-shadow:inset 0 0 0 7px rgba(76,45,21,.18),inset 0 0 0 10px rgba(255,255,255,.18);
   }
-  #cardReveal .face.back{transform:rotateY(180deg);filter:brightness(.4) saturate(.6)}
+  #cardReveal .face::before{content:'';position:absolute;inset:13px;border:1px solid rgba(84,49,21,.26);border-radius:12px;z-index:3;pointer-events:none;}
+  #cardReveal .face.back{transform:rotateY(180deg);filter:brightness(.46) saturate(.7);background:url('assets/concept/card_template.png') center/cover;}
+  #cardReveal .cardArt{position:absolute;left:36px;right:36px;top:72px;height:172px;border-radius:18px;display:grid;place-items:center;background:radial-gradient(circle at 50% 40%,rgba(255,255,255,.42),rgba(107,74,34,.18));box-shadow:inset 0 0 0 1px rgba(91,56,25,.22),0 12px 30px rgba(0,0,0,.18);z-index:1;overflow:hidden;}
+  #cardReveal .cardArt img{width:76%;height:76%;object-fit:contain;filter:drop-shadow(0 12px 20px rgba(0,0,0,.25));}
   #cardReveal .overlayTxt{
-    position:absolute;left:0;right:0;bottom:0;border-radius:0 0 12px 12px;
-    background:linear-gradient(transparent,rgba(12,10,8,.88) 38%);
-    padding:44px 20px 18px;text-align:center;color:var(--ivory);
+    position:absolute;left:18px;right:18px;bottom:18px;border-radius:16px;
+    background:linear-gradient(180deg,rgba(49,31,19,.9),rgba(18,12,10,.94));border:1px solid rgba(244,208,63,.25);
+    padding:18px 16px 15px;text-align:center;color:var(--ivory);z-index:2;box-shadow:0 12px 26px rgba(0,0,0,.25);
   }
-  #cardReveal .cname{font-size:21px;font-weight:500;letter-spacing:.3em;text-indent:.3em}
-  #cardReveal .cstats{font-family:'Cormorant Garamond',serif;font-size:17px;margin-top:8px;letter-spacing:.14em}
-  #cardReveal .cstats b{color:var(--gold);font-size:21px}
-  #cardReveal .caffix{font-size:11px;letter-spacing:.18em;opacity:.85;margin-top:7px;line-height:1.9}
-  #cardReveal .closeHint{color:rgba(246,241,231,.6);font-size:11px;letter-spacing:.5em;text-indent:.5em}
+  #cardReveal .cname{font-size:23px;font-weight:700;letter-spacing:.22em;text-indent:.22em;color:#fff0c8}
+  #cardReveal .cstats{font-family:'Noto Serif SC',serif;font-size:14px;margin-top:8px;letter-spacing:.12em}
+  #cardReveal .cstats b{color:var(--gold);font-size:19px;font-family:'Cormorant Garamond',serif}
+  #cardReveal .caffix{font-size:11px;letter-spacing:.13em;opacity:.88;margin-top:8px;line-height:1.75}
+  #cardReveal .closeHint{color:rgba(246,241,231,.68);font-size:11px;letter-spacing:.42em;text-indent:.42em}
 
   /* 地块面板（毛玻璃,弹簧动效由 JS 驱动） */
   #panel{
@@ -314,6 +318,7 @@
 <div id="cardReveal">
   <div class="stage3d"><div class="cardBox">
     <div class="face front">
+      <div class="cardArt"><img id="cvArt" src="assets/sprites/card_art_guard.png" alt=""></div>
       <div class="overlayTxt">
         <div class="cname" id="cvName">新芽守卫</div>
         <div class="cstats">攻 <b id="cvAtk">—</b> · 防 <b id="cvDef">—</b> · 产地 <b id="cvQ">—</b></div>
@@ -343,10 +348,10 @@
 
 <script src="vendor/pixi.min.js"></script>
 <script src="src/state.js?v=7"></script>
-<script src="src/alchemy.js?v=40"></script>
-<script src="src/battle.js?v=58"></script>
+<script src="src/alchemy.js?v=46"></script>
+<script src="src/battle.js?v=63"></script>
 <script src="src/dungeon.js?v=50"></script>
 <script src="src/upgrade.js?v=37"></script>
-<script src="src/main.js?v=61"></script>
+<script src="src/main.js?v=62"></script>
 </body>
 </html>

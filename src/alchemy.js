@@ -24,54 +24,67 @@ function injectStyle(){
   const css=`
   #alchemyUI{position:fixed;inset:0;z-index:90;display:none;opacity:0;
     transition:opacity .45s;
-    background:radial-gradient(circle at 50% 28%,rgba(201,162,75,.18),transparent 38%),linear-gradient(135deg, rgba(18,14,11,.94) 0%, rgba(42,37,32,.92) 100%);
+    background:radial-gradient(circle at 50% 20%,rgba(244,208,63,.18),transparent 34%),radial-gradient(circle at 22% 72%,rgba(69,143,104,.16),transparent 30%),linear-gradient(135deg, rgba(15,10,9,.96) 0%, rgba(42,31,24,.94) 100%);
     font-family:'Cormorant Garamond',serif;color:#f4ecd8;
-    display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);}
+    display:flex;align-items:center;justify-content:center;backdrop-filter:blur(13px) saturate(1.12);}
   #alchemyUI.on{display:flex;opacity:1;}
-  #alchemyUI .panel{width:min(760px,92vw);
-    background:linear-gradient(135deg, rgba(244,236,216,.98) 0%, rgba(232,220,191,.96) 100%);
-    border:3px double #8b7355;border-radius:18px;padding:52px 56px 46px;
-    box-shadow:0 44px 130px rgba(0,0,0,.76),0 0 90px rgba(212,175,55,.16);position:relative;color:#2a2520;overflow:hidden;}
-  #alchemyUI .panel::before{content:'';position:absolute;inset:12px;border:1px solid rgba(212,175,55,.55);
-    border-radius:13px;pointer-events:none;box-shadow:inset 0 0 42px rgba(139,115,85,.12);}
+  #alchemyUI .panel{width:min(980px,94vw);display:grid;grid-template-columns:minmax(300px,1fr) minmax(310px,.92fr);gap:30px;align-items:center;
+    background:linear-gradient(135deg, rgba(246,238,216,.98) 0%, rgba(219,197,151,.96) 100%);
+    border:1px solid rgba(212,175,55,.72);border-radius:30px;padding:46px 48px 42px;
+    box-shadow:0 44px 130px rgba(0,0,0,.76),0 0 90px rgba(212,175,55,.16),inset 0 0 0 1px rgba(255,252,232,.55);position:relative;color:#2a2520;overflow:hidden;}
+  #alchemyUI .panel::before{content:'';position:absolute;inset:13px;border:1px solid rgba(139,91,43,.26);border-radius:22px;pointer-events:none;box-shadow:inset 0 0 42px rgba(139,115,85,.14);}
   #alchemyUI .panel::after{content:'';position:absolute;left:8%;right:8%;top:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,246,210,.9),transparent);}
-  #alchemyUI .title{font-size:44px;letter-spacing:.28em;text-align:center;margin-bottom:12px;
-    color:#b98a2a;text-shadow:0 2px 0 rgba(255,255,255,.4),0 8px 22px rgba(0,0,0,.18);}
-  #alchemyUI .subtitle{font-size:13px;letter-spacing:.55em;text-align:center;opacity:.72;
-    margin-bottom:34px;font-style:italic;color:#7d674d;}
-  #alchemyUI .cauldron{width:300px;height:300px;margin:0 auto 30px;
-    background:radial-gradient(circle at 50% 34%,rgba(255,230,150,.42),transparent 24%),radial-gradient(ellipse at 50% 42%,#5c4b3a,#211b17 68%);
-    border-radius:50%;border:7px solid #8b7355;
-    box-shadow:inset 0 24px 70px rgba(0,0,0,.65),0 18px 48px rgba(0,0,0,.48),0 0 38px rgba(212,175,55,.22);
+  #alchemyUI .title{font-size:clamp(36px,4.4vw,54px);letter-spacing:.24em;text-align:left;margin-bottom:8px;
+    color:#9b6624;text-shadow:0 2px 0 rgba(255,255,255,.45),0 8px 22px rgba(0,0,0,.18);}
+  #alchemyUI .subtitle{font-size:12px;letter-spacing:.36em;text-align:left;opacity:.76;margin-bottom:18px;font-style:italic;color:#765d43;line-height:1.8;}
+  #alchemyUI .leftPane,#alchemyUI .rightPane{position:relative;z-index:1;}
+  #alchemyUI .leftPane{display:flex;flex-direction:column;align-items:center;}
+  #alchemyUI .rightPane{align-self:stretch;display:flex;flex-direction:column;justify-content:center;}
+  #alchemyUI .formulaHint{font-family:'Noto Serif SC',serif;font-size:12px;line-height:1.9;letter-spacing:.09em;color:#6d5135;background:rgba(255,249,226,.58);border:1px solid rgba(139,91,43,.2);border-radius:18px;padding:13px 16px;margin:10px 0 22px;box-shadow:inset 0 1px 0 rgba(255,255,255,.44);}
+  #alchemyUI .formulaHint b{color:#9b6624;}
+  #alchemyUI .cauldron{width:min(360px,72vw);height:min(360px,72vw);margin:0 auto 18px;
+    background:none;border-radius:50%;border:0;box-shadow:none;
     display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;
     position:relative;animation:cauldronBreath 3.6s ease-in-out infinite;}
-  #alchemyUI .cauldron::before{content:'';position:absolute;inset:14px;border-radius:50%;
-    border:2px solid rgba(212,175,55,.36);box-shadow:inset 0 0 30px rgba(255,220,130,.12);}
-  #alchemyUI .cauldron::after{content:'';position:absolute;inset:34px;border-radius:50%;background:radial-gradient(circle,rgba(126,255,205,.18),rgba(201,162,75,.08) 42%,transparent 68%);filter:blur(1px);}
+  #alchemyUI .cauldronArt{position:absolute;inset:-18px;width:calc(100% + 36px);height:calc(100% + 36px);object-fit:contain;filter:drop-shadow(0 24px 34px rgba(0,0,0,.42)) drop-shadow(0 0 28px rgba(212,175,55,.22));z-index:1;}
+  #alchemyUI .cauldron::before{content:'';position:absolute;inset:18%;border-radius:50%;background:radial-gradient(circle,rgba(137,255,209,.2),transparent 62%);filter:blur(10px);z-index:0;}
+  #alchemyUI .cauldron::after{content:'';position:absolute;inset:30%;border-radius:50%;background:radial-gradient(circle,rgba(255,232,173,.2),transparent 68%);filter:blur(4px);animation:brewGlow 4.2s ease-in-out infinite;z-index:2;}
+  #alchemyUI .cauldron .rim{position:absolute;inset:34px;border-radius:50%;border:10px solid rgba(32,23,18,.68);box-shadow:0 6px 0 rgba(255,246,210,.08),inset 0 -10px 24px rgba(0,0,0,.45);}
+  #alchemyUI .cauldron .stem{position:absolute;left:50%;bottom:-22px;width:106px;height:38px;transform:translateX(-50%);border-radius:0 0 24px 24px;background:linear-gradient(180deg,#6b4d33,#2a1d15);box-shadow:0 18px 22px rgba(0,0,0,.26),inset 0 1px 0 rgba(255,255,255,.06);}
+  #alchemyUI .cauldron .stem::before,#alchemyUI .cauldron .stem::after{content:'';position:absolute;top:-6px;width:22px;height:8px;border-radius:999px;background:rgba(255,228,170,.22);box-shadow:0 0 0 1px rgba(79,52,28,.24);}
+  #alchemyUI .cauldron .stem::before{left:10px}. #alchemyUI .cauldron .stem::after{right:10px}
+  #alchemyUI .cauldron .spark{position:absolute;width:8px;height:8px;border-radius:50%;background:rgba(255,232,173,.95);box-shadow:0 0 14px rgba(255,232,173,.58);animation:sparkDrift 2.8s ease-in-out infinite;}
+  #alchemyUI .cauldron .spark.s1{top:18%;left:24%;animation-delay:.2s}.#alchemyUI .cauldron .spark.s2{top:28%;right:22%;animation-delay:.8s}.#alchemyUI .cauldron .spark.s3{bottom:30%;left:18%;animation-delay:1.4s}
+  #alchemyUI .bubbles{position:absolute;inset:86px 84px auto;height:80px;pointer-events:none;z-index:2;}
+  #alchemyUI .bubbles i{position:absolute;bottom:0;width:10px;height:10px;border-radius:50%;background:rgba(157,255,218,.58);box-shadow:0 0 14px rgba(157,255,218,.44);animation:bubbleRise 2.6s ease-in-out infinite;}
+  #alchemyUI .bubbles i:nth-child(1){left:18%;animation-delay:.1s}#alchemyUI .bubbles i:nth-child(2){left:48%;width:7px;height:7px;animation-delay:.8s}#alchemyUI .bubbles i:nth-child(3){left:68%;animation-delay:1.4s}#alchemyUI .bubbles i:nth-child(4){left:36%;width:6px;height:6px;animation-delay:1.9s}
   @keyframes cauldronBreath{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
-  #alchemyUI .contents{font-size:20px;color:#f4d03f;letter-spacing:.12em;z-index:1;text-align:center;text-shadow:0 2px 10px rgba(0,0,0,.6);}
-  #alchemyUI .ingredients{display:flex;gap:28px;justify-content:center;margin-bottom:28px;}
-  #alchemyUI .ingr{text-align:center;cursor:pointer;transition:transform .28s,box-shadow .28s,border-color .28s;
-    border:1px solid rgba(185,138,42,.64);border-radius:18px;padding:18px 30px 16px;
-    background:linear-gradient(160deg,rgba(255,250,232,.72),rgba(215,188,131,.26));box-shadow:0 8px 22px rgba(0,0,0,.14);min-width:130px;}
-  #alchemyUI .ingr:hover{transform:translateY(-6px) scale(1.04);border-color:#d4af37;box-shadow:0 18px 34px rgba(0,0,0,.18),0 0 28px rgba(212,175,55,.3);}
-  #alchemyUI .ingr .icon{width:58px;height:58px;margin:0 auto 10px;border-radius:16px;object-fit:contain;filter:drop-shadow(0 8px 12px rgba(0,0,0,.24));}
-  #alchemyUI .ingr .name{font-size:18px;letter-spacing:.16em;font-family:'Noto Serif SC',serif;}
-  #alchemyUI .ingr .count{font-size:13px;opacity:.68;margin-top:6px;}
-  #alchemyUI .actions{display:flex;gap:18px;justify-content:center;align-items:center;}
-  #alchemyUI .btn{border:1px solid #b98a2a;background:linear-gradient(135deg,rgba(244,236,216,.52),rgba(201,162,75,.18));
-    border-radius:999px;padding:13px 32px;cursor:pointer;font-size:17px;letter-spacing:.24em;text-indent:.24em;
-    transition:all .3s;font-family:'Cormorant Garamond',serif;color:#2a2520;
+  @keyframes brewGlow{0%,100%{opacity:.82;transform:scale(1)}50%{opacity:1;transform:scale(1.06)}}
+  @keyframes bubbleRise{0%{transform:translateY(18px) scale(.5);opacity:0}30%{opacity:.9}100%{transform:translateY(-42px) scale(1.05);opacity:0}}
+  #alchemyUI .contents{font-size:18px;color:#f4d03f;letter-spacing:.1em;z-index:3;text-align:center;text-shadow:0 2px 10px rgba(0,0,0,.72);font-family:'Noto Serif SC',serif;max-width:250px;line-height:1.7;}
+  #alchemyUI .ingredients{display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:22px;}
+  #alchemyUI .ingr{text-align:left;cursor:pointer;transition:transform .28s,box-shadow .28s,border-color .28s;
+    border:1px solid rgba(139,91,43,.34);border-radius:20px;padding:13px 16px;display:grid;grid-template-columns:58px 1fr auto;gap:13px;align-items:center;
+    background:linear-gradient(160deg,rgba(255,250,232,.82),rgba(201,162,75,.18));box-shadow:0 8px 22px rgba(0,0,0,.12);min-width:0;}
+  #alchemyUI .ingr:hover{transform:translateY(-4px) scale(1.018);border-color:#d4af37;box-shadow:0 18px 34px rgba(0,0,0,.18),0 0 28px rgba(212,175,55,.24);}
+  #alchemyUI .ingr .icon{width:58px;height:58px;margin:0;border-radius:16px;object-fit:contain;filter:drop-shadow(0 8px 12px rgba(0,0,0,.22));background:rgba(255,255,255,.22);}
+  #alchemyUI .ingr .name{font-size:18px;letter-spacing:.13em;font-family:'Noto Serif SC',serif;color:#4b331f;font-weight:800;}
+  #alchemyUI .ingr .role{font-size:11px;letter-spacing:.1em;color:#7a5c3b;margin-top:4px;font-family:'Noto Serif SC',serif;}
+  #alchemyUI .ingr .count{font-size:12px;opacity:.8;padding:5px 8px;border-radius:999px;background:rgba(92,63,31,.11);font-family:'Noto Serif SC',serif;white-space:nowrap;}
+  #alchemyUI .actions{display:flex;gap:14px;justify-content:flex-start;align-items:center;}
+  #alchemyUI .btn{border:1px solid #b98a2a;background:linear-gradient(135deg,rgba(255,247,219,.78),rgba(201,162,75,.22));
+    border-radius:999px;padding:13px 30px;cursor:pointer;font-size:16px;letter-spacing:.2em;text-indent:.2em;
+    transition:all .3s;font-family:'Noto Serif SC',serif;color:#2a2520;font-weight:800;
     box-shadow:0 7px 18px rgba(0,0,0,.12);}
-  #alchemyUI .btn:hover{background:linear-gradient(135deg,rgba(244,208,63,.32),rgba(201,162,75,.2));
-    transform:translateY(-2px);box-shadow:0 12px 24px rgba(0,0,0,.17),0 0 20px rgba(212,175,55,.28);}
+  #alchemyUI .btn.primary{background:linear-gradient(135deg,rgba(244,208,63,.78),rgba(159,101,35,.42));color:#3b2414;box-shadow:0 13px 30px rgba(160,98,31,.24),0 0 28px rgba(244,208,63,.2);}
+  #alchemyUI .btn:hover{transform:translateY(-2px);box-shadow:0 12px 24px rgba(0,0,0,.17),0 0 20px rgba(212,175,55,.28);}
   #alchemyUI .btn:disabled{opacity:.3;cursor:default;transform:none!important;}
-  #alchemyUI .close{position:absolute;top:28px;right:34px;font-size:30px;cursor:pointer;
+  #alchemyUI .close{position:absolute;top:26px;right:32px;font-size:30px;cursor:pointer;
     width:42px;height:42px;display:flex;align-items:center;justify-content:center;border-radius:50%;
     border:1px solid rgba(185,138,42,.7);background:rgba(244,236,216,.64);color:#2a2520;opacity:.62;
     transition:all .3s;box-shadow:0 4px 12px rgba(0,0,0,.16);z-index:2;}
   #alchemyUI .close:hover{opacity:1;transform:scale(1.12) rotate(90deg);box-shadow:0 0 16px rgba(212,175,55,.45);}
-  #alchemyUI .alchemyStatus{height:24px;margin-top:16px;text-align:center;font-family:'Noto Serif SC',serif;font-size:13px;letter-spacing:.12em;color:#8b5a35;opacity:.85;}
+  #alchemyUI .alchemyStatus{min-height:24px;margin-top:15px;text-align:left;font-family:'Noto Serif SC',serif;font-size:13px;letter-spacing:.12em;color:#7a4f2d;opacity:.9;line-height:1.8;}
   #alchemyUI .alchemyStatus.warn{color:#a64838;animation:statusPulse .5s ease-out;}
   @keyframes statusPulse{0%{transform:scale(.96);opacity:.3}100%{transform:scale(1);opacity:.85}}
   #alchemyUI .discovery{position:absolute;inset:0;background:radial-gradient(circle at 50% 42%,rgba(255,246,210,.96),rgba(212,175,55,.93));
@@ -92,33 +105,41 @@ function buildDOM(){
   root=$$('div');root.id='alchemyUI';
   root.innerHTML=`
     <div class="panel">
-      <div class="title">炼金大釜</div>
-      <div class="subtitle">Alchemy Cauldron · 探索配方合成卡牌</div>
-      <div class="cauldron">
-        <div class="contents" id="cauldronDisplay">空釜</div>
-      </div>
-      <div class="ingredients">
-        <div class="ingr" id="addWheat">
-          <img class="icon" src="assets/ui/wheat_icon.png" alt="">
-          <div class="name">星麦</div>
-          <div class="count" id="wheatCount">库存: 0</div>
+      <div class="leftPane">
+        <div class="cauldron">
+          <img class="cauldronArt" src="assets/sprites/alchemy_cauldron_real.png?v=3" alt="">
+          <i class="spark s1"></i><i class="spark s2"></i><i class="spark s3"></i>
+          <div class="bubbles"><i></i><i></i><i></i><i></i></div>
+          <div class="contents" id="cauldronDisplay">空釜</div>
         </div>
-        <div class="ingr" id="addDewberry">
-          <img class="icon" src="assets/sprites/crop_dewberry.png" alt="">
-          <div class="name">露莓</div>
-          <div class="count" id="dewberryCount">库存: 0</div>
-        </div>
-        <div class="ingr" id="addWood">
-          <img class="icon" src="assets/ui/wood_icon.png" alt="">
-          <div class="name">木材</div>
-          <div class="count" id="woodCount">库存: 0</div>
-        </div>
+        <div class="formulaHint"><b>工坊笔记</b> · 星麦决定产地品质，露莓偏向治愈与净化，木材稳定卡牌形体。不同配比会解锁不同流派。</div>
       </div>
-      <div class="actions">
-        <button class="btn" id="alchemyReset">清空</button>
-        <button class="btn" id="alchemyBrew">炼制</button>
+      <div class="rightPane">
+        <div class="title">炼金大釜</div>
+        <div class="subtitle">Alchemy Cauldron · 探索配方合成卡牌</div>
+        <div class="ingredients">
+          <div class="ingr" id="addWheat">
+            <img class="icon" src="assets/ui/wheat_icon.png" alt="">
+            <div><div class="name">星麦</div><div class="role">产地品质 · 守势/丰收基底</div></div>
+            <div class="count" id="wheatCount">库存: 0</div>
+          </div>
+          <div class="ingr" id="addDewberry">
+            <img class="icon" src="assets/sprites/crop_dewberry.png?v=2" alt="">
+            <div><div class="name">露莓</div><div class="role">水系净化 · 治疗与河川祝福</div></div>
+            <div class="count" id="dewberryCount">库存: 0</div>
+          </div>
+          <div class="ingr" id="addWood">
+            <img class="icon" src="assets/ui/wood_icon.png" alt="">
+            <div><div class="name">木材</div><div class="role">卡框骨架 · 稳定炼成结构</div></div>
+            <div class="count" id="woodCount">库存: 0</div>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn" id="alchemyReset">清空</button>
+          <button class="btn primary" id="alchemyBrew">炼制</button>
+        </div>
+        <div class="alchemyStatus" id="alchemyStatus">投入材料，聆听大地的回响</div>
       </div>
-      <div class="alchemyStatus" id="alchemyStatus">投入材料，聆听大地的回响</div>
       <div class="close" id="alchemyClose">×</div>
       <div class="discovery" id="alchemyDiscovery">
         <div class="msg">✨ 配方发现! ✨</div>
@@ -211,10 +232,20 @@ function showStatus(text, warn=false){
   el.textContent=text; el.classList.toggle('warn', !!warn);
   if(warn){ el.style.animation='none'; void el.offsetWidth; el.style.animation='statusPulse .5s ease-out'; }
 }
+function cardRevealArt(card){
+  const name=card?.name||'';
+  if(name.includes('祝福')||card?.element==='water') return 'assets/sprites/card_art_heal.png';
+  if(name.includes('守卫')||name.includes('壁')||card?.archetype==='thorn') return 'assets/sprites/card_art_guard.png';
+  if(name.includes('镰')||card?.archetype==='harvest') return 'assets/sprites/card_art_slash.png';
+  if(card?.element==='fire') return 'assets/sprites/card_art_charge.png';
+  return 'assets/sprites/card_art_guard.png';
+}
 function revealCard(card){
   const r=document.getElementById('cardReveal');
   if(!r) return false;
   document.getElementById('cvName').textContent=card.name;
+  const art=document.getElementById('cvArt');
+  if(art) art.src=cardRevealArt(card);
   document.getElementById('cvAtk').textContent=card.atk||0;
   document.getElementById('cvDef').textContent=card.def||0;
   document.getElementById('cvQ').textContent=Math.round((card.quality||0)*100);

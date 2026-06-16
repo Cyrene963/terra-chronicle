@@ -1,19 +1,11 @@
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
+const { scriptVersions, hasExpectedScript, badConsole } = require('./smoke_common');
 
 const ROOT = '/root/terra-chronicle-game';
 const OUT = path.join(ROOT, 'dogfood-output', 'terra-visual-smoke');
 fs.mkdirSync(OUT, { recursive: true });
-
-function badConsole(msg) {
-  const text = msg.text();
-  if (msg.type() !== 'error') return false;
-  if (/Failed to load resource.*favicon/i.test(text)) return false;
-  if (/PixiJS Error: Could not initialize shader\.?$/i.test(text) || /^\s*$/.test(text)) return false;
-  if (/#define SHADER_NAME|INVALID_OPERATION: useProgram|INVALID_OPERATION: drawElements|CONTEXT_LOST_WEBGL|Attribute .* is not present in the shader/i.test(text)) return false;
-  return true;
-}
 
 async function visibleNonBlackPixels(page, screenshotPath) {
   const canvasInfo = await page.evaluate(() => {
@@ -52,8 +44,9 @@ async function visibleNonBlackPixels(page, screenshotPath) {
   await page.screenshot({ path: path.join(OUT, '01_title.png'), fullPage: false });
 
   const scripts = await page.evaluate(() => [...document.scripts].map(s => s.src).filter(Boolean));
-  if (!scripts.some(src => src.includes('alchemy.js?v=40'))) throw new Error('public page did not load alchemy.js?v=40');
-  if (!scripts.some(src => src.includes('main.js?v=60'))) throw new Error('public page did not load main.js?v=60');
+  const versions = scriptVersions();
+  if (!hasExpectedScript(scripts, 'alchemy.js', versions)) throw new Error(`public page did not load expected alchemy.js version: ${JSON.stringify({ versions, scripts })}`);
+  if (!hasExpectedScript(scripts, 'main.js', versions)) throw new Error(`public page did not load expected main.js version: ${JSON.stringify({ versions, scripts })}`);
 
   await page.click('#enter');
   await page.waitForFunction(() => window.__dbg && window.__dbg.ready, null, { timeout: 12000 });
@@ -211,7 +204,7 @@ async function visibleNonBlackPixels(page, screenshotPath) {
 
   await browser.close();
 
-  const report = { ok: true, url: 'https://terra.bz9.me/', scripts, worldPixels, result, consoleErrors, screenshots: fs.readdirSync(OUT).filter(f => f.endsWith('.png')).map(f => path.join(OUT, f)) };
+  const report = { ok: true, url: 'https://terra.bz9.me/', versions, scripts, worldPixels, result, consoleErrors, screenshots: fs.readdirSync(OUT).filter(f => f.endsWith('.png')).map(f => path.join(OUT, f)) };
   if (!worldPixels.exists || worldPixels.nonBlack < Math.max(20, Math.floor(worldPixels.sample * 0.08))) throw new Error(`canvas appears black/empty: ${JSON.stringify(worldPixels)}`);
   if (!result.ecoStatus || !result.ecoScore || !result.dbgEcology || !result.fpsBadge || !result.qualityBadge) throw new Error(`hud/debug missing: ${JSON.stringify(result)}`);
   if (!result.cardRevealOn || !result.cardName) throw new Error(`card reveal failed: ${JSON.stringify(result)}`);

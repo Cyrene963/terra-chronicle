@@ -323,6 +323,7 @@ for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
     const foam=new PIXI.Sprite(TEX_GLOW); foam.anchor.set(.5);
     foam.width=TS*1.2; foam.height=TS*1.2;
     foam.x=x*TS+TS/2+dx*TS*0.35; foam.y=y*TS+TS/2+dy*TS*0.35;
+    foam._ph=hash(x*19+dx*7,y*23+dy*5)*6.28;
     foam.tint=0xeefaff; foam.alpha=.28; foam.blendMode='add';
     foamL.addChild(foam);
   }

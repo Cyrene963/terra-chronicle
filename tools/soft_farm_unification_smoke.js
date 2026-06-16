@@ -1,15 +1,11 @@
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
+const { scriptVersions, hasExpectedScript, badConsole, sha256 } = require('./smoke_common');
 
 const ROOT = path.resolve(__dirname, '..');
 const OUT = path.join(ROOT, 'dogfood-output', 'soft-farm-unification-20260615');
 fs.mkdirSync(OUT, { recursive: true });
-
-function sha256(file) {
-  return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
-}
 
 (async () => {
   const browser = await chromium.launch({ headless: true });
@@ -17,7 +13,7 @@ function sha256(file) {
   const consoleErrors = [];
   const pageErrors = [];
   page.on('console', msg => {
-    if (msg.type() === 'error') consoleErrors.push(msg.text());
+    if (badConsole(msg)) consoleErrors.push(`${msg.type()}: ${msg.text()}`);
   });
   page.on('pageerror', err => pageErrors.push(String(err)));
   await page.goto('https://terra.bz9.me/?soft_farm_unification=20260615', { waitUntil: 'domcontentloaded', timeout: 60000 });
@@ -79,8 +75,10 @@ function sha256(file) {
   const liveWater = '/var/www/terra-pixijs/assets/sprites/beast_water.png';
   const srcFire = path.join(ROOT, 'assets/sprites/beast_fire.png');
   const liveFire = '/var/www/terra-pixijs/assets/sprites/beast_fire.png';
+  const versions = scriptVersions();
   const report = {
     ok: true,
+    versions,
     state,
     hashes: {
       sourceWater: sha256(srcWater),
@@ -95,7 +93,7 @@ function sha256(file) {
   if (report.hashes.sourceWater !== report.hashes.liveWater || report.hashes.sourceFire !== report.hashes.liveFire) {
     throw new Error(`deployed asset hash mismatch: ${JSON.stringify(report.hashes)}`);
   }
-  if (!state.scripts.some(src => src.includes('src/main.js?v=61'))) throw new Error(`public page did not load main.js?v=61: ${JSON.stringify(state.scripts)}`);
+  if (!hasExpectedScript(state.scripts, 'main.js', versions)) throw new Error(`expected main.js version not loaded: ${JSON.stringify({ versions, scripts: state.scripts })}`);
   if (!state.elemental.water || !state.elemental.fire || state.elemental.water.texW <= 1 || state.elemental.fire.texW <= 1) {
     throw new Error(`elemental beast sheets did not load: ${JSON.stringify(state.elemental)}`);
   }

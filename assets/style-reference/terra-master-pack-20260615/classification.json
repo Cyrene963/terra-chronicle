@@ -45,7 +45,8 @@
       "assets/sprites/beast_shrine_fox_spirit.png",
       "assets/sprites/beast_white_serpent_shrine.png",
       "assets/sprites/_backup_before_soft_farm_unification_20260615/beast_water.png",
-      "assets/sprites/_backup_before_soft_farm_unification_20260615/beast_fire.png"
+      "assets/sprites/_backup_before_soft_farm_unification_20260615/beast_fire.png",
+      "assets/generated/soft-farm-crop-ui-candidates-20260615/selected_crop_star_wheat.png"
     ],
     "ui": [
       "assets/ui/dungeon_route_reference_terra.png",
@@ -75,7 +76,8 @@
       "assets/sprites/crop_dewberry.png",
       "assets/sprites/crop_star_wheat.png",
       "assets/sprites/button_frame.png",
-      "assets/sprites/scroll_paper.png"
+      "assets/sprites/scroll_paper.png",
+      "assets/sprites/crop.png"
     ]
   }
 }
