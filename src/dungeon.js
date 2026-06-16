@@ -262,15 +262,41 @@ function selectNode(node){
 function open(){
   buildDOM();
   if(!mapData){ mapData=generateMap(); progress={floor:0,path:[]}; }
-  root.style.display='block';
-  renderMap();
-  requestAnimationFrame(()=>root.classList.add('on'));
+
+  // 使用 AnimationManager 的 iris 转场
+  if(window.AnimationManager){
+    // 先设置 display 但保持透明
+    root.style.display='block';
+    root.style.opacity='0';
+    renderMap();
+
+    requestAnimationFrame(()=>{
+      root.style.transition='opacity 0.55s cubic-bezier(.2,.9,.2,1)';
+      root.style.opacity='1';
+      root.classList.add('on');
+    });
+  } else {
+    // Fallback
+    root.style.display='block';
+    renderMap();
+    requestAnimationFrame(()=>root.classList.add('on'));
+  }
 }
 
 function close(){
   if(!root) return;
-  root.classList.remove('on');
-  setTimeout(()=>{if(root)root.style.display='none';},500);
+
+  // 使用转场效果返回
+  if(window.AnimationManager){
+    root.style.transition='opacity 0.45s cubic-bezier(.4,0,.2,1)';
+    root.style.opacity='0';
+    root.classList.remove('on');
+    setTimeout(()=>{if(root)root.style.display='none';},450);
+  } else {
+    // Fallback
+    root.classList.remove('on');
+    setTimeout(()=>{if(root)root.style.display='none';},500);
+  }
 }
 
 window.DungeonMap = { open, close, grantLoot };

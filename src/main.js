@@ -1,9 +1,26 @@
 /* =========================================================
-   Terra Chronicle — 2.5D 探索原型 v1 (PixiJS v8 / WebGL)
+   Terra Chronicle — 2.5D 探索原型 v9.14 (PixiJS v8 / WebGL)
    世界层: Tilemap + Y-Sort 精灵 + WASD 主角 + 平滑跟随镜头
    氛围层: 四季连续调色 · 昼夜光 · 云影 · 季节粒子 · 晕影
    界面层: DOM (index.html)
    ---------------------------------------------------------
+   v9.14 改进: 画风与美术最终抛光
+               — 水面高级 Shader (反射+折射+菲涅尔+泡沫)
+               — Sprite-based 季节粒子 (真实樱花/树叶/雪花纹理+旋转)
+               — 后处理管线 (Bloom/Fog/God Rays/增强晕影/色差)
+               — 材质增强系统 (程序化木质/石头/草叶纹理+AO)
+   v9.12 改进: Gris / Hollow Knight 美术层次原则全面应用
+               — 色彩对比度优化(前景高亮/背景深沉/金色边框)
+               — 视觉引导强化(季节弧段辉光/FAB脉冲加强)
+               — UI自然融合(毛玻璃+内光晕+drop-shadow统一)
+               — 细节打磨(边缘光/阴影层次/渐变优化)
+   v9.8 改进: 季节盘重设计 — 四季差异化弧段 + 季节切换动画 + 进度环
+              + 时钟连接线 + 天气标签动态联动 + tabular-nums 等宽数字
+   v9.6 改进: 视觉引导强化 — 传送门/孵化阵/熔炉呼吸光环 + 炼金FAB悬浮按钮
+              + 敌人意图图标化与色彩编码 + 卡牌悬停增强 + 全屏状态脉冲
+   v9.6 改进: 多层次交互反馈 — 粒子爆发 + 数字飘字 + 音效预留 + 过程动画
+   v9.3 改进: 所有交互元素添加 data-testid，锻造按钮 disabled 状态优化
+   v9.1 修复: Title page 'Enter Game' 按钮可见性问题
    美术资产接口: 所有可见物均通过 ASSETS 表声明。
    把 AI 生成的 PNG 路径填进对应 src 字段即可替换占位符,
    其余逻辑(碰撞/遮挡/动画/换色)不需要任何改动。
@@ -11,7 +28,7 @@
 'use strict';
 
 /* 资产版本号: 内容更新时 +1,绕过浏览器/CDN 旧缓存 */
-const ASSET_V="?v=9";
+const ASSET_V="?v=10";
 /* 贴图加载: mode='tile' → NEAREST+CLAMP(消除瓦片接缝+锐利);
    其余(精灵)→ LINEAR+mipmap(高清源缩小时干净不闪烁,painterly 风格不能用 NEAREST 否则缩小抖动) */
 async function loadTex(src, mode){
@@ -39,8 +56,10 @@ const ASSETS = {
   windmill: { src: 'assets/sprites/windmill_base.png', w: 118, h: 178, anchorY: 0.98, collideR: 30,
               bladesSrc: 'assets/sprites/windmill_blades.png', bladesW: 92, hubY: -0.74 },
   fence:    { src: 'assets/sprites/fence.png',       w: 66,  h: 53,  anchorY: 0.9 },
-  crop:     { src: 'assets/sprites/crop.png',        w: 48,  h: 58,  anchorY: 1.0 },
-  crop_dewberry:{ src:'assets/sprites/crop_dewberry.png',w: 52, h: 56, anchorY: 1.0 },
+  crop:     { src: 'assets/sprites/crop.png',        w: 48,  h: 58,  anchorY: 1.0,
+              growth: ['assets/sprites/crop_seedling.png','assets/sprites/crop_growing.png','assets/sprites/crop.png'] },
+  crop_dewberry:{ src:'assets/sprites/crop_dewberry.png',w: 52, h: 56, anchorY: 1.0,
+              growth: ['assets/sprites/crop_dewberry_seedling.png','assets/sprites/crop_dewberry_growing.png','assets/sprites/crop_dewberry.png'] },
   beast_water:{ src:'assets/sprites/beast_water.png',w: 82,  h: 88,  anchorY: 0.88 },
   beast_fire:{ src:'assets/sprites/beast_fire.png', w: 58,  h: 66,  anchorY: 0.86 },
   beast_shrine_fox_spirit:{ src:'assets/sprites/beast_shrine_fox_spirit.png', w: 80, h: 82, anchorY: 0.88 },
@@ -173,21 +192,28 @@ function placeObjects(){
   // 深渊传送门(东北角):清掉该格已有物件再放置
   for(let i=OBJECTS.length-1;i>=0;i--){ const o=OBJECTS[i];
     if(Math.abs(o.tx-47)<2 && Math.abs(o.ty-10)<2) OBJECTS.splice(i,1); }
-  OBJECTS.push({kind:'portal',tx:47,ty:10});
+  OBJECTS.push({kind:'portal',tx:47,ty:10,glow:true});
   // 孵化阵 + 工坊熔炉(农庄附近):清格再放
   for(let i=OBJECTS.length-1;i>=0;i--){ const o=OBJECTS[i];
     if((Math.abs(o.tx-17)<2&&Math.abs(o.ty-31)<2)||(Math.abs(o.tx-25)<2&&Math.abs(o.ty-22)<2)) OBJECTS.splice(i,1); }
-  OBJECTS.push({kind:'incubator',tx:17,ty:31});
-  OBJECTS.push({kind:'furnace',tx:25,ty:22});
+  OBJECTS.push({kind:'incubator',tx:17,ty:31,glow:true});
+  OBJECTS.push({kind:'furnace',tx:25,ty:22,glow:true});
 }
 placeObjects();
 
 /* ================= 4. PIXI 启动 ================= */
 (async ()=>{
 const app = new PIXI.Application();
+let feedbackSystem = null;  // 交互反馈系统（在图层初始化后创建）
+
+// 检测 headless 环境
+const isHeadless = navigator.webdriver || navigator.userAgent.includes('HeadlessChrome');
+
 await app.init({ resizeTo: window, background: 0x0d0f12, antialias: false,
-  resolution: Math.min(window.devicePixelRatio||1, 2), autoDensity: true,
-  roundPixels: true });   // 全 DPR 原生分辨率渲染(视网膜清晰) + 坐标取整消除移动发糊
+  resolution: isHeadless ? 1 : Math.min(window.devicePixelRatio||1, 2),
+  autoDensity: true,
+  roundPixels: true,
+  preference: isHeadless ? 'webgl' : 'webgl2' });   // headless 环境使用 WebGL 1
 document.getElementById('stage').appendChild(app.canvas);
 
 /* ---- 通用纹理 ---- */
@@ -217,6 +243,9 @@ objL.sortableChildren = true;
 const fxScreen = new PIXI.Container();           // 屏幕空间: 粒子/光/晕影
 world.addChild(groundL, waterL, foamL, snowL, overlayL, objL);
 app.stage.addChild(world, fxScreen);
+
+/* 初始化交互反馈系统 */
+feedbackSystem = typeof FeedbackSystem !== 'undefined' ? new FeedbackSystem(app, overlayL, fxScreen) : null;
 
 /* DPR/视口加固: 画布撑满屏 + resize/恢复可见时同步渲染器、滤镜与转场云幕画布 */
 app.canvas.style.width='100%'; app.canvas.style.height='100%';
@@ -263,8 +292,8 @@ window.visualViewport?.addEventListener('scroll',scheduleViewportSync);
 /* —— 四季色彩分级: ColorMatrixFilter 对整个世界统一调色 —— */
 /* 春=高饱和清新 / 夏=明亮高对比 / 秋=金黄枫红色相偏移 / 冬=去饱和冷调 */
 const seasonFilter=new PIXI.ColorMatrixFilter();
-world.filters=[];
-// world.filterArea=new PIXI.Rectangle(0,0,window.innerWidth,window.innerHeight); // 注释掉 - 不设置 filterArea，让 PIXI 自动处理
+world.filters=[seasonFilter];
+// filterArea auto-calculated by PIXI to avoid black blocks
 function mkMat({s=1,br=1,rO=0,gO=0,bO=0}){        // 饱和度+亮度+RGB偏移 → 20格矩阵
   const lr=.2126,lg=.7152,lb=.0722,iv=1-s;
   return [(lr*iv+s)*br, lg*iv*br, lb*iv*br, 0, rO,
@@ -330,8 +359,33 @@ for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
 }
 
 // 位移波纹滤镜(给水面微扰动效,仅 quality>0 时启用)
-let waterDisp=null, waterDispFilter=null;
+// v9.14: 尝试升级为高级水面 shader
+let waterDisp=null, waterDispFilter=null, waterShaderSystem=null;
 (function(){
+  // headless 环境直接跳过水面滤镜，避免 GPU ReadPixels 压力
+  if(navigator.webdriver || navigator.userAgent.includes('HeadlessChrome')) {
+    console.log('[Terra] Headless 环境检测，禁用水面滤镜');
+    return;
+  }
+
+  // 优先使用高级 shader 系统
+  if (typeof WaterShaderSystem !== 'undefined' && WaterShaderSystem.createAdvancedWaterSystem) {
+    try {
+      waterShaderSystem = WaterShaderSystem.createAdvancedWaterSystem(waterL, {
+        waveStrength: 0.012,
+        fresnelPower: 2.8,
+        waterColorShallow: [0.55, 0.82, 0.88],
+        waterColorDeep: [0.18, 0.50, 0.68],
+        causticStrength: 0.0  // 焦散默认关闭(性能)
+      });
+      console.log('[Terra] Advanced water shader initialized');
+      return;
+    } catch (e) {
+      console.warn('[Terra] Failed to init advanced water shader:', e);
+    }
+  }
+
+  // 降级: 旧版位移滤镜
   const c=document.createElement('canvas'); c.width=c.height=128;
   const g=c.getContext('2d');
   for(let i=0;i<60;i++){ const gx=Math.random()*128,gy=Math.random()*128,rr=8+Math.random()*22;
@@ -379,8 +433,19 @@ function makeNode(kind){
   const node=new PIXI.Container();
   const sh=new PIXI.Sprite(TEX_SHADOW); sh.anchor.set(.5);
   sh.width=a.w*1.15; sh.height=a.w*.42; sh.y=-2; node.addChild(sh); node._shadow=sh;
-  if(kind==='beast_water' || kind==='beast_fire'){
-    const sheetKind=kind==='beast_water' ? 'beast_water_walk_sheet' : 'beast_fire_walk_sheet';
+
+  // Animated beasts: fire, water, and 4 elite shrine beasts
+  const walkSheetMap = {
+    'beast_water': 'beast_water_walk_sheet',
+    'beast_fire': 'beast_fire_walk_sheet',
+    'beast_shrine_fox_spirit': 'beast_shrine_fox_spirit_walk_sheet',
+    'beast_sacred_fawnling': 'beast_sacred_fawnling_walk_sheet',
+    'beast_white_serpent_shrine': 'beast_white_serpent_shrine_walk_sheet',
+    'beast_deepsea_noble': 'beast_deepsea_noble_walk_sheet'
+  };
+
+  if(walkSheetMap[kind]){
+    const sheetKind = walkSheetMap[kind];
     const anim=new PIXI.Container();
     anim.anchor={x:.5,y:(a.anchorY??1)};
     const fr=[];
@@ -407,6 +472,11 @@ function makeNode(kind){
           acc=0; fr[idx].visible=false; idx=(idx+1)%fr.length; fr[idx].visible=true;
         }
       };
+    }).catch(()=>{
+      // Fallback to static sprite if walk sheet not found yet
+      loadTex(a.src).then(tex=>{
+        fr[0].texture=tex; fr[0].width=a.w; fr[0].height=a.h;
+      });
     });
     anim._baseScaleX=1; anim._baseScaleY=1;
     node._bw=1; node._bh=1;
@@ -433,50 +503,10 @@ function makeNode(kind){
     }
     return node;
   }
-  const g=new PIXI.Graphics(); node.addChild(g); node._body=g;
-  const W=a.w,H=a.h;
-  if(kind==='tree'||kind==='cherry'){
-    g.roundRect(-5,-H*.42,10,H*.42,4).fill(0x6b4a34);
-    const cv=new PIXI.Graphics();
-    cv.circle(-W*.22,-H*.52,W*.30).fill(0xffffff);
-    cv.circle(W*.20,-H*.55,W*.33).fill(0xffffff);
-    cv.circle(0,-H*.72,W*.34).fill(0xffffff);
-    node.addChild(cv); node._canopy=cv;
-  } else if(kind==='rock'){
-    g.poly([-W*.45,0, -W*.3,-H*.7, W*.05,-H*.95, W*.45,-H*.45, W*.38,0]).fill(0x8d8d93);
-    g.poly([-W*.3,-H*.68, W*.04,-H*.92, W*.1,-H*.6]).fill(0xa8a8af);
-  } else if(kind==='bush'){
-    const cv=new PIXI.Graphics();
-    cv.circle(-W*.2,-H*.3,W*.26).fill(0xffffff);
-    cv.circle(W*.16,-H*.34,W*.3).fill(0xffffff);
-    cv.circle(0,-H*.52,W*.26).fill(0xffffff);
-    node.addChild(cv); node._canopy=cv;
-  } else if(kind==='house'){
-    g.rect(-W*.4,-H*.52,W*.8,H*.52).fill(0xe7ddc8);
-    g.poly([-W*.48,-H*.5, 0,-H*.92, W*.48,-H*.5]).fill(0x9c5a40);
-    g.rect(-W*.07,-H*.30,W*.14,H*.30).fill(0x6b4a34);
-    g.rect(-W*.30,-H*.40,W*.12,W*.055).fill(0x8fb6c9);
-    g.rect(W*.18,-H*.40,W*.12,W*.055).fill(0x8fb6c9);
-    const lamp=new PIXI.Sprite(TEX_GLOW); lamp.anchor.set(.5);
-    lamp.width=lamp.height=W*.6; lamp.y=-H*.36; lamp.tint=0xffc878;
-    lamp.blendMode='add'; lamp.alpha=0; node.addChild(lamp); node._lamp=lamp;
-  } else if(kind==='windmill'){
-    g.poly([-W*.18,0, -W*.10,-H*.62, W*.10,-H*.62, W*.18,0]).fill(0xefe8da);
-    g.poly([-W*.14,-H*.60, 0,-H*.72, W*.14,-H*.60]).fill(0x9c6a46);
-    const bl=new PIXI.Graphics();
-    for(let i=0;i<4;i++){
-      const ang=i*Math.PI/2;
-      bl.moveTo(0,0).lineTo(Math.cos(ang)*W*.62,Math.sin(ang)*W*.62)
-        .stroke({width:7,color:0xf6f1e7,alpha:.95});
-    }
-    bl.y=-H*.66; node.addChild(bl); node._blades=bl;
-  } else if(kind==='fence'){
-    g.rect(-W*.46,-H*.55,W*.92,5).fill(0x9a7752);
-    g.rect(-W*.42,-H*.8,7,H*.8).fill(0x8a6a48);
-    g.rect(W*.35,-H*.8,7,H*.8).fill(0x8a6a48);
-  } else if(kind==='crop'){
+  // All sprite assets now loaded from src, Graphics placeholders removed
+  // Fallback for crop which uses dynamic rendering
+  if(kind==='crop'){
     const cv=new PIXI.Graphics(); node.addChild(cv); node._canopy=cv; node._isCrop=true;
-  } else if(kind==='player'){
   }
   return node;
 }
@@ -490,6 +520,14 @@ for(const o of OBJECTS){
   objL.addChild(n); o.node=n;
   const a=ASSETS[o.kind];
   if(a.collideR) colliders.push({x:n.x,y:n.y,r:a.collideR});
+
+  // 为核心交互点添加呼吸光环（强化版：更大、更亮、带色彩编码）
+  if(o.glow && (o.kind==='portal'||o.kind==='incubator'||o.kind==='furnace')){
+    const glow=new PIXI.Sprite(TEX_GLOW); glow.anchor.set(.5);
+    glow.width=a.w*2.2; glow.height=a.w*2.2; glow.y=-a.h*0.5;          // 扩大到2.2倍
+    glow.tint=o.kind==='portal'?0xb68cff:o.kind==='incubator'?0x9fdc7b:0xffb24a;
+    glow.blendMode='add'; glow.alpha=0; n.addChild(glow); n._glow=glow;
+  }
 }
 /* 耕地: 玩家手植作物(种植→成熟→收获,§13 农场交互) */
 const crops=[];                // 已种下的作物节点(参与视口剔除)
@@ -538,6 +576,9 @@ addEventListener('keydown',e=>{
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
 
 const SPEED=235;
+const movementEnhancer = typeof MovementFeelEnhancer !== 'undefined' ? new MovementFeelEnhancer() : null;
+const dustParticles = [];
+
 function tileBlockedAt(wx,wy){
   const tx=Math.floor(wx/TS), ty=Math.floor(wy/TS);
   if(tx<0||ty<0||tx>=MAP||ty>=MAP) return true;
@@ -553,49 +594,102 @@ function collides(wx,wy){
   return false;
 }
 let walkPh=0, facing=1;
-function animateWalk(dt,moving){
+function animateWalk(dt,moving,speed){
   walkPh+=dt*(moving?11:4);
   const squash=moving?Math.sin(walkPh)*.045:Math.sin(walkPh)*.012;
   const PS=1.25, fd=ASSETS.player.faceDir||1;    // fd: 原画朝向(-1=朝左)
-  player._rig.scale.set(facing*fd*PS*(1-squash*.6), PS*(1+squash));
-  player._rig.y = moving? -Math.abs(Math.sin(walkPh))*3.2 : 0;
+
+  // 应用游戏手感增强的 squash & stretch
+  const enhance = movementEnhancer ? movementEnhancer.getSquashStretch(speed || 0, SPEED) : {scaleX: 1, scaleY: 1, offsetY: 0};
+  const finalScaleX = facing*fd*PS*(1-squash*.6) * enhance.scaleX;
+  const finalScaleY = PS*(1+squash) * enhance.scaleY;
+
+  player._rig.scale.set(finalScaleX, finalScaleY);
+  player._rig.y = (moving? -Math.abs(Math.sin(walkPh))*3.2 : 0) + enhance.offsetY;
 }
-function manualMove(dt){                          // 键盘直接驱动
-  let dx=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0);
-  let dy=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0);
-  if(dx&&dy){dx*=Math.SQRT1_2;dy*=Math.SQRT1_2;}
-  const nx=player.x+dx*SPEED*dt, ny=player.y+dy*SPEED*dt;
-  if(dx&&!collides(nx,player.y)) player.x=nx;
-  if(dy&&!collides(player.x,ny)) player.y=ny;
-  player.zIndex=player.y;
-  if(dx) facing=dx>0?1:-1;
-  animateWalk(dt, !!(dx||dy));
+function manualMove(dt){                          // 键盘直接驱动（加速/减速增强版）
+  let inputX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0);
+  let inputY=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0);
+
+  // 使用游戏手感增强器计算移动
+  const movement = movementEnhancer ? movementEnhancer.updateMovement(inputX, inputY, dt) : {dx: inputX*SPEED*dt, dy: inputY*SPEED*dt, speed: Math.hypot(inputX, inputY)*SPEED, moving: inputX!==0 || inputY!==0};
+
+  // 应用碰撞检测
+  const nx = player.x + movement.dx;
+  const ny = player.y + movement.dy;
+  if(movement.dx && !collides(nx, player.y)) player.x = nx;
+  if(movement.dy && !collides(player.x, ny)) player.y = ny;
+
+  player.zIndex = player.y;
+
+  // 更新朝向
+  if(Math.abs(movement.dx) > 0.1) facing = movement.dx > 0 ? 1 : -1;
+
+  // 生成尘埃粒子
+  if(movement.moving && movementEnhancer) {
+    const newDust = movementEnhancer.spawnDustParticles(player.x, player.y + 4, movement.speed, dt);
+    dustParticles.push(...newDust);
+  }
+
+  // 教程检测
+  if(movement.moving && !tutorialState._moved) {
+    tutorialState._moved = true;
+  }
+
+  animateWalk(dt, movement.moving, movement.speed);
 }
-function followPath(dt){                           // 沿 A* 路径自动行走
+function followPath(dt){                           // 沿 A* 路径自动行走（加速/减速增强版）
   const wp=player._path[0];
-  let dx=wp.wx-player.x, dy=wp.wy-player.y;
-  const d=Math.hypot(dx,dy);
+  let targetDx=wp.wx-player.x, targetDy=wp.wy-player.y;
+  const d=Math.hypot(targetDx,targetDy);
   if(d<5){ player._path.shift();
-    if(!player._path.length){ player._path=null; onArrive(); animateWalk(dt,false); }
+    if(!player._path.length){ player._path=null; onArrive(); animateWalk(dt,false,0); if(movementEnhancer) movementEnhancer.reset(); }
     return; }
-  dx/=d; dy/=d;
+
+  // 归一化目标方向
+  const inputX = targetDx / d;
+  const inputY = targetDy / d;
+
+  // 使用游戏手感增强器
+  const movement = movementEnhancer ? movementEnhancer.updateMovement(inputX, inputY, dt) : {dx: inputX*SPEED*dt, dy: inputY*SPEED*dt, speed: SPEED, moving: true};
+
   const px=player.x, py=player.y;
-  const nx=px+dx*SPEED*dt, ny=py+dy*SPEED*dt;
+  const nx=px+movement.dx, ny=py+movement.dy;
   if(!collides(nx,py)) player.x=nx;               // 轴分离:贴着障碍滑行,不整段放弃
   if(!collides(player.x,ny)) player.y=ny;
+
   if(Math.hypot(player.x-px,player.y-py) < SPEED*dt*0.3){   // 几乎没动 → 累计卡顿
     player._stuck=(player._stuck||0)+dt;
-    if(player._stuck>0.5){ player._path=null; pendingAction=null; player._stuck=0; }
+    if(player._stuck>0.5){ player._path=null; pendingAction=null; player._stuck=0; if(movementEnhancer) movementEnhancer.reset(); }
   } else player._stuck=0;
+
   player.zIndex=player.y;
-  if(Math.abs(dx)>.05) facing=dx>0?1:-1;
-  animateWalk(dt,true);
+  if(Math.abs(movement.dx)>.05) facing=movement.dx>0?1:-1;
+
+  // 生成尘埃粒子
+  if(movement.moving && movementEnhancer) {
+    const newDust = movementEnhancer.spawnDustParticles(player.x, player.y + 4, movement.speed, dt);
+    dustParticles.push(...newDust);
+  }
+
+  animateWalk(dt, movement.moving, movement.speed);
 }
 function movePlayer(dt){
   const wasd=keys.w||keys.a||keys.s||keys.d||keys.arrowup||keys.arrowdown||keys.arrowleft||keys.arrowright;
-  if(wasd){ if(player._path){player._path=null;pendingAction=null;} manualMove(dt); return; }
+  if(wasd){ if(player._path){player._path=null;pendingAction=null;if(movementEnhancer) movementEnhancer.reset();} manualMove(dt); return; }
   if(player._path){ followPath(dt); return; }
-  animateWalk(dt,false);
+
+  // 待机状态：应用摩擦力让速度自然衰减到0
+  const movement = movementEnhancer ? movementEnhancer.updateMovement(0, 0, dt) : {dx: 0, dy: 0, speed: 0, moving: false};
+  if(movement.speed > 0.1) {
+    const nx = player.x + movement.dx;
+    const ny = player.y + movement.dy;
+    if(!collides(nx, player.y)) player.x = nx;
+    if(!collides(player.x, ny)) player.y = ny;
+    player.zIndex = player.y;
+  }
+
+  animateWalk(dt, movement.moving, movement.speed);
 }
 
 /* ================= 8. 镜头 ================= */
@@ -688,6 +782,20 @@ function objectAtTile(tx,ty){
   return null;
 }
 function spawnWorldRipple(wx, wy, tint=0xf4d03f, label=''){
+  // 增强点击波纹效果
+  if(window.AnimationManager){
+    // 使用 AnimationManager 的增强波纹
+    const canvas = app.view;
+    const rect = canvas.getBoundingClientRect();
+
+    // 将世界坐标转换为屏幕坐标
+    const screenX = rect.left + (wx - cam.x + cam.sw/2);
+    const screenY = rect.top + (wy - cam.y + cam.sh/2);
+
+    AnimationManager.ripple(screenX, screenY, { maxSize: 140, duration: 700 });
+  }
+
+  // 保留原有 PixiJS 波纹
   const ring=new PIXI.Graphics(); ring.x=wx; ring.y=wy; overlayL.addChild(ring);
   const t0=performance.now(), dur=560;
   (function step(){
@@ -756,21 +864,40 @@ function nearestPortal(){
 }
 function enterBattle(){
   if(!window.Battle || Battle.active) return;
-  let fl=document.getElementById('battleFlash');
-  if(!fl){ fl=document.createElement('div'); fl.id='battleFlash';
-    fl.style.cssText='position:fixed;inset:0;z-index:79;background:#160f24;opacity:0;pointer-events:none;transition:opacity .45s'; document.body.appendChild(fl); }
-  fl.style.opacity='1';
-  setTimeout(()=>{
-    Battle.enter({
-      deck: farm.inventory.cards,
-      onWin(loot){
-        for(const k in loot) farm.inventory.materials[k]=(farm.inventory.materials[k]||0)+loot[k];
-        const label=Object.entries(loot||{}).map(([k,v])=>`${k}×${v}`).join(' · ')||'无';
-        Terra.save(); updateDock(); toastHint(`凯旋 · 带回 ${label}`); fl.style.opacity='0'; },
-      onLose(){ toastHint('败退 · 已退回农场'); fl.style.opacity='0'; },
-    });
-    setTimeout(()=>{ fl.style.opacity='0'; }, 200);
-  }, 460);
+
+  // 使用 AnimationManager 的 zoom 转场替代黑屏硬切
+  if(window.AnimationManager){
+    // 相机 zoom + 转场效果
+    AnimationManager.transition.zoom(async () => {
+      // 场景切换回调
+      Battle.enter({
+        deck: farm.inventory.cards,
+        onWin(loot){
+          for(const k in loot) farm.inventory.materials[k]=(farm.inventory.materials[k]||0)+loot[k];
+          const label=Object.entries(loot||{}).map(([k,v])=>`${k}×${v}`).join(' · ')||'无';
+          Terra.save(); updateDock(); toastHint(`凯旋 · 带回 ${label}`);
+        },
+        onLose(){ toastHint('败退 · 已退回农场'); },
+      });
+    }, { duration: 900, zoomIn: true });
+  } else {
+    // Fallback 保留原有逻辑
+    let fl=document.getElementById('battleFlash');
+    if(!fl){ fl=document.createElement('div'); fl.id='battleFlash';
+      fl.style.cssText='position:fixed;inset:0;z-index:79;background:#160f24;opacity:0;pointer-events:none;transition:opacity .45s'; document.body.appendChild(fl); }
+    fl.style.opacity='1';
+    setTimeout(()=>{
+      Battle.enter({
+        deck: farm.inventory.cards,
+        onWin(loot){
+          for(const k in loot) farm.inventory.materials[k]=(farm.inventory.materials[k]||0)+loot[k];
+          const label=Object.entries(loot||{}).map(([k,v])=>`${k}×${v}`).join(' · ')||'无';
+          Terra.save(); updateDock(); toastHint(`凯旋 · 带回 ${label}`); fl.style.opacity='0'; },
+        onLose(){ toastHint('败退 · 已退回农场'); fl.style.opacity='0'; },
+      });
+      setTimeout(()=>{ fl.style.opacity='0'; }, 200);
+    }, 460);
+  }
 }
 
 /* ================= 8.6 水灵兽 AI(状态机:闲逛→前往→浇水) ================= */
@@ -975,7 +1102,14 @@ function breedBtn(label,sub,enabled,onClick){
   if(enabled){
     b.onmouseenter=()=>{b.style.background='linear-gradient(135deg, rgba(212,175,55,.2), rgba(201,162,75,.15))';b.style.transform='translateY(-3px)';b.style.boxShadow='0 0 24px rgba(212,175,55,.4),0 8px 24px rgba(0,0,0,.2)'};
     b.onmouseleave=()=>{b.style.background='linear-gradient(135deg, rgba(244,236,216,.4), rgba(232,220,191,.5))';b.style.transform='translateY(0)';b.style.boxShadow='0 4px 12px rgba(0,0,0,.15),inset 0 1px 0 rgba(255,255,255,.3)'};
-    b.onclick=onClick;
+    b.onclick=()=>{
+      // 添加点击波纹
+      if(window.AnimationManager){
+        const rect=b.getBoundingClientRect();
+        AnimationManager.ripple(rect.left+rect.width/2, rect.top+rect.height/2, {maxSize:100, duration:500});
+      }
+      onClick();
+    };
   }
   return b;
 }
@@ -1052,68 +1186,73 @@ for(let i=0;i<6;i++){
   overlayL.addChild(c); cloudShadows.push(c);
 }
 
-/* 季节粒子(屏幕空间) — 共享纹理 Sprite,可被 WebGL 批渲染 */
-function shapeTex(draw){
-  const c=document.createElement('canvas');c.width=c.height=16;
-  draw(c.getContext('2d'));return PIXI.Texture.from(c);
-}
-const TEX_PETAL=shapeTex(g=>{g.fillStyle='#f4c4d2';g.beginPath();g.ellipse(8,8,6.5,4,0,0,7);g.fill();});
-const TEX_LEAF =shapeTex(g=>{g.fillStyle='#c47834';g.beginPath();g.ellipse(8,8,7,4.2,0,0,7);g.fill();});
-const TEX_SNOW =shapeTex(g=>{g.fillStyle='#f8fafc';g.beginPath();g.arc(8,8,4.4,0,7);g.fill();});
-const parts=[];
-let emitAcc=0, wind=0;
-function spawnParticles(st,dt,night){
-  const s=((Math.floor(st)%4)+4)%4;
-  const vw=app.screen.width, vh=app.screen.height;
-  wind=Math.sin(elapsed*.13)*.6+Math.sin(elapsed*.047)*.4;        // 缓慢阵风
-  /* 按"每秒个数"发射(与帧率解耦,杜绝低帧率下整行同时落下) */
-  const rateBase = s===1?(night?2:0) : s===3?5 : 3.5;
-  const rate = quality===2 ? rateBase : rateBase*.55;
-  emitAcc+=dt*rate;
-  while(emitAcc>=1){
-    emitAcc-=1;
-    if(parts.length>(quality===2?72:34)) break;
-    let p;
-    const sc=.45+Math.random()*.65;                               // 大小≈景深
-    if(s===1&&night){
-      p=new PIXI.Sprite(TEX_GLOW); p.width=p.height=8+sc*6; p.blendMode='add'; p.tint=0xffe896;
-      p._fire=true; p._vx=0; p._vy=0;
-      p.x=Math.random()*vw; p.y=vh*(.3+Math.random()*.5);
-    } else {
-      p=new PIXI.Sprite(s===0?TEX_PETAL:s===2?TEX_LEAF:TEX_SNOW);
-      p.scale.set(sc);
-      const depth=.5+sc*.8;
-      /* 速度按屏幕高度缩放:整屏下落 9~16 秒,大屏小屏氛围一致 */
-      p._vy=vh*(s===3? .055+sc*.05 : .07+sc*.06)*depth;
-      p._vx=vh*(s===2?-.030:s===0?.012:-.008)*depth;
-      p._spin=s===3?(Math.random()-.5)*.7:(Math.random()-.5)*3.2;
-      p._swayA=(s===3?.006+Math.random()*.008:.010+Math.random()*.016)*vh;
-      p._swayF=.7+Math.random()*.9;                               // 各自摆动频率,不同步
-      p.alpha=.42+sc*.5;
-      p.x=Math.random()*(vw+vh*.3)-vh*.15; p.y=-14-Math.random()*vh*.06;
-    }
-    p.anchor.set(.5); p._s=s; p._ph=Math.random()*6.28; p._life=0;
-    partC.addChild(p); parts.push(p);
+/* 季节粒子(屏幕空间) — v9.14: 升级为 sprite-based 高级粒子系统 */
+let advancedParticleSystem = null;
+if (typeof SeasonalParticleSystem !== 'undefined') {
+  advancedParticleSystem = new SeasonalParticleSystem(partC);
+  console.log('[Terra] Advanced particle system initialized');
+} else {
+  // 降级: 旧版简单粒子系统
+  console.warn('[Terra] Advanced particles not loaded, using legacy system');
+  function shapeTex(draw){
+    const c=document.createElement('canvas');c.width=c.height=16;
+    draw(c.getContext('2d'));return PIXI.Texture.from(c);
   }
-}
-function updateParticles(dt,curSeason){
-  const vh=app.screen.height;
-  for(let i=parts.length-1;i>=0;i--){const p=parts[i];
-    p._ph+=dt*(p._fire?2:p._swayF||1); p._life+=dt;
-    /* 换季: 旧季粒子快速淡出(樱花不会飘进冬天) */
-    if(!p._fire && p._s!==curSeason){
-      p.alpha-=dt*1.4;
-      if(p.alpha<=0){partC.removeChild(p);parts.splice(i,1);continue;}
+  const TEX_PETAL=shapeTex(g=>{g.fillStyle='#f4c4d2';g.beginPath();g.ellipse(8,8,6.5,4,0,0,7);g.fill();});
+  const TEX_LEAF =shapeTex(g=>{g.fillStyle='#c47834';g.beginPath();g.ellipse(8,8,7,4.2,0,0,7);g.fill();});
+  const TEX_SNOW =shapeTex(g=>{g.fillStyle='#f8fafc';g.beginPath();g.arc(8,8,4.4,0,7);g.fill();});
+  const parts=[];
+  let emitAcc=0, wind=0;
+  function spawnParticles(st,dt,night){
+    const s=((Math.floor(st)%4)+4)%4;
+    const vw=app.screen.width, vh=app.screen.height;
+    wind=Math.sin(elapsed*.13)*.6+Math.sin(elapsed*.047)*.4;
+    const rateBase = s===1?(night?2:0) : s===3?5 : 3.5;
+    const rate = quality===2 ? rateBase : rateBase*.55;
+    emitAcc+=dt*rate;
+    while(emitAcc>=1){
+      emitAcc-=1;
+      if(parts.length>(quality===2?72:34)) break;
+      let p;
+      const sc=.45+Math.random()*.65;
+      if(s===1&&night){
+        p=new PIXI.Sprite(TEX_GLOW); p.width=p.height=8+sc*6; p.blendMode='add'; p.tint=0xffe896;
+        p._fire=true; p._vx=0; p._vy=0;
+        p.x=Math.random()*vw; p.y=vh*(.3+Math.random()*.5);
+      } else {
+        p=new PIXI.Sprite(s===0?TEX_PETAL:s===2?TEX_LEAF:TEX_SNOW);
+        p.scale.set(sc);
+        const depth=.5+sc*.8;
+        p._vy=vh*(s===3? .055+sc*.05 : .07+sc*.06)*depth;
+        p._vx=vh*(s===2?-.030:s===0?.012:-.008)*depth;
+        p._spin=s===3?(Math.random()-.5)*.7:(Math.random()-.5)*3.2;
+        p._swayA=(s===3?.006+Math.random()*.008:.010+Math.random()*.016)*vh;
+        p._swayF=.7+Math.random()*.9;
+        p.alpha=.42+sc*.5;
+        p.x=Math.random()*(vw+vh*.3)-vh*.15; p.y=-14-Math.random()*vh*.06;
+      }
+      p.anchor.set(.5); p._s=s; p._ph=Math.random()*6.28; p._life=0;
+      partC.addChild(p); parts.push(p);
     }
-    if(p._fire){
-      p.x+=Math.sin(p._ph*.9)*20*dt; p.y+=Math.cos(p._ph*.7)*13*dt;
-      p.alpha=Math.max(0,Math.sin(p._ph))*.9;
-      if(p._life>7){partC.removeChild(p);parts.splice(i,1);} continue;
+  }
+  function updateParticles(dt,curSeason){
+    const vh=app.screen.height;
+    for(let i=parts.length-1;i>=0;i--){const p=parts[i];
+      p._ph+=dt*(p._fire?2:p._swayF||1); p._life+=dt;
+      if(!p._fire && p._s!==curSeason){
+        p.alpha-=dt*1.4;
+        if(p.alpha<=0){partC.removeChild(p);parts.splice(i,1);continue;}
+      }
+      if(p._fire){
+        p.x+=Math.sin(p._ph*.9)*20*dt; p.y+=Math.cos(p._ph*.7)*13*dt;
+        p.alpha=Math.max(0,Math.sin(p._ph))*.9;
+        if(p._life>7){partC.removeChild(p);parts.splice(i,1);} continue;
+      }
+      p.x+=(p._vx + wind*vh*.045*(p._s===3?1:.6) + Math.sin(p._ph)*p._swayA)*dt;
+      p.y+=p._vy*dt;
+      p.rotation+=p._spin*dt;
+      if(p.y>vh+16){partC.removeChild(p);parts.splice(i,1);}
     }
-    p.x+=(p._vx + wind*vh*.045*(p._s===3?1:.6) + Math.sin(p._ph)*p._swayA)*dt;
-    p.y+=p._vy*dt;
-    p.rotation+=p._spin*dt;
-    if(p.y>vh+16){partC.removeChild(p);parts.splice(i,1);}
   }
 }
 
@@ -1121,17 +1260,26 @@ function updateParticles(dt,curSeason){
 let elapsed=0, timeScale=1, entered=false;
 let recolorClock=0, cullClock=0, hudClock=0, curWaterBase=[84,150,164], curCrop=0x96be64;
 
-/* —— 自适应画质: FPS 不足时逐级降载(软渲染/低端机自救) —— */
+/* —— 自适应画质: FPS 不足时逐级降载(软渲染/低端机自救) + AnimationManager 联动 —— */
 let quality=2, fpsN=0, fpsT0=performance.now(), fpsLast=0, seasonFilterOn=true;
+const isHeadlessEnv = navigator.webdriver || navigator.userAgent.includes('HeadlessChrome');
+
 function setQuality(q){
   if(q>=quality) return; quality=q;
+
+  // 同步到 AnimationManager
+  if(window.AnimationManager){
+    const qualityMap = {2: 'high', 1: 'medium', 0: 'low'};
+    AnimationManager.setQuality(qualityMap[q] || 'low');
+  }
+
   if(q===1){ app.renderer.resolution=1; cloudShadows.forEach(c=>c.visible=false); }
   if(q===0){ app.renderer.resolution=.75; cloudShadows.forEach(c=>c.visible=false);
     golden.visible=false; vignette.visible=false;
     // 低画质下关闭水面位移滤镜
     if(waterL && waterL.filters) waterL.filters=[];
   }
-  if(q>=1 && waterDisp && !waterDispFilter){  // 中高画质启用位移滤镜
+  if(q>=1 && waterDisp && !waterDispFilter && !isHeadlessEnv){  // headless 环境永不启用位移滤镜
     try{ waterDispFilter=new PIXI.DisplacementFilter({sprite:waterDisp, scale:10});
          waterL.filters=[waterDispFilter]; }catch(e){ console.warn('disp filter unavailable',e); }
   }
@@ -1147,7 +1295,17 @@ app.ticker.add(tk=>{
   const fnow=performance.now();
   if(fnow-fpsT0>=2500){
     const f=fpsN*1000/(fnow-fpsT0); fpsLast=f; fpsN=0; fpsT0=fnow;
-    if(!window.__lockQ){ if(f<15) setQuality(0); else if(f<30) setQuality(1); }
+
+    // 自适应画质调整 + AnimationManager 联动
+    if(!window.__lockQ){
+      if(f<15) setQuality(0);
+      else if(f<30) setQuality(1);
+
+      // 移动端检测 - 降低动画复杂度
+      if(window.AnimationManager && (f<25 || /Mobi|Android/i.test(navigator.userAgent))){
+        AnimationManager.setQuality('low');
+      }
+    }
   }
   elapsed+=dt*timeScale;
   const st=(elapsed/DAY_SECONDS/SEASON_DAYS)%4;
@@ -1158,7 +1316,14 @@ app.ticker.add(tk=>{
   if(recolorClock<=0){ recolorClock=.15;
     applySeasonGrade(st);                                  // 四季微调级(主季节色由专属贴图承担)
     const si=((Math.floor(st)%4)+4)%4;
-    if(si!==seasonIdx){ seasonIdx=si; swapSeason(si); }     // 季节切换 → 换专属贴图
+    if(si!==seasonIdx){
+      seasonIdx=si;
+      swapSeason(si);
+      // 通知高级粒子系统季节切换
+      if (advancedParticleSystem) {
+        advancedParticleSystem.setSeason(si);
+      }
+    }
     for(const o of OBJECTS){                                // 非季节物件(石/栅栏/传送门)无需调色
       const n=o.node; if(n._graded && !ASSETS[o.kind].season) n._body.tint=0xffffff;
       n._shadow.alpha=.25+sun*.45;
@@ -1167,10 +1332,27 @@ app.ticker.add(tk=>{
       const pc=planted[key];
       const g=Math.min(1,(pc.grown||0)/GROW_SECONDS);
       pc.node._body.tint=pc.mature?(pc.grade==='灵脉'?0xd9a8ff:pc.grade==='珍品'?0xffd56a:0xffe9b0):(pc.watered?0xb8f7d3:0xffffff);                  // 成熟/浇水品质反馈
-      if(!pc.mature) pc.node.scale.set(.32+g*.72);
+      if(!pc.mature){
+        pc.node.scale.set(.32+g*.72);
+        // Growth stage texture switching (0-33%: seedling, 34-66%: growing, 67-100%: mature sprite)
+        const stage = g < 0.33 ? 0 : g < 0.67 ? 1 : 2;
+        if(pc._stage !== stage){
+          pc._stage = stage;
+          const a = ASSETS[pc.species==='dewberry'?'crop_dewberry':'crop'];
+          if(a.growth && a.growth[stage]){
+            loadTex(a.growth[stage]).then(tex=>{
+              if(pc.node && pc.node._body) {
+                pc.node._body.texture = tex;
+                pc.node._body.width = a.w;
+                pc.node._body.height = a.h;
+              }
+            });
+          }
+        }
+      }
     }
   }
-  /* —— 每帧轻活: 水面闪烁/季节交叉淡入/风车/夜灯/树摇 —— */
+  /* —— 每帧轻活: 水面闪烁/季节交叉淡入/风车/夜灯/树摇/呼吸光环 —— */
   snowL.alpha += (snowTarget-snowL.alpha)*Math.min(1,dt*2.2);          // 雪地淡入淡出
   snowL.visible = snowL.alpha>0.02;
   if(grassSwap){ grassSwap.t+=dt/0.7;                                  // 草地 alpha-dip 换图
@@ -1186,7 +1368,7 @@ app.ticker.add(tk=>{
   }
   for(const f of foamL.children) f.alpha=.16+Math.sin(elapsed*1.6+f._ph)*.11;   // 泡沫脉动
   if(waterDisp){ waterDisp.x=(waterDisp.x+dt*9)%384; waterDisp.y=Math.sin(elapsed*.5)*18; }
-  if(waterDispFilter){ const on=quality>0;                       // 低端机关闭波纹滤镜
+  if(waterDispFilter && !isHeadlessEnv){ const on=quality>0;                       // headless 永不启用波纹滤镜
     if((waterL.filters&&waterL.filters.length>0)!==on) waterL.filters=on?[waterDispFilter]:[]; }
   for(const o of OBJECTS){
     const n=o.node;
@@ -1203,20 +1385,81 @@ app.ticker.add(tk=>{
       n._body.rotation=Math.sin(elapsed*1.1+n.x*.01)*.008;
       if(n._alt) n._alt.rotation=n._body.rotation;
     }
-    if(o._shake>0){                                // 伐木受击晃动
+    // 核心交互点呼吸光环（强化辉光半径与频率）
+    if(n._glow){
+      const glowPhase=Math.sin(elapsed*1.8)*0.5+0.5;                   // 频率加快
+      n._glow.alpha=0.28+glowPhase*0.22;                               // 更亮
+      n._glow.scale.set(1+glowPhase*0.18);                             // 更大的脉动幅度
+    }
+    if(o._shake>0){                                // 伐木受击晃动 + 屏幕震动
       o._shake-=dt*2.4;
       n.scale.set(1+Math.sin(o._shake*26)*.05*Math.max(0,o._shake));
+
+      // 添加屏幕震动反馈
+      if(o._shake > 0.8 && window.AnimationManager){
+        AnimationManager.shake(world, 3, 100);
+      }
+
       if(o._shake<=0) n.scale.set(1);
     }
   }
   /* 玩家与镜头 */
   if(entered && !(window.Battle&&Battle.active)){ movePlayer(dt); }
   updateCamera(dt);
+
+  // 更新尘埃粒子
+  if(dustParticles.length > 0 && movementEnhancer) {
+    const alive = movementEnhancer.updateDustParticles(dustParticles, dt);
+    dustParticles.length = 0;
+    dustParticles.push(...alive);
+
+    // 渲染尘埃粒子到 overlayL
+    for(const p of dustParticles) {
+      if(!p._sprite) {
+        const g = new PIXI.Graphics();
+        g.circle(0, 0, p.size).fill({color: 0xd4c4a8, alpha: p.currentAlpha || 0.3});
+        g.blendMode = 'add';
+        overlayL.addChild(g);
+        p._sprite = g;
+      }
+      p._sprite.x = p.x;
+      p._sprite.y = p.y;
+      p._sprite.alpha = p.currentAlpha || 0.3;
+    }
+
+    // 清理死亡粒子的精灵
+    for(let i = overlayL.children.length - 1; i >= 0; i--) {
+      const child = overlayL.children[i];
+      if(child._isDustParticle && !dustParticles.find(p => p._sprite === child)) {
+        overlayL.removeChild(child);
+        child.destroy();
+      }
+    }
+
+    // 标记尘埃粒子精灵
+    dustParticles.forEach(p => {
+      if(p._sprite) p._sprite._isDustParticle = true;
+    });
+  }
+
   /* 作物生长累计(浇水 boost 加速) + 灵兽 AI + 连续伐木 */
   for(const key in planted){ const pc=planted[key];
-    if(!pc.mature){ pc.grown=(pc.grown||0)+dt*timeScale*(pc.boost?1.8:1);
-      if(pc.grown>=GROW_SECONDS) pc.mature=true; } }
+    if(!pc.mature){
+      const prevGrown = pc.grown || 0;
+      pc.grown = prevGrown + dt * timeScale * (pc.boost ? 1.8 : 1);
+
+      // 成熟瞬间触发发光动画
+      if(prevGrown < GROW_SECONDS && pc.grown >= GROW_SECONDS){
+        pc.mature = true;
+        if(feedbackSystem){
+          feedbackSystem.animateMature(pc.node);
+        }
+      }
+    }
+  }
   if(entered){ updateEcology(dt); beastStep(dt); stepWaterDrops(dt); stepTrails(dt); fireStep(dt); stepEmbers(dt); stepCompanionPets(dt);
+    // 更新交互反馈系统
+    if(feedbackSystem) feedbackSystem.update(dt);
     if(chopLoop.obj){ const o=chopLoop.obj;
       if(o.felled||staminaUsed>=6) chopLoop.obj=null;
       else if(Math.hypot(o.node.x-player.x,o.node.y-player.y)>100) chopLoop.obj=null;
@@ -1237,10 +1480,19 @@ app.ticker.add(tk=>{
   golden.tint=0xe89646; golden.alpha=dusk*.34;
   vignette.width=vw; vignette.height=vh;
   for(const c of cloudShadows){ c.x+=c._v*dt; if(c.x>MAP*TS+600)c.x=-600; }
-  spawnParticles(st,dt,night>.62); updateParticles(dt,((Math.floor(st)%4)+4)%4);
+
+  // 粒子系统更新 (v9.14: 优先使用高级粒子系统)
+  if (advancedParticleSystem) {
+    advancedParticleSystem.update();
+  } else {
+    spawnParticles(st,dt,night>.62);
+    updateParticles(dt,((Math.floor(st)%4)+4)%4);
+  }
 
   hudClock-=dt;
   if(hudClock<=0){ hudClock=.1; updateHUD(st,Math.floor(elapsed/DAY_SECONDS)); updateEcoHUD(); updatePerfHUD(); }
+  updateInteractionIndicators();
+  if(tutorialState.active) advanceTutorial();
   springTick(dt);
 });
 
@@ -1248,34 +1500,140 @@ app.ticker.add(tk=>{
 const $=id=>document.getElementById(id);
 (function buildDial(){
   const NS='http://www.w3.org/2000/svg';
-  for(let i=0;i<4;i++){const a0=i*90-90+4,a1=(i+1)*90-90-4,r=50,c=54,rad=x=>x*Math.PI/180;
+  const seasonColors=[
+    {stroke:'#a8d5a2',decorations:[{type:'petal',cx:54,cy:12,r:2},{type:'petal',cx:62,cy:18,r:1.8},{type:'petal',cx:70,cy:28,r:2.2}]},
+    {stroke:'#e8c870',decorations:[{type:'wheat',cx:88,cy:54},{type:'wheat',cx:92,cy:48}]},
+    {stroke:'#d4a574',decorations:[{type:'leaf',cx:54,cy:96,r:2.5},{type:'leaf',cx:48,cy:88,r:2.2},{type:'leaf',cx:60,cy:90,r:2}]},
+    {stroke:'#9ec5d8',decorations:[{type:'snow',cx:16,cy:54},{type:'snow',cx:12,cy:48},{type:'snow',cx:20,cy:60}]}
+  ];
+  for(let i=0;i<4;i++){
+    const a0=i*90-90+4,a1=(i+1)*90-90-4,r=50,c=54,rad=x=>x*Math.PI/180;
     const pth=document.createElementNS(NS,'path');
     pth.setAttribute('d',`M ${c+r*Math.cos(rad(a0))} ${c+r*Math.sin(rad(a0))} A ${r} ${r} 0 0 1 ${c+r*Math.cos(rad(a1))} ${c+r*Math.sin(rad(a1))}`);
-    pth.setAttribute('fill','none');pth.setAttribute('stroke','rgba(246,241,231,.35)');pth.setAttribute('stroke-width','1');
-    pth.id='arc'+i; $('dialRing').appendChild(pth);}
+    pth.setAttribute('fill','none');
+    pth.setAttribute('stroke',seasonColors[i].stroke);
+    pth.setAttribute('stroke-width','1');
+    pth.setAttribute('opacity','0.35');
+    pth.id='arc'+i;
+    pth.classList.add(['spring','summer','autumn','winter'][i]);
+    $('dialRing').appendChild(pth);
+
+    // 添加季节装饰元素
+    const deco=seasonColors[i].decorations;
+    if(deco){
+      deco.forEach(d=>{
+        if(d.type==='petal'){
+          const circle=document.createElementNS(NS,'circle');
+          circle.setAttribute('cx',d.cx);circle.setAttribute('cy',d.cy);circle.setAttribute('r',d.r||2);
+          circle.setAttribute('fill',seasonColors[i].stroke);circle.setAttribute('opacity','0.5');
+          $('dialRing').appendChild(circle);
+        }else if(d.type==='wheat'){
+          const line=document.createElementNS(NS,'line');
+          line.setAttribute('x1',d.cx);line.setAttribute('y1',d.cy-6);
+          line.setAttribute('x2',d.cx);line.setAttribute('y2',d.cy+2);
+          line.setAttribute('stroke',seasonColors[i].stroke);line.setAttribute('stroke-width','1.5');line.setAttribute('opacity','0.5');
+          $('dialRing').appendChild(line);
+        }else if(d.type==='leaf'){
+          const path=document.createElementNS(NS,'path');
+          path.setAttribute('d',`M ${d.cx} ${d.cy} Q ${d.cx+2} ${d.cy-3} ${d.cx+4} ${d.cy} Q ${d.cx+2} ${d.cy+1} ${d.cx} ${d.cy}`);
+          path.setAttribute('fill',seasonColors[i].stroke);path.setAttribute('opacity','0.5');
+          $('dialRing').appendChild(path);
+        }else if(d.type==='snow'){
+          const g=document.createElementNS(NS,'g');
+          g.setAttribute('transform',`translate(${d.cx},${d.cy})`);
+          for(let a=0;a<6;a++){
+            const line=document.createElementNS(NS,'line');
+            const ang=a*60*Math.PI/180;
+            line.setAttribute('x1',0);line.setAttribute('y1',0);
+            line.setAttribute('x2',Math.cos(ang)*2.5);line.setAttribute('y2',Math.sin(ang)*2.5);
+            line.setAttribute('stroke',seasonColors[i].stroke);line.setAttribute('stroke-width','0.8');line.setAttribute('opacity','0.5');
+            g.appendChild(line);
+          }
+          $('dialRing').appendChild(g);
+        }
+      });
+    }
+  }
 })();
 const leaves=[];
 for(let i=0;i<6;i++){const d=document.createElement('div');d.className='leaf';$('stamina').appendChild(d);leaves.push(d);}
 let staminaUsed=0;
 const syncLeaves=()=>leaves.forEach((l,i)=>l.classList.toggle('spent', i<staminaUsed));
 const WEATHER=[['细雨润物','花瓣随风','溪水初涨'],['烈日当空','麦浪翻金','夜萤点点'],['西风渐紧','落叶铺金','果实低垂'],['初雪无声','炉火可亲','大地休眠']];
-let lastDay=-1,lastSI=-1;
+let lastDay=-1,lastSI=-1,lastWeatherChange=0;
 function updateHUD(st,day){
   const si=((Math.floor(st)%4)+4)%4, ang=st/4*360;
   $('dialDot').setAttribute('cx',54+50*Math.cos((ang-90)*Math.PI/180));
   $('dialDot').setAttribute('cy',54+50*Math.sin((ang-90)*Math.PI/180));
-  for(let i=0;i<4;i++)$('arc'+i).setAttribute('stroke',i===si?'#c9a24b':'rgba(246,241,231,.35)');
-  if(si!==lastSI){lastSI=si;$('seasonName').textContent=SEASONS[si].name;$('seasonLatin').textContent=SEASONS[si].latin;
-    $('weatherTag').textContent='— '+WEATHER[si][(Math.random()*3)|0]+' —';}
-  if(day!==lastDay){lastDay=day;$('dayNum').textContent=String(day%28+1).padStart(2,'0');
-    if(day%3===0)$('weatherTag').textContent='— '+WEATHER[si][(Math.random()*3)|0]+' —';
-    staminaUsed=0; syncLeaves();                                       // 新一天体力恢复
-    for(let i=fellQueue.length-1;i>=0;i--){                            // 伐倒的树次日重生
+
+  // 季节进度环更新
+  const seasonDay = (day % SEASON_DAYS);
+  const seasonProgress = seasonDay / SEASON_DAYS;
+  const circumference = 2 * Math.PI * 52;
+  const progressRing = $('seasonProgressRing');
+  if(progressRing) progressRing.setAttribute('stroke-dasharray', `${circumference * seasonProgress} ${circumference}`);
+
+  // 季节弧段样式更新
+  for(let i=0;i<4;i++){
+    const arc=$('arc'+i);
+    if(!arc) continue;
+    arc.classList.remove('spring','summer','autumn','winter','active');
+    arc.classList.add(['spring','summer','autumn','winter'][i]);
+    if(i===si) arc.classList.add('active');
+  }
+
+  // 季节切换动画 + 天气标签动态更新 + 触发季节事件
+  if(si!==lastSI){
+    lastSI=si;
+    const label=$('dialLabel');
+    if(label){
+      label.classList.add('transitioning');
+      setTimeout(()=>label.classList.remove('transitioning'), 1200);
+    }
+    $('seasonName').textContent=SEASONS[si].name;
+    $('seasonLatin').textContent=SEASONS[si].latin;
+    changeWeather(si);
+
+    // 触发季节爆发事件
+    if(window.updateSeasonalEvents) {
+      window.updateSeasonalEvents(day);
+    }
+  }
+
+  // 每3天或季节变化时更新天气
+  if(day!==lastDay){
+    lastDay=day;
+    $('dayNum').textContent=String(day%28+1).padStart(2,'0');
+    if(day - lastWeatherChange >= 3 || si !== lastSI){
+      changeWeather(si);
+      lastWeatherChange = day;
+    }
+    staminaUsed=0; syncLeaves();
+    for(let i=fellQueue.length-1;i>=0;i--){
       const f=fellQueue[i];
       if(day>=f.day){ f.o.felled=false; f.o.hp=2;
         if(f.o._col) colliders.push(f.o._col);
         fellQueue.splice(i,1); }
-    }}
+    }
+
+    // 每日检查季节事件触发
+    if(window.updateSeasonalEvents) {
+      window.updateSeasonalEvents(day);
+    }
+  }
+}
+
+function changeWeather(seasonIndex){
+  const tag=$('weatherTag');
+  if(!tag) return;
+  const newWeather='— '+WEATHER[seasonIndex][(Math.random()*3)|0]+' —';
+  tag.classList.add('changing-out');
+  setTimeout(()=>{
+    tag.textContent=newWeather;
+    tag.classList.remove('changing-out');
+    tag.classList.add('changing-in');
+    setTimeout(()=>tag.classList.remove('changing-in'), 400);
+  }, 200);
 }
 
 /* 地块面板(弹簧物理) */
@@ -1327,7 +1685,169 @@ addEventListener('mousemove',e=>{
   }else f.style.transform='';
 });
 
-/* ================= 13. 农场交互闭环(state.js 接线) ================= */
+/* ================= 13. 五层引导体系 ================= */
+// (1) 序列式高亮引导 (2) 距离感应交互提示 (3) 复杂面板遮罩聚光 (4) 战斗能量预判 (5) 屏幕边缘方向指示
+
+const tutorialState = {
+  active: false,
+  step: 0,
+  completed: false,
+  steps: [
+    { id: 'move', title: 'WASD 移动', check: () => tutorialState._moved },
+    { id: 'chop', title: '点击树木伐木', target: 'tree', check: () => (farm.inventory.materials.wood||0) > 8 },
+    { id: 'alchemy', title: '打开炼金面板', target: 'fab', check: () => tutorialState._alchemyOpened },
+    { id: 'portal', title: '前往深渊传送门', target: 'portal', check: () => tutorialState._portalVisited }
+  ],
+  _moved: false,
+  _alchemyOpened: false,
+  _portalVisited: false
+};
+
+function startTutorial() {
+  const save = window.Terra?.farm?.tutorialCompleted;
+  if(save) { tutorialState.completed = true; return; }
+  tutorialState.active = true;
+  tutorialState.step = 0;
+  renderTutorial();
+}
+
+function advanceTutorial() {
+  const current = tutorialState.steps[tutorialState.step];
+  if(current && current.check()) {
+    tutorialState.step++;
+    if(tutorialState.step >= tutorialState.steps.length) {
+      tutorialState.completed = true;
+      tutorialState.active = false;
+      if(window.Terra?.farm) window.Terra.farm.tutorialCompleted = true;
+      window.Terra?.save();
+      removeTutorialUI();
+      toastHint('引导完成 · 自由探索大陆');
+    } else {
+      renderTutorial();
+    }
+  }
+}
+
+function renderTutorial() {
+  if(!tutorialState.active) return;
+  let overlay = document.getElementById('tutorialOverlay');
+  if(!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'tutorialOverlay';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:150;pointer-events:none;transition:opacity .4s';
+    document.body.appendChild(overlay);
+  }
+  const step = tutorialState.steps[tutorialState.step];
+  let targetEl = null;
+  if(step.target === 'fab') targetEl = document.getElementById('craftFAB');
+  else if(step.target === 'portal') {
+    const portal = OBJECTS.find(o => o.kind === 'portal');
+    if(portal) {
+      const screenPos = worldToScreen(portal.node.x, portal.node.y);
+      if(screenPos) {
+        const marker = document.createElement('div');
+        marker.className = 'tutorialMarker';
+        marker.style.cssText = `position:absolute;left:${screenPos.x}px;top:${screenPos.y}px;width:80px;height:80px;transform:translate(-50%,-50%);border:3px solid rgba(244,208,63,.8);border-radius:50%;animation:tutorialPulse 1.5s ease-in-out infinite;pointer-events:none`;
+        overlay.appendChild(marker);
+      }
+    }
+  }
+
+  overlay.innerHTML = `
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.7);"></div>
+    <div style="position:absolute;left:50%;top:20%;transform:translateX(-50%);text-align:center;color:#f6f1e7;pointer-events:auto">
+      <div style="font-size:24px;letter-spacing:.2em;margin-bottom:12px;color:#f4d03f">${step.title}</div>
+      <div style="font-size:14px;letter-spacing:.1em;opacity:.85">步骤 ${tutorialState.step + 1} / ${tutorialState.steps.length}</div>
+    </div>
+    ${overlay.innerHTML}
+  `;
+}
+
+function removeTutorialUI() {
+  const overlay = document.getElementById('tutorialOverlay');
+  if(overlay) overlay.remove();
+}
+
+function worldToScreen(wx, wy) {
+  if(!world || !app) return null;
+  const sx = wx * world.scale.x + world.x;
+  const sy = wy * world.scale.y + world.y;
+  return { x: sx, y: sy };
+}
+
+/* ================= 13.1 距离感应交互提示 ================= */
+const interactionIndicators = new Map(); // key -> sprite
+
+function updateInteractionIndicators() {
+  if(!entered || !objL) return;
+
+  // 检测玩家附近3格内的可交互物件
+  for(const o of OBJECTS) {
+    if(o.felled) continue;
+    const dist = Math.hypot(o.node.x - player.x, o.node.y - player.y);
+    const inRange = dist < TS * 3;
+    const key = `${o.kind}_${o.node.x}_${o.node.y}`;
+
+    if(inRange && (o.kind === 'tree' || o.kind === 'cherry' || o.kind === 'portal' || o.kind === 'incubator' || o.kind === 'furnace')) {
+      if(!interactionIndicators.has(key)) {
+        const indicator = new PIXI.Container();
+
+        // 金色光圈（强化：更粗边框+辉光）
+        const ring = new PIXI.Graphics();
+        ring.circle(0, 0, 36).stroke({ width: 2.5, color: 0xf4d03f, alpha: 0.95 });
+        indicator.addChild(ring);
+
+        // 向上箭头（强化：更大+边缘光）
+        const arrow = new PIXI.Graphics();
+        arrow.moveTo(0, -12).lineTo(-7, 0).lineTo(7, 0).closePath().fill({ color: 0xf4d03f, alpha: 1 });
+        arrow.y = -50;
+        indicator.addChild(arrow);
+
+        // 提示文字（强化：更清晰阴影）
+        const label = new PIXI.Text({
+          text: '空格 交互',
+          style: {
+            fontFamily: 'Noto Serif SC, serif',
+            fontSize: 12,
+            fill: 0xfefdfb,
+            letterSpacing: 2.5,
+            dropShadow: true,
+            dropShadowDistance: 0,
+            dropShadowBlur: 8,
+            dropShadowAlpha: 0.95,
+            dropShadowColor: 0x000000
+          }
+        });
+        label.anchor.set(0.5);
+        label.y = -68;
+        indicator.addChild(label);
+
+        indicator.x = o.node.x;
+        indicator.y = o.node.y - ASSETS[o.kind].h * 0.5;
+        indicator._t = 0;
+
+        overlayL.addChild(indicator);
+        interactionIndicators.set(key, indicator);
+      }
+    } else {
+      if(interactionIndicators.has(key)) {
+        const indicator = interactionIndicators.get(key);
+        overlayL.removeChild(indicator);
+        indicator.destroy();
+        interactionIndicators.delete(key);
+      }
+    }
+  }
+
+  // 更新动画（强化：更平滑的正弦浮动）
+  for(const indicator of interactionIndicators.values()) {
+    indicator._t += 0.02;
+    indicator.y += Math.sin(indicator._t * 4) * 0.4;
+    indicator.alpha = 0.75 + Math.sin(indicator._t * 2.5) * 0.25;
+  }
+}
+
+/* ================= 13.2 农场交互闭环(state.js 接线) ================= */
 /* 种地(空格) → 成熟 → 收获入库(originFertility 继承地块肥力)
    → Dock 显示背包 → 锻造按钮调用 Terra.craftCard → 卡牌翻面揭示 */
 if(!Terra.load()) Terra.newGame('local');
@@ -1495,7 +2015,22 @@ function chop(o){
   if(staminaUsed>=6){ toastHint('体力耗尽 · 待明日恢复'); o.hp=1; return; }
   staminaUsed++; syncLeaves();
   farm.inventory.materials.wood=(farm.inventory.materials.wood||0)+2;
-  Terra.save(); updateDock(); toastHint('伐木 · 木材 +2');
+  Terra.save(); updateDock();
+
+  // 伐木粒子爆发 + 增强屏幕震动
+  if(feedbackSystem){
+    const treeType = o.kind === 'cherry' ? 'cherry' : 'oak';
+    feedbackSystem.burstChopParticles(o.node.x, o.node.y, treeType);
+
+    // 数字飘字（飘向HUD木材图标）
+    const hudWoodPos = {x: 120, y: window.innerHeight - 60}; // 根据实际HUD位置调整
+    feedbackSystem.floatNumber(o.node.x, o.node.y, 'wood', 2, hudWoodPos);
+
+    // 屏幕震动反馈
+    if(window.BattleEffects) window.BattleEffects.screenShake(8, 180, document.body);
+  }
+
+  toastHint('伐木 · 木材 +2');
   o.felled=true; o.node.visible=false;
   const ci=colliders.findIndex(c=>c.x===o.node.x&&c.y===o.node.y);
   if(ci>=0) o._col=colliders.splice(ci,1)[0];
@@ -1514,8 +2049,18 @@ function interactFarm(key){
     const [tx,ty]=key.split(',').map(Number);
     c.x=tx*TS+TS/2; c.y=ty*TS+TS/2+16; c._shadow.visible=false; c.scale.set(.32);
     overlayL.addChild(c); crops.push(c);
-    planted[key]={node:c, grown:0, mature:false, watered:false, boost:false, species};
-    toastHint(`播种 ${species==='dewberry'?'露莓':'星麦'} · 静待生长`);
+    planted[key]={node:c, grown:0, mature:false, watered:false, boost:false, species, _stage:-1};
+
+    // 播种弹出动画 + 土壤粒子
+    if(feedbackSystem){
+      feedbackSystem.animatePlant(c, () => {
+        toastHint(`播种 ${species==='dewberry'?'露莓':'星麦'} · 静待生长`);
+      });
+      // 土壤粒子爆发
+      spawnSoilParticles(c.x, c.y);
+    } else {
+      toastHint(`播种 ${species==='dewberry'?'露莓':'星麦'} · 静待生长`);
+    }
   } else if(pc.mature){                           // 收获:质量继承土壤四维与灵兽灌溉
     const meta=tileMeta[key];
     const q=calcHarvestQuality(meta, pc);
@@ -1529,7 +2074,21 @@ function interactFarm(key){
         soil:{fert:meta.fert,moist:meta.moist,pest:meta.pest,mana:meta.mana} });
     }
     Terra.save(); updateDock();
-    toastHint(`收获 ${pc.grade}星麦 ×${total} · 品质 ${q}${pc.watered?' · 灵兽灌溉':''}${bonus?' · 扩建加成':''}`);
+
+    // 收获粒子爆发 + 数字飘字 + 屏幕震动
+    if(feedbackSystem){
+      feedbackSystem.burstHarvestParticles(pc.node.x, pc.node.y, pc.species, pc.grade);
+
+      // 数字飘字（飘向HUD作物图标）
+      const hudCropPos = {x: 60, y: window.innerHeight - 60}; // 根据实际HUD位置调整
+      feedbackSystem.floatNumber(pc.node.x, pc.node.y, pc.species, total, hudCropPos);
+
+      // 品质越高震动越强
+      const shakeMag = pc.grade==='灵脉'?12:pc.grade==='珍品'?8:pc.grade==='良品'?5:3;
+      if(window.BattleEffects) window.BattleEffects.screenShake(shakeMag, 200, document.body);
+    }
+
+    toastHint(`收获 ${pc.grade}${pc.species==='dewberry'?'露莓':'星麦'} ×${total} · 品质 ${q}${pc.watered?' · 灵兽灌溉':''}${bonus?' · 扩建加成':''}`);
     overlayL.removeChild(pc.node);
     const ci=crops.indexOf(pc.node); if(ci>=0)crops.splice(ci,1);
     delete planted[key];
@@ -1629,19 +2188,87 @@ function updateHint(){
   el.style.opacity=0;
 }
 
+function updateResourceDisplay(elemId, newVal){
+  const el=document.getElementById(elemId);
+  if(!el) return;
+  const oldVal=parseInt(el.dataset.value||'0');
+  if(newVal===oldVal) return;
+  const delta=newVal-oldVal;
+  if(delta>0){
+    const deltaSpan=document.createElement('span');
+    deltaSpan.className='delta';
+    deltaSpan.textContent=`+${delta}`;
+    el.appendChild(deltaSpan);
+    setTimeout(()=>deltaSpan.remove(), 850);
+  }
+  el.textContent=newVal;
+  el.dataset.value=newVal;
+  if(newVal>0 && newVal%10===0){
+    el.classList.add('milestone');
+    setTimeout(()=>el.classList.remove('milestone'),420);
+  }
+}
 function updateDock(){
   const wheat=(farm.inventory.crops.starwheat||[]).length;
-  $('invWheat').textContent=wheat;
-  $('invWood').textContent=farm.inventory.materials.wood||0;
-  $('invCards').textContent=farm.inventory.cards.length;
-  $('craftBtn').disabled = !(wheat>=3 && (farm.inventory.materials.wood||0)>=2);
+  const wood=farm.inventory.materials.wood||0;
+  const cards=farm.inventory.cards.length;
+  updateResourceDisplay('invWheat', wheat);
+  updateResourceDisplay('invWood', wood);
+  updateResourceDisplay('invCards', cards);
   const fire=fireSpirit();
-  $('craftBtn').textContent = forgeHot ? `锻造 · 熔炉灼热 Lv.${fire?.level||1} 🔥` : '锻造 · 新芽守卫';
+  // FAB按钮状态更新（主次分级 + 状态矩阵）
+  const fab=document.getElementById('craftFAB');
+  const tooltip=document.getElementById('craftBtnTooltip');
+  if(fab){
+    const canCraft = wheat>=3 && wood>=2;
+    if(canCraft){
+      fab.classList.remove('disabled');
+      fab.style.opacity='1';
+      fab.style.pointerEvents='auto';
+      fab.style.animation='fabPulse 1.6s ease-in-out infinite';
+      if(forgeHot) fab.classList.add('hot');
+      else fab.classList.remove('hot');
+      // 清空 tooltip（可用时不显示）
+      if(tooltip) tooltip.style.opacity='0';
+    } else {
+      fab.classList.add('disabled');
+      fab.classList.remove('hot');
+      // 更新 tooltip 内容
+      if(tooltip){
+        const wheatNeed = Math.max(0, 3-wheat);
+        const woodNeed = Math.max(0, 2-wood);
+        let parts = [];
+        if(wheatNeed > 0) parts.push(`星麦 <span class="lack">×3 (缺${wheatNeed})</span>`);
+        else parts.push(`星麦 ✓ ×3`);
+        if(woodNeed > 0) parts.push(`木材 <span class="lack">×2 (缺${woodNeed})</span>`);
+        else parts.push(`木材 ✓ ×2`);
+        tooltip.innerHTML = `需要：${parts.join(' | ')}`;
+      }
+    }
+  }
 }
-$('craftBtn').onclick=()=>{
-  if(window.Alchemy) Alchemy.open();
-  else toastHint('炼金工坊载入中…');
-};
+// 绑定FAB点击事件（添加 hover 显示 tooltip）
+const fabBtn=document.getElementById('craftFAB');
+const fabTooltip=document.getElementById('craftBtnTooltip');
+if(fabBtn){
+  fabBtn.onclick=()=>{
+    if(window.Alchemy) Alchemy.open();
+    else toastHint('炼金工坊载入中…');
+  };
+  // FAB disabled 时悬停显示 tooltip
+  fabBtn.addEventListener('mouseenter',()=>{
+    if(fabBtn.classList.contains('disabled') && fabTooltip){
+      fabTooltip.style.opacity='1';
+      fabTooltip.style.pointerEvents='auto';
+    }
+  });
+  fabBtn.addEventListener('mouseleave',()=>{
+    if(fabTooltip){
+      fabTooltip.style.opacity='0';
+      fabTooltip.style.pointerEvents='none';
+    }
+  });
+}
 $('cardReveal').onclick=()=>$('cardReveal').classList.remove('on');
 updateDock();
 
@@ -1673,6 +2300,8 @@ if(petCodexClose&&petCodex) petCodexClose.onclick=(e)=>{e.stopPropagation(); pet
 function enterWorld(){
   if(entered)return; entered=true;
   const title=$('title');
+  // 立即禁用标题屏交互，允许游戏世界接收点击
+  title.style.pointerEvents='none';
   title.querySelector('.bg').style.transition='transform 2.4s cubic-bezier(.55,0,.3,1)';
   title.querySelector('.bg').style.transform='scale(1.22)';
   title.querySelector('.card').style.transition='opacity 1.1s, transform 1.4s cubic-bezier(.55,0,.3,1)';
@@ -1691,15 +2320,28 @@ function enterWorld(){
       gg.addColorStop(0,`rgba(250,248,242,${.95*a})`);gg.addColorStop(1,'rgba(250,248,242,0)');
       cc.fillStyle=gg;cc.beginPath();cc.arc(x,y,r,0,7);cc.fill();}
     if(e<1.05)requestAnimationFrame(sweep);else cv.style.opacity=0;})();
-  // 镜头降落到主角
-  setTimeout(()=>{title.style.opacity=0;title.style.pointerEvents='none';
+  // 镜头降落到主角 + HUD淡入
+  setTimeout(()=>{title.style.opacity=0;
     cam.zoom=.5;cam.tzoom=1;
     document.body.classList.add('hud-on');},900);
   setTimeout(()=>{title.remove();
     $('whisper').style.opacity=1;
-    setTimeout(()=>{$('whisper').style.opacity=0;},10000);},3200);
+    setTimeout(()=>{$('whisper').style.opacity=0;},10000);
+    startTutorial();
+  },3200);
 }
+window.enterWorld=enterWorld;  // 暴露给 MultiplayerUI
 $('enter').onclick=enterWorld;
+
+/* 初始化联机 UI（在加载完成后） */
+setTimeout(()=>{
+  if(typeof MultiplayerUI !== 'undefined'){
+    const wsUrl = window.location.hostname === 'localhost'
+      ? 'ws://localhost:8866'
+      : 'wss://terra.bz9.me/ws';
+    MultiplayerUI.init(wsUrl);
+  }
+}, 100);
 
 /* 调试句柄(性能排查/控制台实验用) */
 window.__dbg={app,world,groundL,waterL,snowL,overlayL,objL,fxScreen,player,cam,beast,beastAI,

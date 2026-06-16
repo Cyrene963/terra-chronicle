@@ -1,7 +1,7 @@
 {
   "name": "terra-chronicle-game",
-  "version": "1.0.0",
-  "description": "农场经营 × 灵兽养成 × 卡牌锻造 × 大陆地缘博弈的多人联机网页游戏。 **v8 · 跨越恐怖谷 — 流体水面 + 战斗爆炸感 + 肉鸽推图**（PixiJS v8 / WebGL · gpt-image-2 全套贴图）。",
+  "version": "9.15.0",
+  "description": "农场经营 × 灵兽养成 × 卡牌锻造 × 大陆地缘博弈的多人联机网页游戏。 **v9.15 · 核心系统集成 — 灵兽捕获系统(野外遭遇+捕获战斗) + 生态链可视化(害虫/捕食者AI) + 卡牌配方扩展(4→32,三大流派) + 多路径进化树**（PixiJS v8 / WebGL · gpt-image-2 全套贴图）。",
   "main": "compare_fix.js",
   "directories": {
     "doc": "docs",
@@ -23,7 +23,11 @@
   },
   "homepage": "https://github.com/Cyrene963/terra-chronicle#readme",
   "devDependencies": {
+    "@playwright/test": "^1.61.0",
     "playwright": "^1.60.0",
     "pngjs": "^7.0.0"
+  },
+  "dependencies": {
+    "puppeteer": "^25.1.0"
   }
 }
