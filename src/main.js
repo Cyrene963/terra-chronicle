@@ -1731,7 +1731,7 @@ const tutorialState = {
   _alchemyOpened: false,
   _portalVisited: false
 };
-
+window.tutorialState = tutorialState;
 function startTutorial() {
   const save = window.Terra?.farm?.tutorialCompleted;
   if(save) { tutorialState.completed = true; return; }
@@ -1769,7 +1769,13 @@ function renderTutorial() {
   const step = tutorialState.steps[tutorialState.step];
   const touchMode = matchMedia('(hover:none), (pointer:coarse), (max-width:760px)').matches;
   let markerHtml = '';
-  if(step.target === 'portal') {
+  if(step.target === 'fab') {
+    const fab = document.getElementById('craftFAB');
+    if(fab) {
+      const r = fab.getBoundingClientRect();
+      markerHtml = `<div class="tutorialMarker" style="position:absolute;left:${r.left + r.width/2}px;top:${r.top + r.height/2}px;width:${Math.max(78,r.width+22)}px;height:${Math.max(78,r.height+22)}px;transform:translate(-50%,-50%);border:3px solid rgba(244,208,63,.92);border-radius:50%;box-shadow:0 0 28px rgba(244,208,63,.38);animation:tutorialPulse 1.5s ease-in-out infinite;pointer-events:none"></div>`;
+    }
+  } else if(step.target === 'portal') {
     const portal = OBJECTS.find(o => o.kind === 'portal');
     if(portal) {
       const screenPos = worldToScreen(portal.node.x, portal.node.y);
@@ -1782,7 +1788,7 @@ function renderTutorial() {
     : step.id === 'chop'
       ? (touchMode ? '靠近树木后点右下「交互」或直接点击树木' : '点击树木或靠近后按空格')
       : step.id === 'alchemy'
-        ? '点击右侧炼金按钮'
+        ? (touchMode ? '点击金色炼金按钮打开工坊；材料不足也可以先进入查看' : '点击金色炼金按钮打开工坊')
         : '点击或移动到传送门附近';
   overlay.innerHTML = `
     <div style="position:absolute;inset:0;background:rgba(0,0,0,.46);"></div>
@@ -2284,7 +2290,10 @@ const fabBtn=document.getElementById('craftFAB');
 const fabTooltip=document.getElementById('craftBtnTooltip');
 if(fabBtn){
   fabBtn.onclick=()=>{
-    if(window.Alchemy) Alchemy.open();
+    if(window.Alchemy){
+      tutorialState._alchemyOpened = true;
+      Alchemy.open();
+    }
     else toastHint('炼金工坊载入中…');
   };
   // FAB disabled 时悬停显示 tooltip
