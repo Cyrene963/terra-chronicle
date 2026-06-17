@@ -28,7 +28,7 @@
 'use strict';
 
 /* 资产版本号: 内容更新时 +1,绕过浏览器/CDN 旧缓存 */
-const ASSET_V="?v=10";
+const ASSET_V="?v=11";
 /* 贴图加载: mode='tile' → NEAREST+CLAMP(消除瓦片接缝+锐利);
    其余(精灵)→ LINEAR+mipmap(高清源缩小时干净不闪烁,painterly 风格不能用 NEAREST 否则缩小抖动) */
 async function loadTex(src, mode){
@@ -564,16 +564,25 @@ const player=makePlayer();
 player.x=23*TS; player.y=26.6*TS; player.zIndex=player.y;
 objL.addChild(player);
 
-/* WASD 输入 */
+/* WASD + mobile joystick input */
 const keys={};
+const touchMove={x:0,y:0,active:false};
+const movementKeys=new Set(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright']);
 addEventListener('keydown',e=>{
   if(window.Battle&&Battle.active) return;          // 战斗中禁用世界输入
-  keys[e.key.toLowerCase()]=true;
+  const key=e.key.toLowerCase();
+  keys[key]=true;
+  if(movementKeys.has(key)) e.preventDefault();
   if(e.code==='Space'){ e.preventDefault(); if(entered) interact(); }
   if(e.key==='f'||e.key==='F') timeScale=timeScale===1?10:1;
   const k=parseInt(e.key); if(k>=1&&k<=4) elapsed=((k-1)*SEASON_DAYS+3.5)*DAY_SECONDS;
 });
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
+addEventListener('blur',()=>{
+  Object.keys(keys).forEach(k=>{keys[k]=false;});
+  touchMove.x=0; touchMove.y=0; touchMove.active=false;
+  resetMoveKnob();
+});
 
 const SPEED=235;
 const movementEnhancer = typeof MovementFeelEnhancer !== 'undefined' ? new MovementFeelEnhancer() : null;
@@ -607,9 +616,43 @@ function animateWalk(dt,moving,speed){
   player._rig.scale.set(finalScaleX, finalScaleY);
   player._rig.y = (moving? -Math.abs(Math.sin(walkPh))*3.2 : 0) + enhance.offsetY;
 }
-function manualMove(dt){                          // 键盘直接驱动（加速/减速增强版）
-  let inputX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0);
-  let inputY=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0);
+function keyboardInputX(){ return (keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0); }
+function keyboardInputY(){ return (keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0); }
+function currentMoveInput(){
+  const keyboardX=keyboardInputX(), keyboardY=keyboardInputY();
+  return {
+    x: Math.max(-1, Math.min(1, keyboardX + touchMove.x)),
+    y: Math.max(-1, Math.min(1, keyboardY + touchMove.y))
+  };
+}
+function resetMoveKnob(){
+  const knob=document.getElementById('moveKnob');
+  if(knob) knob.style.transform='translate(-50%,-50%)';
+}
+function setTouchMove(clientX,clientY){
+  const pad=document.getElementById('movePad');
+  const knob=document.getElementById('moveKnob');
+  if(!pad) return;
+  const r=pad.getBoundingClientRect();
+  const cx=r.left+r.width/2, cy=r.top+r.height/2;
+  const max=r.width*.34;
+  let dx=clientX-cx, dy=clientY-cy;
+  const len=Math.hypot(dx,dy);
+  if(len>max){ dx=dx/len*max; dy=dy/len*max; }
+  touchMove.x=Math.max(-1,Math.min(1,dx/max));
+  touchMove.y=Math.max(-1,Math.min(1,dy/max));
+  touchMove.active=Math.hypot(touchMove.x,touchMove.y)>.12;
+  if(knob) knob.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;
+}
+function releaseTouchMove(){
+  touchMove.x=0; touchMove.y=0; touchMove.active=false;
+  if(movementEnhancer) movementEnhancer.reset();
+  resetMoveKnob();
+}
+function manualMove(dt){                          // keyboard/joystick direct movement
+  const input=currentMoveInput();
+  let inputX=input.x;
+  let inputY=input.y;
 
   // 使用游戏手感增强器计算移动
   const movement = movementEnhancer ? movementEnhancer.updateMovement(inputX, inputY, dt) : {dx: inputX*SPEED*dt, dy: inputY*SPEED*dt, speed: Math.hypot(inputX, inputY)*SPEED, moving: inputX!==0 || inputY!==0};
@@ -632,7 +675,7 @@ function manualMove(dt){                          // 键盘直接驱动（加速
   }
 
   // 教程检测
-  if(movement.moving && !tutorialState._moved) {
+  if((movement.moving || Math.abs(movement.dx) > 0.1 || Math.abs(movement.dy) > 0.1) && !tutorialState._moved) {
     tutorialState._moved = true;
   }
 
@@ -675,8 +718,8 @@ function followPath(dt){                           // 沿 A* 路径自动行走�
   animateWalk(dt, movement.moving, movement.speed);
 }
 function movePlayer(dt){
-  const wasd=keys.w||keys.a||keys.s||keys.d||keys.arrowup||keys.arrowdown||keys.arrowleft||keys.arrowright;
-  if(wasd){ if(player._path){player._path=null;pendingAction=null;if(movementEnhancer) movementEnhancer.reset();} manualMove(dt); return; }
+  const hasDirectInput=keyboardInputX()||keyboardInputY()||touchMove.active;
+  if(hasDirectInput){ if(player._path){player._path=null;pendingAction=null;if(movementEnhancer) movementEnhancer.reset();} manualMove(dt); return; }
   if(player._path){ followPath(dt); return; }
 
   // 待机状态：应用摩擦力让速度自然衰减到0
@@ -1257,7 +1300,8 @@ if (typeof SeasonalParticleSystem !== 'undefined') {
 }
 
 /* ================= 10. 时间系统与主循环 ================= */
-let elapsed=0, timeScale=1, entered=false;
+// 初始时间设为正午(白天最亮时刻),避免进入游戏后黑屏
+let elapsed=DAY_SECONDS*0.5, timeScale=1, entered=false;
 let recolorClock=0, cullClock=0, hudClock=0, curWaterBase=[84,150,164], curCrop=0x96be64;
 
 /* —— 自适应画质: FPS 不足时逐级降载(软渲染/低端机自救) + AnimationManager 联动 —— */
@@ -1310,6 +1354,13 @@ app.ticker.add(tk=>{
   elapsed+=dt*timeScale;
   const st=(elapsed/DAY_SECONDS/SEASON_DAYS)%4;
   const sun=sunlight(), night=1-sun;
+  const currentDayPhase = (elapsed % DAY_SECONDS) / DAY_SECONDS;
+  const currentDay = Math.floor(elapsed / DAY_SECONDS);
+
+  /* —— 强化昼夜循环更新 —— */
+  if (window.updateDayNightCycle && world) {
+    window.updateDayNightCycle(currentDayPhase, currentDay, world, dt);
+  }
 
   /* —— 世界调色: 重活 150ms 节流 —— */
   recolorClock-=dt;
@@ -1474,7 +1525,8 @@ app.ticker.add(tk=>{
   const vw=app.screen.width, vh=app.screen.height;
   ambient.width=vw; ambient.height=vh;
   const amb=pal('ambient',st);
-  ambient.tint=hex([lerp(amb[0],70,night*.78),lerp(amb[1],86,night*.74),lerp(amb[2],132,night*.6)]);
+  // 提高夜晚最低亮度,确保即使在夜晚也能看清世界(从70→110, 86→120, 132→160)
+  ambient.tint=hex([lerp(amb[0],110,night*.65),lerp(amb[1],120,night*.60),lerp(amb[2],160,night*.50)]);
   const p=dayPhase(), dusk=Math.max(0,1-Math.abs(p-.42)*9)+Math.max(0,1-Math.abs(p-.08)*9);
   golden.x=vw*.5; golden.y=vh*.55; golden.width=vw*1.5; golden.height=vh*1.2;
   golden.tint=0xe89646; golden.alpha=dusk*.34;
@@ -1675,6 +1727,24 @@ app.canvas.addEventListener('contextmenu',e=>{
   if(tileMeta[key]) openPanel(tileMeta[key]);
 });
 app.canvas.style.touchAction='none';
+function bindMobileControls(){
+  const pad=document.getElementById('movePad');
+  const action=document.getElementById('touchAction');
+  if(pad){
+    const start=e=>{ if(!entered) return; e.preventDefault(); pad.setPointerCapture?.(e.pointerId); setTouchMove(e.clientX,e.clientY); };
+    const move=e=>{ if(!touchMove.active && !pad.hasPointerCapture?.(e.pointerId)) return; e.preventDefault(); setTouchMove(e.clientX,e.clientY); };
+    const end=e=>{ e.preventDefault(); releaseTouchMove(); };
+    pad.addEventListener('pointerdown',start);
+    pad.addEventListener('pointermove',move);
+    pad.addEventListener('pointerup',end);
+    pad.addEventListener('pointercancel',end);
+    pad.addEventListener('lostpointercapture',releaseTouchMove);
+  }
+  if(action){
+    action.addEventListener('pointerdown',e=>{ e.preventDefault(); if(entered) interact(); });
+  }
+}
+bindMobileControls();
 
 /* 卡牌 3D 悬停 */
 addEventListener('mousemove',e=>{
@@ -1734,32 +1804,35 @@ function renderTutorial() {
   if(!overlay) {
     overlay = document.createElement('div');
     overlay.id = 'tutorialOverlay';
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:150;pointer-events:none;transition:opacity .4s';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:147;pointer-events:none;transition:opacity .4s';
     document.body.appendChild(overlay);
   }
   const step = tutorialState.steps[tutorialState.step];
-  let targetEl = null;
-  if(step.target === 'fab') targetEl = document.getElementById('craftFAB');
-  else if(step.target === 'portal') {
+  const touchMode = matchMedia('(hover:none), (pointer:coarse), (max-width:760px)').matches;
+  let markerHtml = '';
+  if(step.target === 'portal') {
     const portal = OBJECTS.find(o => o.kind === 'portal');
     if(portal) {
       const screenPos = worldToScreen(portal.node.x, portal.node.y);
-      if(screenPos) {
-        const marker = document.createElement('div');
-        marker.className = 'tutorialMarker';
-        marker.style.cssText = `position:absolute;left:${screenPos.x}px;top:${screenPos.y}px;width:80px;height:80px;transform:translate(-50%,-50%);border:3px solid rgba(244,208,63,.8);border-radius:50%;animation:tutorialPulse 1.5s ease-in-out infinite;pointer-events:none`;
-        overlay.appendChild(marker);
-      }
+      if(screenPos) markerHtml = `<div class="tutorialMarker" style="position:absolute;left:${screenPos.x}px;top:${screenPos.y}px;width:80px;height:80px;transform:translate(-50%,-50%);border:3px solid rgba(244,208,63,.8);border-radius:50%;animation:tutorialPulse 1.5s ease-in-out infinite;pointer-events:none"></div>`;
     }
   }
-
+  const title = step.id === 'move' && touchMode ? '左下摇杆移动' : step.title;
+  const hint = step.id === 'move'
+    ? (touchMode ? '拖动左下摇杆即可继续' : '按住 WASD 或方向键即可继续')
+    : step.id === 'chop'
+      ? (touchMode ? '靠近树木后点右下「交互」或直接点击树木' : '点击树木或靠近后按空格')
+      : step.id === 'alchemy'
+        ? '点击右侧炼金按钮'
+        : '点击或移动到传送门附近';
   overlay.innerHTML = `
-    <div style="position:absolute;inset:0;background:rgba(0,0,0,.7);"></div>
-    <div style="position:absolute;left:50%;top:20%;transform:translateX(-50%);text-align:center;color:#f6f1e7;pointer-events:auto">
-      <div style="font-size:24px;letter-spacing:.2em;margin-bottom:12px;color:#f4d03f">${step.title}</div>
-      <div style="font-size:14px;letter-spacing:.1em;opacity:.85">步骤 ${tutorialState.step + 1} / ${tutorialState.steps.length}</div>
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.46);"></div>
+    <div style="position:absolute;left:50%;top:18%;transform:translateX(-50%);width:min(86vw,520px);text-align:center;color:#f6f1e7;pointer-events:none;text-shadow:0 4px 18px rgba(0,0,0,.95)">
+      <div style="font-size:clamp(20px,5vw,28px);letter-spacing:.18em;margin-bottom:12px;color:#f4d03f">${title}</div>
+      <div style="font-size:13px;letter-spacing:.12em;line-height:1.8;opacity:.9">${hint}</div>
+      <div style="font-size:12px;letter-spacing:.1em;opacity:.72;margin-top:8px">步骤 ${tutorialState.step + 1} / ${tutorialState.steps.length}</div>
     </div>
-    ${overlay.innerHTML}
+    ${markerHtml}
   `;
 }
 
@@ -2299,6 +2372,7 @@ if(petCodexClose&&petCodex) petCodexClose.onclick=(e)=>{e.stopPropagation(); pet
 /* ================= 12. 标题 → 世界 转场 ================= */
 function enterWorld(){
   if(entered)return; entered=true;
+  console.log('[Terra] Entering world - Time:', elapsed.toFixed(1), 'Day phase:', dayPhase().toFixed(2), 'Sunlight:', sunlight().toFixed(2));
   const title=$('title');
   // 立即禁用标题屏交互，允许游戏世界接收点击
   title.style.pointerEvents='none';

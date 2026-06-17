@@ -777,4 +777,5 @@ const Battle={
   pickRewardByName,
 };
 window.Battle=Battle;
+}
 })();
