@@ -564,9 +564,8 @@ const player=makePlayer();
 player.x=23*TS; player.y=26.6*TS; player.zIndex=player.y;
 objL.addChild(player);
 
-/* WASD + mobile joystick input */
+/* WASD input */
 const keys={};
-const touchMove={x:0,y:0,active:false};
 const movementKeys=new Set(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright']);
 addEventListener('keydown',e=>{
   if(window.Battle&&Battle.active) return;          // 战斗中禁用世界输入
@@ -580,8 +579,6 @@ addEventListener('keydown',e=>{
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
 addEventListener('blur',()=>{
   Object.keys(keys).forEach(k=>{keys[k]=false;});
-  touchMove.x=0; touchMove.y=0; touchMove.active=false;
-  resetMoveKnob();
 });
 
 const SPEED=235;
@@ -619,37 +616,9 @@ function animateWalk(dt,moving,speed){
 function keyboardInputX(){ return (keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0); }
 function keyboardInputY(){ return (keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0); }
 function currentMoveInput(){
-  const keyboardX=keyboardInputX(), keyboardY=keyboardInputY();
-  return {
-    x: Math.max(-1, Math.min(1, keyboardX + touchMove.x)),
-    y: Math.max(-1, Math.min(1, keyboardY + touchMove.y))
-  };
+  return { x: keyboardInputX(), y: keyboardInputY() };
 }
-function resetMoveKnob(){
-  const knob=document.getElementById('moveKnob');
-  if(knob) knob.style.transform='translate(-50%,-50%)';
-}
-function setTouchMove(clientX,clientY){
-  const pad=document.getElementById('movePad');
-  const knob=document.getElementById('moveKnob');
-  if(!pad) return;
-  const r=pad.getBoundingClientRect();
-  const cx=r.left+r.width/2, cy=r.top+r.height/2;
-  const max=r.width*.34;
-  let dx=clientX-cx, dy=clientY-cy;
-  const len=Math.hypot(dx,dy);
-  if(len>max){ dx=dx/len*max; dy=dy/len*max; }
-  touchMove.x=Math.max(-1,Math.min(1,dx/max));
-  touchMove.y=Math.max(-1,Math.min(1,dy/max));
-  touchMove.active=Math.hypot(touchMove.x,touchMove.y)>.12;
-  if(knob) knob.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;
-}
-function releaseTouchMove(){
-  touchMove.x=0; touchMove.y=0; touchMove.active=false;
-  if(movementEnhancer) movementEnhancer.reset();
-  resetMoveKnob();
-}
-function manualMove(dt){                          // keyboard/joystick direct movement
+function manualMove(dt){                          // keyboard direct movement
   const input=currentMoveInput();
   let inputX=input.x;
   let inputY=input.y;
@@ -707,6 +676,7 @@ function followPath(dt){                           // 沿 A* 路径自动行走�
   } else player._stuck=0;
 
   player.zIndex=player.y;
+  if(!tutorialState._moved && (Math.abs(player.x-px) > 0.1 || Math.abs(player.y-py) > 0.1)) tutorialState._moved = true;
   if(Math.abs(movement.dx)>.05) facing=movement.dx>0?1:-1;
 
   // 生成尘埃粒子
@@ -718,7 +688,7 @@ function followPath(dt){                           // 沿 A* 路径自动行走�
   animateWalk(dt, movement.moving, movement.speed);
 }
 function movePlayer(dt){
-  const hasDirectInput=keyboardInputX()||keyboardInputY()||touchMove.active;
+  const hasDirectInput=keyboardInputX()||keyboardInputY();
   if(hasDirectInput){ if(player._path){player._path=null;pendingAction=null;if(movementEnhancer) movementEnhancer.reset();} manualMove(dt); return; }
   if(player._path){ followPath(dt); return; }
 
@@ -1728,18 +1698,7 @@ app.canvas.addEventListener('contextmenu',e=>{
 });
 app.canvas.style.touchAction='none';
 function bindMobileControls(){
-  const pad=document.getElementById('movePad');
   const action=document.getElementById('touchAction');
-  if(pad){
-    const start=e=>{ if(!entered) return; e.preventDefault(); pad.setPointerCapture?.(e.pointerId); setTouchMove(e.clientX,e.clientY); };
-    const move=e=>{ if(!touchMove.active && !pad.hasPointerCapture?.(e.pointerId)) return; e.preventDefault(); setTouchMove(e.clientX,e.clientY); };
-    const end=e=>{ e.preventDefault(); releaseTouchMove(); };
-    pad.addEventListener('pointerdown',start);
-    pad.addEventListener('pointermove',move);
-    pad.addEventListener('pointerup',end);
-    pad.addEventListener('pointercancel',end);
-    pad.addEventListener('lostpointercapture',releaseTouchMove);
-  }
   if(action){
     action.addEventListener('pointerdown',e=>{ e.preventDefault(); if(entered) interact(); });
   }
@@ -1817,9 +1776,9 @@ function renderTutorial() {
       if(screenPos) markerHtml = `<div class="tutorialMarker" style="position:absolute;left:${screenPos.x}px;top:${screenPos.y}px;width:80px;height:80px;transform:translate(-50%,-50%);border:3px solid rgba(244,208,63,.8);border-radius:50%;animation:tutorialPulse 1.5s ease-in-out infinite;pointer-events:none"></div>`;
     }
   }
-  const title = step.id === 'move' && touchMode ? '左下摇杆移动' : step.title;
+  const title = step.id === 'move' && touchMode ? '点按地面移动' : step.title;
   const hint = step.id === 'move'
-    ? (touchMode ? '拖动左下摇杆即可继续' : '按住 WASD 或方向键即可继续')
+    ? (touchMode ? '点按任意可行走地面，角色会自动寻路' : '点击地面寻路，或按住 WASD / 方向键')
     : step.id === 'chop'
       ? (touchMode ? '靠近树木后点右下「交互」或直接点击树木' : '点击树木或靠近后按空格')
       : step.id === 'alchemy'
