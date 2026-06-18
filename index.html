@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Terra Chronicle · 大地编年史 v9.13</title>
+<title>Terra Chronicle · 大地编年史 v9.14</title>
 <link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preload" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Noto+Serif+SC:wght@300;500;700&display=swap" as="style">
@@ -104,7 +104,10 @@
   #dialRing path.summer{stroke:#e8c870}
   #dialRing path.autumn{stroke:#d4a574}
   #dialRing path.winter{stroke:#9ec5d8}
-  #dialRing path.active{stroke-width:3.5;opacity:1;filter:drop-shadow(0 0 8px currentColor) brightness(1.15)}
+  #dialRing path.spring.active{stroke-width:3.5;opacity:1;filter:drop-shadow(0 0 8px currentColor) brightness(1.15)}
+  #dialRing path.summer.active{stroke-width:3.5;opacity:1;filter:drop-shadow(0 0 8px currentColor) brightness(1.15)}
+  #dialRing path.autumn.active{stroke-width:3.5;opacity:1;filter:drop-shadow(0 0 8px currentColor) brightness(1.15)}
+  #dialRing path.winter.active{stroke-width:3.5;opacity:1;filter:drop-shadow(0 0 8px currentColor) brightness(1.15)}
   #dialRing path:not(.active){stroke-width:1;opacity:0.25}
   #seasonProgressRing{transition:stroke-dasharray 0.4s ease-out}
   #clock{position:absolute;top:80px;left:170px;color:var(--fg-bright);text-shadow:0 3px 12px rgba(0,0,0,.95),0 0 2px rgba(255,255,255,.4);background:var(--bg-soft);padding:10px 16px;border-radius:14px;backdrop-filter:blur(22px) saturate(1.2);border:1px solid rgba(246,241,231,.08);filter:drop-shadow(0 4px 16px rgba(0,0,0,.75))}
@@ -169,7 +172,7 @@
     #dock{bottom:18px;max-width:calc(100vw - 232px);gap:10px;padding:9px 10px 9px 16px;font-size:11px}
     #dock .sep{display:none}
     #beastPanel{left:18px;bottom:178px;transform:scale(.9);transform-origin:left bottom}
-    #craftFAB{right:118px!important;bottom:54px!important;width:58px!important;height:58px!important}
+    #craftFAB{right:24px!important;bottom:230px!important;width:64px!important;height:64px!important}
     #hintAction{bottom:154px;font-size:11px}
     #whisper{bottom:210px;width:min(88vw,520px);white-space:normal;text-align:center;line-height:1.7;letter-spacing:.18em;text-indent:0}
     #seasonDial{top:18px;left:18px;transform:scale(.78);transform-origin:left top}
@@ -194,25 +197,23 @@
   #dock .item .resource-num.milestone{animation:milestone 400ms cubic-bezier(.34,1.56,.64,1);}
   @keyframes milestone{50%{transform:scale(1.15);}}
   #dock .sep{width:1px;height:18px;background:var(--hairline)}
-  /* 炼金FAB悬浮按钮 */
+  /* 炼金FAB悬浮按钮 — 使用真实坩埚插图(不手搓CSS图形)，位置避开 #cardPeek */
   #craftFAB{
-    position:fixed;right:42px;bottom:130px;width:64px;height:64px;border-radius:50%;z-index:35;
-    background:radial-gradient(circle at 35% 30%,#f4d03f,#c9a24b 62%,#8a6d2c);
-    border:2.5px solid var(--accent-rim);box-shadow:0 12px 34px rgba(201,162,75,.5),0 0 32px rgba(244,208,63,.45),inset 0 2px 0 rgba(255,255,255,.4);
-    cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:32px;
-    transition:transform .35s cubic-bezier(.34,1.56,.64,1),box-shadow .35s,opacity .3s,filter .3s;
-    animation:fabPulse 1.6s ease-in-out infinite;pointer-events:auto;
+    position:fixed;right:46px;bottom:238px;width:76px;height:76px;z-index:36;
+    background:url('assets/sprites/alchemy_cauldron_real.png') center/contain no-repeat;
+    cursor:pointer;pointer-events:auto;
+    filter:drop-shadow(0 6px 16px rgba(0,0,0,.55)) drop-shadow(0 0 12px rgba(244,208,63,.38));
+    transition:transform .35s cubic-bezier(.34,1.56,.64,1),filter .35s,opacity .3s;
+    animation:fabBob 2.6s ease-in-out infinite;
   }
-  #craftFAB::before{content:'⚗';color:#2b2417;text-shadow:0 3px 12px rgba(0,0,0,.4),0 0 1px rgba(255,255,255,.6);}
-  #craftFAB:not(.disabled):hover{transform:translateY(-8px) scale(1.1);box-shadow:0 18px 52px rgba(201,162,75,.6),0 0 44px rgba(244,208,63,.6),inset 0 2px 0 rgba(255,255,255,.6);}
-  #craftFAB:not(.disabled):active{transform:translateY(-4px) scale(1.05);}
-  #craftFAB.disabled{opacity:.72;pointer-events:auto;animation:none;filter:grayscale(0.28);}
-  #craftFAB.disabled::before{opacity:.85}
-  #craftFAB.hot{filter:brightness(1.15) saturate(1.2);}
-  #craftFAB.disabled::after{content:'';position:absolute;top:-6px;right:-6px;width:12px;height:12px;
-    background:#d46b4f;border-radius:50%;border:2px solid #2b1e18;
-    animation:fabPulse 1.5s ease-in-out infinite;}
-  @keyframes fabPulse{0%,100%{box-shadow:0 12px 34px rgba(201,162,75,.5),0 0 32px rgba(244,208,63,.45),inset 0 2px 0 rgba(255,255,255,.4)}50%{box-shadow:0 12px 34px rgba(201,162,75,.6),0 0 42px rgba(244,208,63,.6),inset 0 2px 0 rgba(255,255,255,.5)}}
+  #craftFAB:not(.disabled):hover{transform:translateY(-7px) scale(1.09);filter:drop-shadow(0 14px 26px rgba(0,0,0,.6)) drop-shadow(0 0 20px rgba(244,208,63,.65));}
+  #craftFAB:not(.disabled):active{transform:translateY(-3px) scale(1.04);}
+  #craftFAB.disabled{opacity:.62;filter:grayscale(.5) drop-shadow(0 4px 10px rgba(0,0,0,.45));animation:none;}
+  #craftFAB.hot{filter:drop-shadow(0 6px 16px rgba(0,0,0,.55)) drop-shadow(0 0 22px rgba(244,208,63,.85)) brightness(1.08) saturate(1.15);}
+  #craftFAB.disabled::after{content:'';position:absolute;top:2px;right:2px;width:13px;height:13px;
+    background:#d46b4f;border-radius:50%;border:2px solid #2b1e18;box-shadow:0 1px 4px rgba(0,0,0,.5);
+    animation:fabBob 1.6s ease-in-out infinite;}
+  @keyframes fabBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
 
   #craftBtn{
     border:1px solid var(--gold);background:transparent;color:var(--ink);cursor:pointer;
@@ -506,9 +507,9 @@
 <!-- 核心游戏系统 -->
 <script src="src/alchemy.js?v=46"></script>
 <script src="src/battle_effects.js?v=1"></script>
-<script src="src/battle.js?v=66"></script>
+<script src="src/battle.js?v=67"></script>
 <script src="src/dungeon.js?v=50"></script>
 <script src="src/upgrade.js?v=38"></script>
-<script src="src/main.js?v=74"></script>
+<script src="src/main.js?v=78"></script>
 </body>
 </html>

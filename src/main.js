@@ -866,7 +866,11 @@ function onArrive(){
   spawnWorldRipple(player.x,player.y,a.type==='portal'?0xb68cff:a.type==='farm'?0x9fdc7b:0xf4d03f,arriveLabel);
   if(a.type==='farm') interactFarm(a.key);
   else if(a.type==='chop'){ chopLoop.obj=a.obj; chopLoop.t=0; }
-  else if(a.type==='portal'){ if(window.DungeonMap) DungeonMap.open(); }
+  else if(a.type==='portal'){
+    // 传送门直接进入战斗（暂时禁用 DungeonMap 选择界面）
+    tutorialState._portalVisited = true;
+    enterBattle();
+  }
   else if(a.type==='breed') openBreed();
   else if(a.type==='upgrade'){ if(window.FarmUpgrade) FarmUpgrade.open(); }
 }
@@ -1514,7 +1518,15 @@ app.ticker.add(tk=>{
   hudClock-=dt;
   if(hudClock<=0){ hudClock=.1; updateHUD(st,Math.floor(elapsed/DAY_SECONDS)); updateEcoHUD(); updatePerfHUD(); }
   updateInteractionIndicators();
-  if(tutorialState.active) advanceTutorial();
+  if(tutorialState.active){
+    // 教程进度兜底检测（无论玩家用 WASD 还是点击寻路靠近，都能推进）
+    if(tutorialState._alchemyOpened && !tutorialState._alchemyClosed){
+      const alchemyPanel = document.querySelector('#alchemy.on,#alchemyPanel.on,.alchemy-overlay.on,.alchemy-overlay.panel-on,#alchemyUI.panel-on,#alchemyUI.on');
+      if(!alchemyPanel) tutorialState._alchemyClosed = true;
+    }
+    if(tutorialState._alchemyClosed && !tutorialState._portalVisited && nearestPortal()) tutorialState._portalVisited = true;
+    advanceTutorial();
+  }
   springTick(dt);
 });
 
@@ -1599,8 +1611,7 @@ function updateHUD(st,day){
   for(let i=0;i<4;i++){
     const arc=$('arc'+i);
     if(!arc) continue;
-    arc.classList.remove('spring','summer','autumn','winter','active');
-    arc.classList.add(['spring','summer','autumn','winter'][i]);
+    arc.classList.remove('active');
     if(i===si) arc.classList.add('active');
   }
 
@@ -1723,12 +1734,15 @@ const tutorialState = {
   completed: false,
   steps: [
     { id: 'move', title: 'WASD 移动', check: () => tutorialState._moved },
-    { id: 'chop', title: '点击树木伐木', target: 'tree', check: () => (farm.inventory.materials.wood||0) > 8 },
+    { id: 'chop', title: '点击树木伐木', target: 'tree', check: () => tutorialState._chopped || (farm.inventory.materials.wood||0) > 8 },
     { id: 'alchemy', title: '打开炼金面板', target: 'fab', check: () => tutorialState._alchemyOpened },
+    { id: 'close', title: '关闭炼金面板', check: () => tutorialState._alchemyClosed },
     { id: 'portal', title: '前往深渊传送门', target: 'portal', check: () => tutorialState._portalVisited }
   ],
   _moved: false,
+  _chopped: false,
   _alchemyOpened: false,
+  _alchemyClosed: false,
   _portalVisited: false
 };
 window.tutorialState = tutorialState;
@@ -1737,6 +1751,7 @@ function startTutorial() {
   if(save) { tutorialState.completed = true; return; }
   tutorialState.active = true;
   tutorialState.step = 0;
+  tutorialState._alchemyClosed = false;
   renderTutorial();
 }
 
@@ -1789,9 +1804,11 @@ function renderTutorial() {
       ? (touchMode ? '靠近树木后点右下「交互」或直接点击树木' : '点击树木或靠近后按空格')
       : step.id === 'alchemy'
         ? (touchMode ? '点击金色炼金按钮打开工坊；材料不足也可以先进入查看' : '点击金色炼金按钮打开工坊')
-        : '点击或移动到传送门附近';
+        : step.id === 'close'
+          ? '关闭炼金面板后，再前往传送门开始第一次战斗'
+          : '点击或移动到传送门附近';
   overlay.innerHTML = `
-    <div style="position:absolute;inset:0;background:rgba(0,0,0,.46);"></div>
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.12);pointer-events:none;"></div>
     <div style="position:absolute;left:50%;top:18%;transform:translateX(-50%);width:min(86vw,520px);text-align:center;color:#f6f1e7;pointer-events:none;text-shadow:0 4px 18px rgba(0,0,0,.95)">
       <div style="font-size:clamp(20px,5vw,28px);letter-spacing:.18em;margin-bottom:12px;color:#f4d03f">${title}</div>
       <div style="font-size:13px;letter-spacing:.12em;line-height:1.8;opacity:.9">${hint}</div>
@@ -2053,6 +2070,7 @@ function chop(o){
   if(staminaUsed>=6){ toastHint('体力耗尽 · 待明日恢复'); o.hp=1; return; }
   staminaUsed++; syncLeaves();
   farm.inventory.materials.wood=(farm.inventory.materials.wood||0)+2;
+  tutorialState._chopped=true;             // 教程: 伐木一次即推进(不依赖具体木材数)
   Terra.save(); updateDock();
 
   // 伐木粒子爆发 + 增强屏幕震动
@@ -2263,7 +2281,7 @@ function updateDock(){
       fab.classList.remove('disabled');
       fab.style.opacity='1';
       fab.style.pointerEvents='auto';
-      fab.style.animation='fabPulse 1.6s ease-in-out infinite';
+      fab.style.animation='fabBob 2.6s ease-in-out infinite';
       if(forgeHot) fab.classList.add('hot');
       else fab.classList.remove('hot');
       // 清空 tooltip（可用时不显示）
@@ -2365,7 +2383,11 @@ function enterWorld(){
   // 镜头降落到主角 + HUD淡入
   setTimeout(()=>{title.style.opacity=0;
     cam.zoom=.5;cam.tzoom=1;
-    document.body.classList.add('hud-on');},900);
+    document.body.classList.add('hud-on');
+    // 显示炼金FAB（从标题进入后立即可见）
+    const fab=document.getElementById('craftFAB');
+    if(fab){fab.style.display='flex';fab.style.opacity='1';}
+  },900);
   setTimeout(()=>{title.remove();
     $('whisper').style.opacity=1;
     setTimeout(()=>{$('whisper').style.opacity=0;},10000);
@@ -2396,7 +2418,9 @@ window.__dbg={app,world,groundL,waterL,snowL,overlayL,objL,fxScreen,player,cam,b
   get scripts(){return [...document.scripts].map(s=>s.src).filter(Boolean)},
   get plantedCount(){return Object.keys(planted).length},
   get cardCount(){return farm.inventory.cards.length},
-  get parts(){return parts.length}};
+  get parts(){return parts.length},
+  get objects(){return OBJECTS},
+  commandTo, interact};
 
 /* Loading screen fade-out (after first successful frame) */
 setTimeout(()=>{
