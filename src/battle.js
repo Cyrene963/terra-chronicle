@@ -104,7 +104,7 @@ function injectStyle(){
   const css=`
   #battle{position:fixed;inset:0;z-index:80;display:none;opacity:0;
     transition:opacity .6s cubic-bezier(.4,0,.2,1);
-    background:url('assets/ui/battle_bg.jpg') center/cover, radial-gradient(ellipse at 50% 30%,#2a2340 0%,#15121f 60%,#0a0810 100%);
+    background:url('assets/ui/battle_bg.jpg?v=2') center/cover, radial-gradient(ellipse at 50% 30%,#2a2340 0%,#15121f 60%,#0a0810 100%);
     font-family:'Noto Serif SC',serif;color:#f6f1e7;overflow:hidden;}
   #battle.on{display:block;opacity:1;}
   #battle .arena{position:absolute;inset:0;display:flex;flex-direction:column;}
@@ -259,8 +259,8 @@ function buildDOM(){
       <div class="topbar"><div class="t" id="b_turn">深渊副本 · 第 1 回合</div><div class="buffline" id="b_buffs"></div><div class="bossphase" id="b_bphase"></div></div>
       <div class="enemyZone">
         <div class="enemy" id="b_enemy">
-          <div class="ename" id="b_ename">根蚀虫</div>
-          <img id="b_eimg" src="assets/sprites/enemy_root_worm.png?v=2" alt="">
+          <div class="ename" id="b_ename">狂暴树精</div>
+          <img id="b_eimg" src="assets/sprites/enemy_root_worm.png?v=3" alt="">
           <div class="ehp"><i id="b_ehpbar"></i><span id="b_ehptxt"></span></div>
           <div class="intent" id="b_intent"></div>
         </div>
@@ -296,13 +296,13 @@ function setEnemyPresentation(){
   const type=S.enemy.type;
   if(type==='boss'){
     if(name) name.textContent='深渊主核';
-    if(img){ img.src='assets/sprites/enemy_blight.png?v=6'; img.style.width='440px'; }
+    if(img){ img.src='assets/sprites/enemy_blight.png?v=7'; img.style.width='440px'; }
   } else if(type==='elite'){
     if(name) name.textContent='菌甲精英';
-    if(img){ img.src='assets/sprites/enemy_root_worm.png?v=2'; img.style.width='440px'; }
+    if(img){ img.src='assets/sprites/enemy_root_worm.png?v=3'; img.style.width='440px'; }
   } else {
-    if(name) name.textContent='根蚀虫';
-    if(img){ img.src='assets/sprites/enemy_root_worm.png?v=2'; img.style.width='420px'; }
+    if(name) name.textContent='狂暴树精';
+    if(img){ img.src='assets/sprites/enemy_root_worm.png?v=3'; img.style.width='420px'; }
   }
 }
 
@@ -522,8 +522,6 @@ function hideEnergyHint(){
   const hint=document.getElementById('energyHint');
   if(hint) hint.style.opacity='0';
 }
-
-function render(){
 
 function drawCards(n){
   for(let k=0;k<n;k++){
@@ -777,5 +775,4 @@ const Battle={
   pickRewardByName,
 };
 window.Battle=Battle;
-}
 })();

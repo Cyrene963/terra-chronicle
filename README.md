@@ -1,10 +1,45 @@
 # Terra Chronicle 大地编年史
 
-**v9.14 · Visual Polish Complete**
+**v9.16 · Three-Layer Game Loop Complete**
 
 农场经营 × 灵兽养成 × 卡牌锻造 × 大陆地缘博弈的多人联机网页游戏
 
 🌐 **Live Demo:** https://terra.bz9.me
+
+---
+
+## 🔄 Three-Layer Game Loop (v9.16)
+
+### ✅ Daily Cycle (Short Rhythm) - 100% Complete
+- **Energy System:** 6 stamina points for logging & planting
+- **Day/Night Cycle:** 30-second day with 4-phase lighting (dawn/noon/dusk/night)
+- **Enhanced Atmosphere:** Time-specific particles (mist/godrays/fireflies/stars)
+- **Moon Phase System:** 8-phase lunar cycle affecting crop growth & beast activity
+- **Energy Recovery:** Automatic stamina refresh at dawn
+- **Crop Growth:** 18-second growth cycles with 3-stage visual progression
+- **Save System:** Local storage persistence
+
+### ✅ Seasonal Cycle (Medium Rhythm) - 95% Complete
+- **Four Seasons:** 7-day seasons with complete visual transformation
+- **Season Visuals:** Color grading + season-specific textures + particle effects
+- **Season Ecology:** Dynamic pest pressure by season (spring:4 → summer:12 → autumn:18 → winter:8)
+- **Season Progress Ring:** UI visualization of season advancement
+- **🆕 Seasonal Events System:** 4 major multiplayer events (single-player prototype with AI neighbors)
+  - **Spring Auction (Day 5-7):** Bid on rare seeds & spirit beasts against AI competitors
+  - **Summer Arena (Day 12-14):** PvP ladder battles with deck-based combat
+  - **Autumn Harvest (Day 19-21):** Crop yield & quality leaderboard competition
+  - **Winter Void Tide (Day 26-28):** 5-wave boss defense with contribution rankings
+
+### ⚠️ Era Cycle (Long Rhythm) - 20% Complete
+- **Static Display:** "Era I · Year 1" shown in HUD
+- **Missing Systems:**
+  - ❌ Era end detection & continent reset mechanism
+  - ❌ Persistent codex (card collection/beast catalog across eras)
+  - ❌ Player profile & historical records
+  - ❌ Story choices affecting next era world settings
+  - ❌ Diplomatic/warfare systems
+
+**Design Note:** Era cycle is intended as a seasonal reset mechanic (similar to Path of Exile leagues), requiring multiplayer infrastructure to fully implement. Current focus is on perfecting daily & seasonal loops for single-player experience.
 
 ---
 
@@ -92,14 +127,25 @@
 ```
 terra-chronicle-game/
 ├── src/
-│   ├── main.js           # 核心游戏循环 + 世界渲染
-│   ├── state.js          # 状态管理 + 存档系统
-│   ├── alchemy.js        # 炼金界面 + 配方系统
-│   ├── battle.js         # 战斗逻辑 + 卡牌效果
-│   ├── dungeon.js        # 地牢生成 + Rogue-lite
-│   ├── upgrade.js        # 建筑升级 + 科技树
-│   ├── feedback_system.js # 粒子/飘字/震动反馈
-│   └── game_feel_enhanced.js # Squash&Stretch 运动
+│   ├── main.js                    # 核心游戏循环 + 世界渲染
+│   ├── state.js                   # 状态管理 + 存档系统
+│   ├── seasonal_events.js         # 🆕 季节爆发事件 (春拍卖/夏天梯/秋排行/冬BOSS)
+│   ├── day_night_enhanced.js      # 🆕 强化昼夜循环 (4阶段光照/月相/时段粒子)
+│   ├── alchemy.js                 # 炼金界面 + 配方系统
+│   ├── battle.js                  # 战斗逻辑 + 卡牌效果
+│   ├── dungeon.js                 # 地牢生成 + Rogue-lite
+│   ├── upgrade.js                 # 建筑升级 + 科技树
+│   ├── capture_system.js          # 野外遭遇 + 捕获战斗
+│   ├── ecology_system.js          # 害虫/捕食者 AI
+│   ├── ecology_integration_visual.js  # 生态链可视化
+│   ├── evolution_tree.js          # 灵兽进化树 (3分支 × 200种族)
+│   ├── animation-manager.js       # 统一动画系统
+│   ├── game_feel_enhanced.js      # 粒子/震动/音效反馈
+│   ├── feedback_system.js         # 数字飘字系统
+│   ├── advanced_particles.js      # 🆕 Sprite-based粒子 (季节/时段专属)
+│   ├── water_shader.js            # 🆕 水面Shader (反射/折射/菲涅尔)
+│   ├── post_processing.js         # 🆕 后处理 (Bloom/Fog/God Rays)
+│   └── material_enhancement.js    # 🆕 程序化材质 (木质/石头纹理+AO)
 ├── assets/
 │   ├── sprites/          # 215+ PNG 精灵贴图
 │   └── generated/        # gpt-image-2 生成资产

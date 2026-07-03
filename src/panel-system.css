@@ -771,3 +771,11 @@
     padding: 8px 12px;
   }
 }
+
+/* ===== 视觉宪法(2026-07-03):所有弹窗统一复古羊皮纸 + 暗金边框,与炼金大釜一致 ===== */
+.panel-parchment {
+  background: linear-gradient(160deg,#f5e7c6 0%,#ecd6a8 55%,#e0c58f 100%) !important;
+  border: 3px solid #8a6a2c !important;
+  box-shadow: 0 0 0 1px #5c4517, inset 0 0 60px rgba(122,88,32,.18), 0 14px 40px rgba(40,25,5,.45) !important;
+  border-radius: 14px;
+}

@@ -379,6 +379,8 @@ let waterDisp=null, waterDispFilter=null, waterShaderSystem=null;
         causticStrength: 0.0  // 焦散默认关闭(性能)
       });
       console.log('[Terra] Advanced water shader initialized');
+      try{ const f=new PIXI.BlurFilter({strength:2.2,quality:2}); f.padding=6;
+        waterL.filters=[...(waterL.filters||[]),f]; }catch(e){}
       return;
     } catch (e) {
       console.warn('[Terra] Failed to init advanced water shader:', e);
@@ -460,9 +462,8 @@ function makeNode(kind){
       const fh=source.height;
       fr.forEach((sp,i)=>{
         const frame=new PIXI.Rectangle(i*fw,0,fw,fh);
-        sp.texture=PIXI.Texture.from(source);
-        sp.texture.frame=frame;
-        sp.texture.updateUvs();
+        // 每帧独立 Texture:Texture.from(source) 有缓存,4 帧会共用同一纹理导致灵兽不动
+        sp.texture=new PIXI.Texture({source, frame});
         sp.width=a.w; sp.height=a.h;
       });
       let idx=0, acc=0;
@@ -542,9 +543,15 @@ function makePlayer(){
   sh.width=46; sh.height=18; node.addChild(sh);
   const rig=new PIXI.Container(); node.addChild(rig); node._rig=rig;
   if(a.src){
-    const sp=new PIXI.Sprite(); sp.anchor.set(.5,1);
-    loadTex(a.src).then(tex=>{sp.texture=tex;sp.width=a.w;sp.height=a.h;});
-    rig.addChild(sp);
+    // 序列帧行走动画:walk_sheet 按宽度切 4 帧;加载失败回退静态图
+    const sp=new PIXI.AnimatedSprite([PIXI.Texture.WHITE]); sp.anchor.set(.5,1);
+    sp.animationSpeed=0.15; sp.loop=true;
+    loadTex('assets/sprites/player_walk_sheet.png').then(tex=>{
+      const src=tex.source||tex.baseTexture, fw=Math.floor(tex.width/4), frames=[];
+      for(let i=0;i<4;i++) frames.push(new PIXI.Texture({source:src, frame:new PIXI.Rectangle(i*fw,0,fw,tex.height)}));
+      sp.textures=frames; sp.gotoAndStop(0); sp.width=a.w; sp.height=a.h;
+    }).catch(()=>loadTex(a.src).then(tex=>{sp.textures=[tex]; sp.gotoAndStop(0); sp.width=a.w; sp.height=a.h;}));
+    rig.addChild(sp); node._anim=sp;
   } else {
     // 纸片人占位:亚麻袍 + 草帽,饥荒式比例
     const g=new PIXI.Graphics();
@@ -612,6 +619,12 @@ function animateWalk(dt,moving,speed){
 
   player._rig.scale.set(finalScaleX, finalScaleY);
   player._rig.y = (moving? -Math.abs(Math.sin(walkPh))*3.2 : 0) + enhance.offsetY;
+
+  const anim=player._anim;
+  if(anim&&anim.textures&&anim.textures.length>1){
+    if(moving){ if(!anim.playing) anim.play(); }
+    else if(anim.playing||anim.currentFrame!==0){ anim.gotoAndStop(0); }
+  }
 }
 function keyboardInputX(){ return (keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0); }
 function keyboardInputY(){ return (keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0); }
@@ -1389,7 +1402,7 @@ app.ticker.add(tk=>{
   const wph=elapsed*2;
   for(const sp of waterTiles){ if(!sp.visible) continue;        // 流水:沿河道移动的亮带(非逐格随机)
     const flow=Math.sin((sp.position.y*0.03+sp.position.x*0.013)-elapsed*1.5)*0.5+0.5;
-    const b=0.8+flow*0.32; sp.tint=hex([108*b,176*b,198*b]);
+    const b=0.94+flow*0.10; sp.tint=hex([108*b,176*b,198*b]);
   }
   for(const f of foamL.children) f.alpha=.16+Math.sin(elapsed*1.6+f._ph)*.11;   // 泡沫脉动
   if(waterDisp){ waterDisp.x=(waterDisp.x+dt*9)%384; waterDisp.y=Math.sin(elapsed*.5)*18; }
@@ -1807,7 +1820,7 @@ function renderTutorial() {
         : step.id === 'close'
           ? '关闭炼金面板后，再前往传送门开始第一次战斗'
           : '点击或移动到传送门附近';
-  overlay.innerHTML = `
+  if(window.Battle&&Battle.active){overlay.innerHTML='';}else overlay.innerHTML = `
     <div style="position:absolute;inset:0;background:rgba(0,0,0,.12);pointer-events:none;"></div>
     <div style="position:absolute;left:50%;top:18%;transform:translateX(-50%);width:min(86vw,520px);text-align:center;color:#f6f1e7;pointer-events:none;text-shadow:0 4px 18px rgba(0,0,0,.95)">
       <div style="font-size:clamp(20px,5vw,28px);letter-spacing:.18em;margin-bottom:12px;color:#f4d03f">${title}</div>

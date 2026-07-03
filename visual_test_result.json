@@ -1,0 +1,55 @@
+{
+  "test_area": "农场世界（Farm World）",
+  "screenshots_taken": 19,
+  "visual_issues": [
+    {
+      "severity": "high",
+      "issue": "地形检查失败: page.evaluate: TypeError: Cannot read properties of null (reading 'getImageData')\n    at eval (eval at evaluate (:303:30), <anonymous>:6:31)\n    at UtilityScript.evaluate (<anonymous>:305:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)",
+      "fix_needed": "检查渲染管线",
+      "screenshot": "N/A"
+    },
+    {
+      "severity": "high",
+      "issue": "水面shader系统未激活",
+      "fix_needed": "检查 src/water_shader.js 是否正确加载和初始化",
+      "screenshot": "N/A"
+    },
+    {
+      "severity": "medium",
+      "issue": "春季季节环未正确激活",
+      "fix_needed": "检查季节切换逻辑",
+      "screenshot": "/root/terra-chronicle-game/visual_test_screenshots/07_season_1_1781657511606.png"
+    },
+    {
+      "severity": "medium",
+      "issue": "夏季季节环未正确激活",
+      "fix_needed": "检查季节切换逻辑",
+      "screenshot": "/root/terra-chronicle-game/visual_test_screenshots/08_season_2_1781657514939.png"
+    },
+    {
+      "severity": "medium",
+      "issue": "秋季季节环未正确激活",
+      "fix_needed": "检查季节切换逻辑",
+      "screenshot": "/root/terra-chronicle-game/visual_test_screenshots/09_season_3_1781657518151.png"
+    },
+    {
+      "severity": "medium",
+      "issue": "冬季季节环未正确激活",
+      "fix_needed": "检查季节切换逻辑",
+      "screenshot": "/root/terra-chronicle-game/visual_test_screenshots/10_season_4_1781657521220.png"
+    },
+    {
+      "severity": "low",
+      "issue": "云影效果未激活",
+      "fix_needed": "检查云影系统初始化和opacity设置",
+      "screenshot": "N/A"
+    },
+    {
+      "severity": "medium",
+      "issue": "高级粒子系统未激活",
+      "fix_needed": "检查 src/advanced_particles.js 是否正确加载",
+      "screenshot": "/root/terra-chronicle-game/visual_test_screenshots/14_particles_winter_1781657533947.png"
+    }
+  ],
+  "visual_quality_score": 27
+}

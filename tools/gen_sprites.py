@@ -13,6 +13,13 @@ os.makedirs(OUT, exist_ok=True); os.makedirs(RAW, exist_ok=True)
 STYLE = ("hand-painted storybook game art, soft watercolor texture with clean shapes, "
          "Studio Ghibli warmth, rich color, gentle painterly shading, masterpiece quality, "
          "no text, no watermark, no border")
+
+# 全局画风锚点:焊死在所有提示词末尾,禁止暗黑写实(2026-07-03 视觉宪法)
+STYLE_ANCHOR = ("MUST STRICTLY USE: Studio Ghibli art style, Legend of Zelda Breath of the Wild style, "
+                "bright and warm pastel colors, cute and stylized flat shading. "
+                "ABSOLUTELY NO dark fantasy, NO photorealism, NO horror elements.")
+STYLE = STYLE + ", " + STYLE_ANCHOR
+
 MAGENTA = ("single isolated game sprite centered, displayed on a perfectly flat solid pure "
            "magenta background (#FF00FF), the magenta covers the entire background evenly, "
            "no shadow cast on the background, ")

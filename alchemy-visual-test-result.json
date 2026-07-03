@@ -1,0 +1,13 @@
+{
+  "test_area": "炼金工坊视觉质量",
+  "screenshots_taken": 3,
+  "visual_issues": [
+    {
+      "issue": "炼金工坊FAB按钮未找到或未显示",
+      "severity": "critical",
+      "screenshot": "03-missing-alchemy-fab.png",
+      "fix_needed": "确保 #craftFAB 元素存在且可见，检查 main.js 是否正确初始化按钮"
+    }
+  ],
+  "visual_quality_score": 0
+}

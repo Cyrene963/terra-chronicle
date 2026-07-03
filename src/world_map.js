@@ -1,3 +1,8 @@
+// 手绘六边形地块贴图(替代纯色填充,视觉宪法 2026-07-03)
+const WorldMapBiomeTex = {};
+['forest','plains','mountain','water','desert'].forEach(b=>{
+  const im=new Image(); im.src='assets/ui/hex_'+b+'.png'; WorldMapBiomeTex[b]=im;
+});
 /* =========================================================
    Terra Chronicle — Continental Map System
    六边形世界地图 · 100x100 瓦片 · 玩家分布可视化
@@ -388,9 +393,19 @@ const WorldMap = {
         }
         ctx.closePath();
 
-        // 填充颜色 (根据生物群系)
-        ctx.fillStyle = biomeColors[tile.biome] || '#3a3a3a';
-        ctx.fill();
+        // 手绘地块贴图:clip 六边形后贴图;未加载完回退纯色
+        const tex = WorldMapBiomeTex[tile.biome];
+        if (tex && tex.complete && tex.naturalWidth) {
+          let mnx=corners[0].x,mxx=mnx,mny=corners[0].y,mxy=mny;
+          for(let i=1;i<6;i++){mnx=Math.min(mnx,corners[i].x);mxx=Math.max(mxx,corners[i].x);
+            mny=Math.min(mny,corners[i].y);mxy=Math.max(mxy,corners[i].y);}
+          ctx.save(); ctx.clip();
+          ctx.drawImage(tex, mnx, mny, mxx-mnx, mxy-mny);
+          ctx.restore();
+        } else {
+          ctx.fillStyle = biomeColors[tile.biome] || '#3a3a3a';
+          ctx.fill();
+        }
 
         // 边框
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
