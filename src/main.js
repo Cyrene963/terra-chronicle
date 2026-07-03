@@ -2442,3 +2442,7 @@ setTimeout(()=>{
 },100);
 
 })();
+
+/* 大陆地图入口(20260704 重新挂载;init 自建 HUD 罗盘按钮,故障不影响主游戏) */
+setTimeout(()=>{ try{ window.WorldMapIntegration&&WorldMapIntegration.init&&WorldMapIntegration.init(); }
+  catch(e){ console.warn('[Terra] worldmap init failed:',e); } }, 3000);
