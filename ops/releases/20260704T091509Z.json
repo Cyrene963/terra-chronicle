@@ -1,0 +1,63 @@
+{
+  "timestamp": "20260704T091509Z",
+  "git_sha": "4b066c0fd8a604321ee5994f599627f968f6847c",
+  "upstream": "origin/main",
+  "source_path": "/root/terra-chronicle-game",
+  "target_path": "/var/www/terra-pixijs",
+  "verify_status": "passed",
+  "key_files": {
+    "index.html": {
+      "sha256": "92e4ebf078c6a505619046d1f756471c6035b8d3d02c3bbc4bf4daeb4ed97a03",
+      "size": 35582
+    },
+    "src/main.js": {
+      "sha256": "d2bbeeeaf1b4eb2a64bd00628c177c93084dd4fcf2f70907b0cd81de28fe99a1",
+      "size": 121358
+    },
+    "src/battle.js": {
+      "sha256": "1a2e385dd247d6d8ffef9a25976f20bb9be42acb63108dc4349eec6ba8ccc503",
+      "size": 49427
+    },
+    "src/multiplayer_ui.js": {
+      "sha256": "dfb6dd2f7bb036960a13a4d46103ea208c6d6b3109e4fc5e410db36b9d310809",
+      "size": 20016
+    },
+    "src/world_map.js": {
+      "sha256": "af50d00f6a49bb7dfdc8f65959248431c97829bbcf15c391562a20e7b1644344",
+      "size": 21623
+    },
+    "src/world_map_integration.js": {
+      "sha256": "51024f2bda10520496dfa2c940e9bcd6904b5c9e32cbbcc2342ccf0e4d254d0a",
+      "size": 15384
+    },
+    "package.json": {
+      "sha256": "d5be10d939542593c208471256b43fabb552317590e2f7ab91ab26fe16650b44",
+      "size": 1296
+    }
+  },
+  "mounted_scripts": [
+    "vendor/pixi.min.js",
+    "src/animation-manager.js",
+    "src/state.js?v=8",
+    "src/game_feel_enhanced.js?v=1",
+    "src/feedback_system.js?v=1",
+    "src/soil_particles.js?v=1",
+    "src/seasonal_events.js?v=1",
+    "src/day_night_enhanced.js?v=1",
+    "src/water_shader.js?v=14",
+    "src/advanced_particles.js?v=14",
+    "src/post_processing.js?v=14",
+    "src/material_enhancement.js?v=14",
+    "src/websocket_client.js",
+    "src/neighbor_system.js",
+    "src/multiplayer_ui.js?v=2",
+    "src/world_map.js?v=3",
+    "src/world_map_integration.js?v=3",
+    "src/alchemy.js?v=46",
+    "src/battle_effects.js?v=1",
+    "src/battle.js?v=68",
+    "src/dungeon.js?v=50",
+    "src/upgrade.js?v=38",
+    "src/main.js?v=83"
+  ]
+}
