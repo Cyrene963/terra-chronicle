@@ -1,3 +1,9 @@
 *.log
 node_modules/
 dogfood-output/
+runtime-captures/
+review_screenshots/
+shots/
+shots2/
+ops-snapshots/
+*.tar.gz

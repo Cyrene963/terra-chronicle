@@ -1,14 +1,16 @@
 # Terra Chronicle 大地编年史
 
-**v9.16 · Three-Layer Game Loop Complete**
+**Recovery Baseline · authoritative repo/runtime truth (post-incident)**
 
 农场经营 × 灵兽养成 × 卡牌锻造 × 大陆地缘博弈的多人联机网页游戏
 
-🌐 **Live Demo:** https://terra.bz9.me
+🌐 **Current Public Runtime:** http://165.232.142.30:8867
+
+> Note: `terra.bz9.me` is not a reliable production entrypoint at this time. The project is in recovery/integration governance mode, not feature-complete v9.16 state.
 
 ---
 
-## 🔄 Three-Layer Game Loop (v9.16)
+## 🔄 Current Runtime Truth (2026-07-04)
 
 ### ✅ Daily Cycle (Short Rhythm) - 100% Complete
 - **Energy System:** 6 stamina points for logging & planting
@@ -19,16 +21,12 @@
 - **Crop Growth:** 18-second growth cycles with 3-stage visual progression
 - **Save System:** Local storage persistence
 
-### ✅ Seasonal Cycle (Medium Rhythm) - 95% Complete
-- **Four Seasons:** 7-day seasons with complete visual transformation
-- **Season Visuals:** Color grading + season-specific textures + particle effects
-- **Season Ecology:** Dynamic pest pressure by season (spring:4 → summer:12 → autumn:18 → winter:8)
-- **Season Progress Ring:** UI visualization of season advancement
-- **🆕 Seasonal Events System:** 4 major multiplayer events (single-player prototype with AI neighbors)
-  - **Spring Auction (Day 5-7):** Bid on rare seeds & spirit beasts against AI competitors
-  - **Summer Arena (Day 12-14):** PvP ladder battles with deck-based combat
-  - **Autumn Harvest (Day 19-21):** Crop yield & quality leaderboard competition
-  - **Winter Void Tide (Day 26-28):** 5-wave boss defense with contribution rankings
+### ✅ Seasonal Cycle (Medium Rhythm) - runtime-active, product status narrower than historical docs
+- **Four Seasons:** 7-day seasons with visual transformation
+- **Season Visuals:** color grading + season-specific textures + particles
+- **Season Ecology:** seasonal pest pressure tuning is present in active runtime
+- **Season Progress Ring:** HUD visualization is active
+- **Seasonal Events:** code/assets exist, but these surfaces are **not currently trusted as public-production-complete systems** and should be treated as experimental until rebuilt in Wave 1/2
 
 ### ⚠️ Era Cycle (Long Rhythm) - 20% Complete
 - **Static Display:** "Era I · Year 1" shown in HUD
@@ -42,6 +40,9 @@
 **Design Note:** Era cycle is intended as a seasonal reset mechanic (similar to Path of Exile leagues), requiring multiplayer infrastructure to fully implement. Current focus is on perfecting daily & seasonal loops for single-player experience.
 
 ---
+
+> Recovery warning: sections below may include historical implementation ambition or on-disk module inventory.
+> For **current mounted runtime truth**, use `ops/TRUTH_MATRIX_20260704.md`, `ops/RECOVERY_LEDGER.md`, and real-browser verify outputs.
 
 ## 🎨 Visual Presentation (v9.14)
 
@@ -76,14 +77,11 @@
 - **Food Chain:** Predator hunts pest, overhunting → pest explosion
 - **Beast Labor:** 灵兽浇水提升品质 + 自动化劳作
 
-### 🦊 Spirit Beast Taming
-- **6 Elite Beasts:** 神社狐灵 / 御鹿幼灵 / 白蛇社灵 / 深海贵族 + fire/water
-- **Wild Encounters:** Biome-based spawning (forest/river/mountain)
-- **Capture System:** Weaken beast → soul crystal → tame (capture_system.js)
-- **Multi-Path Evolution:** 3 branches per species (combat/work/hybrid)
-- **Animated Walk Cycles:** 4帧行走动画 (fire/water已实装, 4 elite准备中)
-- **Personality Traits:** 勤勉/懒惰/专注/好奇 affecting efficiency
-- **Expansion Path:** 200+ species library planned
+### 🦊 Spirit Beast Layer
+- **Active in current runtime:** water / fire spirit labor, companion presence, farm bonuses, companion panel basics
+- **On disk but not fully mounted as public runtime features:** capture system (`capture_system.js`), evolution tree (`evolution_tree.js`)
+- **Animated Walk Cycles:** player + some beast walk-cycle support exist, but the full beast product layer is still under rebuild
+- **Long-term direction:** beasts should become labor, bond, evolution, and battle pillars — current repo is only a partial realization of that vision
 
 ### 🎴 Alchemy Crafting
 - **32 Hidden Recipes:** 3 archetypes × 10 cards + 2 universal
@@ -106,9 +104,9 @@
 - **Material Rarity:** 土壤品质影响卡牌强度 (1.0x-2.0x)
 
 ### 🏗️ Progression
-- **Building Upgrades:** 6 大建筑线 (农田/牧场/熔炉/灵台/门扉/船坞)
-- **Tech Tree:** 扩建解锁新机制 (高级作物/灵兽分支/卡牌强化)
-- **Resource Economy:** 木材/矿石/作物/灵兽魂 循环流转
+- **Building Upgrades:** active in current runtime
+- **Tech / Era progression:** historically stronger in accepted live snapshots than in the current repo baseline; treat current implementation as recovery-state rather than final product truth
+- **Resource Economy:** wood / crops / crafted cards / beast assistance are part of the active loop
 
 ---
 
@@ -169,28 +167,24 @@ npm start  # 启动本地服务器 (http://localhost:8866)
 # 验证构建
 npm run verify:public  # 对比本地与公网版本
 
-# 公网部署
-# rsync to /var/www/terra-pixijs/
-# 当前公网版本: v9.14 (2026-06-17)
+# 受治理部署
+# ./ops/deploy.sh /var/www/terra-pixijs
+# 当前真实公网入口: http://165.232.142.30:8867
 ```
 
 ---
 
-## 📊 Asset Status (v9.14)
+## 📊 Asset / Runtime Notes
 
-| Category | Count | Coverage | Notes |
-|----------|-------|----------|-------|
-| Environment Sprites | 215 | 100% ✅ | Trees, rocks, bushes, buildings |
-| Seasonal Variants | 12 | 100% ✅ | Spring/autumn/winter textures |
-| Beast Animations | 2/6 | 33% ⚠️ | Fire/water done, 4 elite pending |
-| Crop Growth Stages | 0/6 | 0% ⚠️ | System ready, sprites pending |
-| Card Art | 4 | 100% ✅ | Type-based fallback covers all recipes |
+This repository contains both active runtime assets and recovery-era/historical assets. Presence on disk does **not** imply the asset or system is currently mounted in the public runtime.
 
-**Pending Asset Generation:** 8 sprites (~1MB total)
-- 4 crop growth stages (seedling/growing × 2 crops)
-- 4 elite beast walk sheets (fox/fawn/serpent/noble)
+Authoritative runtime truth should be checked against:
+- `index.html` mounted script graph
+- `ops/TRUTH_MATRIX_20260704.md`
+- `ops/RECOVERY_LEDGER.md`
+- real-browser verify outputs
 
-See `VISUAL_POLISH_REPORT.md` for generation prompts.
+See `VISUAL_POLISH_REPORT.md` only as historical/reference material, not as current product truth.
 
 ---
 
@@ -203,7 +197,7 @@ See `VISUAL_POLISH_REPORT.md` for generation prompts.
 - [x] Refactor beast animation system
 - [ ] Generate remaining 8 sprite assets
 
-### Phase 2: Core Systems Integration ⚙️ (v9.15 - In Progress)
+### Phase 2: Recovery / Integration Governance (post-incident)
 - [x] Beast capture system (capture_integration_enhanced.js)
 - [x] Ecology visual simulation (ecology_integration_visual.js)
 - [x] Recipe expansion 4→32 (recipes_expanded.js)
@@ -211,7 +205,7 @@ See `VISUAL_POLISH_REPORT.md` for generation prompts.
 - [ ] Tech tree implementation (agriculture/combat/magic)
 - [ ] Integration testing & sprite generation
 
-### Phase 3: Multiplayer & Content
+### Phase 3: Rebuild after Wave 0-1
 - [ ] WebSocket backend (Node.js + MongoDB)
 - [ ] Neighbor system activation (climate/pest spread)
 - [ ] Seasonal world boss events

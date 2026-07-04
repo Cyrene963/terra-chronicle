@@ -14,11 +14,9 @@ Terra Chronicle is not a generic browser game. Treat it as a high-aesthetic, hig
 ## Required Workflow
 
 1. Read `PROJECT_VISION.md` before planning substantial changes.
-2. Preserve or improve public playability at `https://terra.bz9.me/`.
+2. Preserve or improve public playability at the real active runtime entrypoint. As of 2026-07-04, treat `http://165.232.142.30:8867` as the authoritative public endpoint; do not assume `terra.bz9.me` is valid.
 3. Verify in a real browser after rendering changes, especially after touching Pixi renderer, filters, canvas sizing, culling, transitions, or viewport logic.
-4. If changing deployed static files, update both the Git source tree and the live Nginx-served tree when applicable:
-   - Git/source: `/root/terra-chronicle-game`
-   - Current public root: `/var/www/terra-pixijs`
+4. **Do not directly edit both trees.** Canonical source is `/root/terra-chronicle-game`. `/var/www/terra-pixijs` is archive/deploy-artifact only unless explicitly re-designated. Use governed deploy scripts from repo to update any live artifact tree.
 5. Bump the `src/main.js?v=N` query in `index.html` after changing `src/main.js`, because Cloudflare/browser cache can keep old JS by query path.
 6. Commit and push meaningful changes to GitHub so server loss does not erase progress.
 7. For any new monster, card, pet, crop, or major UI set, first align it with `docs/unified-art-design-spec.md` before implementation.
@@ -28,4 +26,4 @@ Terra Chronicle is not a generic browser game. Treat it as a high-aesthetic, hig
 
 - Do not reintroduce world-level Pixi `ColorMatrixFilter` or manual `world.filterArea` without proving it does not crop the translated/scaled world. This caused black terrain rectangles after entering the game.
 - Be careful with tile/object viewport culling. Incorrect camera/world coordinate conversion can hide visible terrain and create black blocks. Prefer correctness and playability over premature culling until a verified culling system exists.
-- Always test the actual public domain, not only localhost or a PM2 side copy.
+- Always test the actual public endpoint, not only localhost or a PM2 side copy. If the domain is stale or broken, test the real public IP:port and document that truth.
