@@ -15,9 +15,11 @@ const WorldMapIntegration = {
   isOpen: false,
   currentPlayerId: null,
   neighbors: [],
+  injectedNeighborIds: [],
 
   /* ================= 初始化 ================= */
   init() {
+    if (this.mapButton || document.getElementById('worldMapButton')) return;
     this.createMapButton();
     this.createMapOverlay();
     this.createProfilePanel();
@@ -225,6 +227,8 @@ const WorldMapIntegration = {
     if (this.isOpen) return;
 
     this.isOpen = true;
+    const tutorialOverlay = document.getElementById('tutorialOverlay');
+    if (tutorialOverlay) tutorialOverlay.innerHTML = '';
     this.mapOverlay.style.display = 'block';
 
     // Fade in
@@ -255,7 +259,6 @@ const WorldMapIntegration = {
     this.isOpen = false;
     this.mapOverlay.style.opacity = '0';
 
-    // Hide profile panel
     this.hideProfilePanel();
 
     setTimeout(() => {
@@ -265,28 +268,38 @@ const WorldMapIntegration = {
     console.log('[WorldMapIntegration] Map closed');
   },
 
+  clearInjectedNeighbors() {
+    (this.injectedNeighborIds || []).forEach(id => {
+      const p = WorldMap.players.get(id);
+      if (p) {
+        const key = `${p.q},${p.r}`;
+        const terrain = WorldMap.terrain.get(key);
+        if (terrain) terrain.occupied = false;
+      }
+      WorldMap.players.delete(id);
+    });
+    this.injectedNeighborIds = [];
+    this.neighbors = [];
+  },
+
   /* ================= 加载玩家数据 ================= */
   loadPlayerData() {
-    // Get current player ID from game state
-    // For now, use a demo player ID (can be replaced with actual user ID)
-    this.currentPlayerId = 'player_' + (Math.random() * 1000 | 0);
+    if (!this.currentPlayerId) {
+      this.currentPlayerId = localStorage.getItem('terra_worldmap_player_id') || `player_${Date.now().toString(36)}`;
+      localStorage.setItem('terra_worldmap_player_id', this.currentPlayerId);
+    }
 
-    // Check if player already exists in WorldMap
     if (!WorldMap.players.has(this.currentPlayerId)) {
-      // Assign new location
       const playerData = WorldMap.assignPlayerLocation(
         this.currentPlayerId,
-        '旅行者',  // Can be replaced with actual player name
-        1  // Can be replaced with actual player level
+        '旅行者',
+        1
       );
-
       console.log('[WorldMapIntegration] Assigned location:', playerData);
     }
 
-    // Load AI neighbors
+    this.clearInjectedNeighbors();
     this.loadAINeighbors();
-
-    // Center camera on player
     this.centerOnPlayer();
   },
 
@@ -295,64 +308,45 @@ const WorldMapIntegration = {
     const player = WorldMap.players.get(this.currentPlayerId);
     if (!player) return;
 
-    // Generate 6 AI neighbors around the player
     const neighborNames = ['林间农夫', '山谷猎人', '河畔织工', '古树守护', '星辰法师', '风行商人'];
     const neighborLevels = [1, 2, 1, 3, 2, 1];
 
     this.neighbors = [];
+    this.injectedNeighborIds = [];
 
-    // Get the 6 hex directions
     const HEX_DIRECTIONS = [
-      { q: 1, r: 0 },   // East
-      { q: 1, r: -1 },  // Northeast
-      { q: 0, r: -1 },  // Northwest
-      { q: -1, r: 0 },  // West
-      { q: -1, r: 1 },  // Southwest
-      { q: 0, r: 1 },   // Southeast
+      { q: 1, r: 0 }, { q: 1, r: -1 }, { q: 0, r: -1 },
+      { q: -1, r: 0 }, { q: -1, r: 1 }, { q: 0, r: 1 },
     ];
 
     HEX_DIRECTIONS.forEach((dir, i) => {
       const nq = player.q + dir.q;
       const nr = player.r + dir.r;
+      if (nq < 0 || nq >= WorldMap.mapWidth || nr < 0 || nr >= WorldMap.mapHeight) return;
 
-      // Check if within bounds
-      if (nq < 0 || nq >= WorldMap.mapWidth || nr < 0 || nr >= WorldMap.mapHeight) {
-        return;
-      }
-
-      // Check if position is already occupied
       const key = `${nq},${nr}`;
       const terrain = WorldMap.terrain.get(key);
-      if (!terrain || terrain.biome === 'water' || terrain.occupied) {
-        return;
-      }
+      if (!terrain || terrain.biome === 'water' || terrain.occupied) return;
 
-      // Create AI neighbor
       const neighborId = `ai_neighbor_${i}_${this.currentPlayerId}`;
+      const color = WorldMap.generatePlayerColor(neighborId);
+      const playstyle = ['农耕', '战斗', '魔法', '商业', '探索', '收集'][i];
+      const neighborData = {
+        playerId: neighborId,
+        name: neighborNames[i],
+        q: nq,
+        r: nr,
+        level: neighborLevels[i],
+        color,
+        playstyle,
+        lastUpdate: Date.now(),
+        isAI: true
+      };
 
-      if (!WorldMap.players.has(neighborId)) {
-        const color = WorldMap.generatePlayerColor(neighborId);
-        const playstyle = ['农耕', '战斗', '魔法', '商业', '探索', '收集'][i];
-
-        const neighborData = {
-          playerId: neighborId,
-          name: neighborNames[i],
-          q: nq,
-          r: nr,
-          level: neighborLevels[i],
-          color: color,
-          playstyle: playstyle,
-          lastUpdate: Date.now(),
-          isAI: true
-        };
-
-        WorldMap.players.set(neighborId, neighborData);
-
-        // Mark terrain as occupied
-        terrain.occupied = true;
-
-        this.neighbors.push(neighborData);
-      }
+      WorldMap.players.set(neighborId, neighborData);
+      terrain.occupied = true;
+      this.injectedNeighborIds.push(neighborId);
+      this.neighbors.push(neighborData);
     });
 
     console.log('[WorldMapIntegration] Loaded', this.neighbors.length, 'AI neighbors');
@@ -367,9 +361,9 @@ const WorldMapIntegration = {
     const centerPixel = HexMath.hexToPixel(player.q, player.r);
 
     const rect = WorldMap.canvas.getBoundingClientRect();
+    WorldMap.camera.scale = 1.5;
     WorldMap.camera.x = rect.width / 2 - centerPixel.x * WorldMap.camera.scale;
     WorldMap.camera.y = rect.height / 2 - centerPixel.y * WorldMap.camera.scale;
-    WorldMap.camera.scale = 1.5; // Zoom in a bit
   },
 
   /* ================= 显示玩家档案 ================= */

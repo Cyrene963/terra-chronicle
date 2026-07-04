@@ -149,8 +149,8 @@ const MultiplayerUI = {
       /* 在线状态 HUD */
       #onlineStatus {
         position: absolute;
-        top: 40px;
-        right: 280px;
+        top: 98px;
+        right: 32px;
         display: flex;
         align-items: center;
         gap: 10px;
@@ -194,10 +194,11 @@ const MultiplayerUI = {
       /* 邻居面板 */
       #neighborPanel {
         position: absolute;
-        right: 42px;
-        bottom: 220px;
-        width: 280px;
-        max-height: 400px;
+        right: 32px;
+        bottom: 24px;
+        width: 300px;
+        max-width: min(300px, calc(100vw - 64px));
+        max-height: min(340px, calc(100vh - 140px));
         background: rgba(246,241,231,.97);
         backdrop-filter: blur(22px) saturate(1.2);
         border: 1px solid rgba(43,39,34,.28);
@@ -333,8 +334,8 @@ const MultiplayerUI = {
       /* 邻居触发按钮 */
       #neighborTrigger {
         position: absolute;
-        right: 42px;
-        bottom: 130px;
+        right: 32px;
+        bottom: 380px;
         width: 48px;
         height: 48px;
         border-radius: 50%;
@@ -525,9 +526,7 @@ const MultiplayerUI = {
     } else {
       status.classList.add('offline');
       if (this.mode === 'offline') {
-        text.textContent = 'AI 邻居';
-        count.textContent = this.neighbors.length;
-        status.classList.add('visible');
+        status.classList.remove('visible');
       } else {
         text.textContent = '离线';
         count.textContent = '0';

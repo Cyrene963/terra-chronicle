@@ -30,13 +30,19 @@ const FILES = [
   const hashes = compareSourceLive(FILES).filter(row => row.sourceExists || row.liveExists);
   const mismatches = hashes.filter(row => !row.ok);
 
+  const publicBase = process.env.TERRA_PUBLIC_BASE_URL || 'http://165.232.142.30:8867';
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 });
   const consoleErrors = [];
   page.on('console', msg => { if (badConsole(msg)) consoleErrors.push(`${msg.type()}: ${msg.text()}`); });
   page.on('pageerror', err => consoleErrors.push(`pageerror: ${err.message}`));
-  const response = await page.goto(`https://terra.bz9.me/?verify=${Date.now()}`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-  await page.waitForSelector('#enter', { timeout: 20000 });
+  const response = await page.goto(`${publicBase}/?verify=${Date.now()}`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.waitForTimeout(3000);
+  await page.waitForFunction(() => {
+    const enter = document.querySelector('#enter');
+    const mode = document.querySelector('#modeSelector, .mode-card');
+    return !!(mode || (enter && enter.isConnected));
+  }, { timeout: 20000 });
   const scripts = await page.evaluate(() => [...document.scripts].map(s => s.src).filter(Boolean));
   const required = ['state.js', 'alchemy.js', 'battle.js', 'dungeon.js', 'upgrade.js', 'main.js'];
   const loaded = Object.fromEntries(required.map(name => [name, hasExpectedScript(scripts, name, versions)]));
@@ -45,7 +51,7 @@ const FILES = [
 
   const report = {
     ok: response && response.status() === 200 && mismatches.length === 0 && Object.values(loaded).every(Boolean) && consoleErrors.length === 0,
-    url: 'https://terra.bz9.me/',
+    url: publicBase,
     status: response ? response.status() : null,
     versions,
     scripts,

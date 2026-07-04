@@ -253,6 +253,8 @@ function injectStyle(){
 function buildDOM(){
   root=document.getElementById('battle');
   if(root) return;
+  const tutorialOverlay=document.getElementById('tutorialOverlay');
+  if(tutorialOverlay) tutorialOverlay.innerHTML='';
   root=document.createElement('div'); root.id='battle';
   root.innerHTML=`
     <div class="arena">

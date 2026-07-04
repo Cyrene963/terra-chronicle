@@ -146,6 +146,7 @@ const WorldMap = {
     const rect = this.canvas.getBoundingClientRect();
     this.canvas.width = rect.width * dpr;
     this.canvas.height = rect.height * dpr;
+    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
     this.ctx.scale(dpr, dpr);
     this.canvas.style.width = rect.width + 'px';
     this.canvas.style.height = rect.height + 'px';
@@ -344,28 +345,29 @@ const WorldMap = {
   // 计算可见六边形范围 (优化渲染)
   getVisibleHexBounds() {
     const rect = this.canvas.getBoundingClientRect();
-    const topLeft = this.screenToWorld(-this.camera.x, -this.camera.y);
-    const bottomRight = this.screenToWorld(
-      rect.width - this.camera.x,
-      rect.height - this.camera.y
-    );
+    const corners = [
+      this.screenToWorld(0, 0),
+      this.screenToWorld(rect.width, 0),
+      this.screenToWorld(0, rect.height),
+      this.screenToWorld(rect.width, rect.height)
+    ].map(p => HexMath.pixelToHex(p.x, p.y));
 
-    const tlHex = HexMath.pixelToHex(topLeft.x, topLeft.y);
-    const brHex = HexMath.pixelToHex(bottomRight.x, bottomRight.y);
+    const qs = corners.map(h => h.q);
+    const rs = corners.map(h => h.r);
 
     return {
-      minQ: Math.max(0, tlHex.q - 2),
-      maxQ: Math.min(this.mapWidth - 1, brHex.q + 2),
-      minR: Math.max(0, tlHex.r - 2),
-      maxR: Math.min(this.mapHeight - 1, brHex.r + 2)
+      minQ: Math.max(0, Math.min(...qs) - 3),
+      maxQ: Math.min(this.mapWidth - 1, Math.max(...qs) + 3),
+      minR: Math.max(0, Math.min(...rs) - 3),
+      maxR: Math.min(this.mapHeight - 1, Math.max(...rs) + 3)
     };
   },
 
   // 屏幕坐标 → 世界坐标
   screenToWorld(screenX, screenY) {
     return {
-      x: screenX / this.camera.scale,
-      y: screenY / this.camera.scale
+      x: (screenX - this.camera.x) / this.camera.scale,
+      y: (screenY - this.camera.y) / this.camera.scale
     };
   },
 

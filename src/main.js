@@ -43,7 +43,7 @@ async function loadTex(src, mode){
 /* ================= 1. 资产清单(换图接口) ================= */
 /* season:[春,夏,秋,冬] 四季专属贴图(取代代码调色);缺省回退到 src */
 const ASSETS = {
-  player:   { src: 'assets/sprites/player_idle.png', w: 46,  h: 73,  anchorY: 1.0, faceDir: -1 },
+  player:   { src: 'assets/sprites/player_idle.png', w: 46,  h: 73,  anchorY: 1.0, faceDir: 1 },
   tree:     { src: 'assets/sprites/tree_oak.png',    w: 128, h: 125, anchorY: 0.96, collideR: 18,
               season: ['assets/sprites/tree_oak.png','assets/sprites/tree_oak.png','assets/sprites/tree_oak_autumn.png','assets/sprites/tree_oak_winter.png'] },
   cherry:   { src: 'assets/sprites/tree_cherry.png', w: 126, h: 119, anchorY: 0.96, collideR: 18,
@@ -209,10 +209,12 @@ let feedbackSystem = null;  // 交互反馈系统（在图层初始化后创建�
 // 检测 headless 环境
 const isHeadless = navigator.webdriver || navigator.userAgent.includes('HeadlessChrome');
 
-await app.init({ resizeTo: window, background: 0x0d0f12, antialias: false,
-  resolution: isHeadless ? 1 : Math.min(window.devicePixelRatio||1, 2),
+const isTabletLike = /iPad|Tablet/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const baseDPR = isHeadless ? 1 : Math.min(window.devicePixelRatio || 1, isTabletLike ? 3 : 2.5);
+await app.init({ resizeTo: window, background: 0x0d0f12, antialias: true,
+  resolution: baseDPR,
   autoDensity: true,
-  roundPixels: true,
+  roundPixels: false,
   preference: isHeadless ? 'webgl' : 'webgl2' });   // headless 环境使用 WebGL 1
 document.getElementById('stage').appendChild(app.canvas);
 
@@ -234,6 +236,7 @@ const TEX_VIGNET = (()=>{const c=document.createElement('canvas');c.width=c.heig
 /* ---- 图层结构 ---- */
 const world = new PIXI.Container();              // 镜头作用对象
 const groundL = new PIXI.Container();            // 瓦片层(草/土/沙/耕地)
+const groundVeilL = new PIXI.Container();        // 地表低频综合色块(打散棋盘格/重复感)
 const waterL = new PIXI.Container();             // 水面层(独立,轻量波纹滤镜)
 const foamL = new PIXI.Container();              // 水岸泡沫
 const snowL = new PIXI.Container();              // 冬季积雪覆盖层
@@ -241,7 +244,7 @@ const overlayL = new PIXI.Container();           // 地表覆盖(作物/云影)
 const objL = new PIXI.Container();               // Y-Sort 实体层
 objL.sortableChildren = true;
 const fxScreen = new PIXI.Container();           // 屏幕空间: 粒子/光/晕影
-world.addChild(groundL, waterL, foamL, snowL, overlayL, objL);
+world.addChild(groundL, groundVeilL, waterL, foamL, snowL, overlayL, objL);
 app.stage.addChild(world, fxScreen);
 
 /* 初始化交互反馈系统 */
@@ -259,7 +262,7 @@ function syncViewport(){
   world.filterArea=null;
   const clouds=document.getElementById('clouds');
   if(clouds){
-    const dpr=Math.min(window.devicePixelRatio||1,2);
+    const dpr=Math.min(window.devicePixelRatio||1, isTabletLike ? 3 : 2.5);
     const cw=Math.max(1, Math.round(vw*dpr));
     const ch=Math.max(1, Math.round(vh*dpr));
     if(clouds.width!==cw || clouds.height!==ch){
@@ -340,6 +343,19 @@ for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
 }
 snowL.visible=false; snowL.alpha=0;
 
+/* ================= 5.25 地表综合色层（削弱草地棋盘格/重复感） ================= */
+for(let gy=0; gy<MAP; gy+=4) for(let gx=0; gx<MAP; gx+=4){
+  const r=hash(gx*5+17, gy*7+29);
+  const veil=new PIXI.Sprite(TEX_GLOW);
+  veil.anchor.set(.5);
+  veil.x=(gx+2)*TS; veil.y=(gy+2)*TS;
+  veil.width=TS*(4.8+r*1.6); veil.height=TS*(4.2+r*1.4);
+  veil.alpha=0.045 + r*0.03;
+  veil.tint = r>.66 ? 0xb8d98c : r>.33 ? 0x9cc470 : 0x86ad63;
+  veil.blendMode='multiply';
+  groundVeilL.addChild(veil);
+}
+
 /* ================= 5.5 水面优化（轻量级边缘柔化）================= */
 // 在水陆边界添加半透明泡沫层,用最轻量的方式平滑过渡(无重度滤镜)
 const isWater=(x,y)=>grid[y]&&grid[y][x]==='w';
@@ -379,8 +395,6 @@ let waterDisp=null, waterDispFilter=null, waterShaderSystem=null;
         causticStrength: 0.0  // 焦散默认关闭(性能)
       });
       console.log('[Terra] Advanced water shader initialized');
-      try{ const f=new PIXI.BlurFilter({strength:2.2,quality:2}); f.padding=6;
-        waterL.filters=[...(waterL.filters||[]),f]; }catch(e){}
       return;
     } catch (e) {
       console.warn('[Terra] Failed to init advanced water shader:', e);
@@ -543,14 +557,25 @@ function makePlayer(){
   sh.width=46; sh.height=18; node.addChild(sh);
   const rig=new PIXI.Container(); node.addChild(rig); node._rig=rig;
   if(a.src){
-    // 序列帧行走动画:walk_sheet 按宽度切 4 帧;加载失败回退静态图
+    // 序列帧行走动画:walk_sheet 按宽度切 4 帧;停止时切回 idle 图,避免站立停在走路姿势
     const sp=new PIXI.AnimatedSprite([PIXI.Texture.WHITE]); sp.anchor.set(.5,1);
     sp.animationSpeed=0.15; sp.loop=true;
     loadTex('assets/sprites/player_walk_sheet.png').then(tex=>{
-      const src=tex.source||tex.baseTexture, fw=Math.floor(tex.width/4), frames=[];
-      for(let i=0;i<4;i++) frames.push(new PIXI.Texture({source:src, frame:new PIXI.Rectangle(i*fw,0,fw,tex.height)}));
-      sp.textures=frames; sp.gotoAndStop(0); sp.width=a.w; sp.height=a.h;
-    }).catch(()=>loadTex(a.src).then(tex=>{sp.textures=[tex]; sp.gotoAndStop(0); sp.width=a.w; sp.height=a.h;}));
+      const src=tex.source||tex.baseTexture;
+      const fw=Math.round(tex.width/4), fh=tex.height, frames=[];
+      for(let i=0;i<4;i++) frames.push(new PIXI.Texture({source:src, frame:new PIXI.Rectangle(i*fw,0,Math.min(fw, tex.width-i*fw),fh)}));
+      node._walkTextures=frames;
+      sp.textures=frames; sp.gotoAndStop(0);
+      const targetH=a.h;
+      const targetW=Math.round(targetH*(fw/fh));
+      sp.width=targetW; sp.height=targetH;
+      node._animWalkWidth=targetW;
+      node._animWalkHeight=targetH;
+    }).catch(()=>loadTex(a.src).then(tex=>{
+      sp.textures=[tex]; sp.gotoAndStop(0); sp.width=a.w; sp.height=a.h;
+      node._animWalkWidth=a.w; node._animWalkHeight=a.h;
+    }));
+    loadTex(a.src).then(tex=>{ node._idleTex=tex; });
     rig.addChild(sp); node._anim=sp;
   } else {
     // 纸片人占位:亚麻袍 + 草帽,饥荒式比例
@@ -610,20 +635,41 @@ let walkPh=0, facing=1;
 function animateWalk(dt,moving,speed){
   walkPh+=dt*(moving?11:4);
   const squash=moving?Math.sin(walkPh)*.045:Math.sin(walkPh)*.012;
-  const PS=1.25, fd=ASSETS.player.faceDir||1;    // fd: 原画朝向(-1=朝左)
+  const PS=1.18, fd=ASSETS.player.faceDir||1;
 
-  // 应用游戏手感增强的 squash & stretch
-  const enhance = movementEnhancer ? movementEnhancer.getSquashStretch(speed || 0, SPEED) : {scaleX: 1, scaleY: 1, offsetY: 0};
-  const finalScaleX = facing*fd*PS*(1-squash*.6) * enhance.scaleX;
-  const finalScaleY = PS*(1+squash) * enhance.scaleY;
+  // 应用游戏手感增强的 squash & stretch，但压低幅度，避免角色像橡皮人
+  const enhanceRaw = movementEnhancer ? movementEnhancer.getSquashStretch(speed || 0, SPEED) : {scaleX: 1, scaleY: 1, offsetY: 0};
+  const enhance = {
+    scaleX: 1 + (enhanceRaw.scaleX - 1) * 0.38,
+    scaleY: 1 + (enhanceRaw.scaleY - 1) * 0.38,
+    offsetY: enhanceRaw.offsetY * 0.35
+  };
+  const finalScaleX = facing*fd*PS*(1-squash*.18) * enhance.scaleX;
+  const finalScaleY = PS*(1+squash*.32) * enhance.scaleY;
 
   player._rig.scale.set(finalScaleX, finalScaleY);
-  player._rig.y = (moving? -Math.abs(Math.sin(walkPh))*3.2 : 0) + enhance.offsetY;
+  player._rig.y = (moving? -Math.abs(Math.sin(walkPh))*1.2 : 0) + enhance.offsetY;
 
   const anim=player._anim;
   if(anim&&anim.textures&&anim.textures.length>1){
-    if(moving){ if(!anim.playing) anim.play(); }
-    else if(anim.playing||anim.currentFrame!==0){ anim.gotoAndStop(0); }
+    if(moving){
+      if(player._idleTex && anim.textures.length===1) anim.textures = [...(player._walkTextures||anim.textures)];
+      if(!anim.playing) anim.play();
+    } else {
+      anim.stop();
+      if(player._idleTex){
+        anim.textures=[player._idleTex];
+        anim.gotoAndStop(0);
+        anim.width=ASSETS.player.w; anim.height=ASSETS.player.h;
+      } else if(anim.currentFrame!==0) anim.gotoAndStop(0);
+    }
+    if(moving && player._walkTextures && anim.textures.length!==player._walkTextures.length){
+      anim.textures = player._walkTextures;
+      if(player._animWalkWidth && player._animWalkHeight){
+        anim.width=player._animWalkWidth; anim.height=player._animWalkHeight;
+      }
+      if(!anim.playing) anim.play();
+    }
   }
 }
 function keyboardInputX(){ return (keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0); }
@@ -730,7 +776,9 @@ function updateCamera(dt){
   const cx=Math.max(half_w,Math.min(MAP*TS-half_w,cam.x));
   const cy=Math.max(half_h,Math.min(MAP*TS-half_h,cam.y));
   world.scale.set(cam.zoom);
-  world.position.set(vw/2-cx*cam.zoom, vh/2-cy*cam.zoom);
+  const px = Math.round(vw/2-cx*cam.zoom);
+  const py = Math.round(vh/2-cy*cam.zoom);
+  world.position.set(px, py);
 }
 
 /* ================= 8.5 A* 寻路 · 点击移动 · 上下文交互 ================= */
@@ -1298,24 +1346,30 @@ const isHeadlessEnv = navigator.webdriver || navigator.userAgent.includes('Headl
 function setQuality(q){
   if(q>=quality) return; quality=q;
 
+  // 先砍特效,后砍分辨率;Retina/iPad 禁止掉到 0.75 这种糊成一片的级别
+  const deviceDPR = Math.min(window.devicePixelRatio || 1, isTabletLike ? 3 : 2.5);
+  const mediumRes = Math.max(isTabletLike ? 1.5 : 1.0, Math.min(deviceDPR, isTabletLike ? 2.2 : 1.4));
+  const lowRes = Math.max(isTabletLike ? 1.25 : 0.9, Math.min(deviceDPR, isTabletLike ? 1.6 : 1.0));
+
   // 同步到 AnimationManager
   if(window.AnimationManager){
     const qualityMap = {2: 'high', 1: 'medium', 0: 'low'};
     AnimationManager.setQuality(qualityMap[q] || 'low');
   }
 
-  if(q===1){ app.renderer.resolution=1; cloudShadows.forEach(c=>c.visible=false); }
-  if(q===0){ app.renderer.resolution=.75; cloudShadows.forEach(c=>c.visible=false);
-    golden.visible=false; vignette.visible=false;
-    // 低画质下关闭水面位移滤镜
-    if(waterL && waterL.filters) waterL.filters=[];
+  cloudShadows.forEach(c=>c.visible = q >= 2);
+  if(q<=1){
+    golden.visible = true; vignette.visible = true;
+    if(waterL && waterL.filters) waterL.filters = [];
+    app.renderer.resolution = mediumRes;
   }
-  if(q>=1 && waterDisp && !waterDispFilter && !isHeadlessEnv){  // headless 环境永不启用位移滤镜
-    try{ waterDispFilter=new PIXI.DisplacementFilter({sprite:waterDisp, scale:10});
-         waterL.filters=[waterDispFilter]; }catch(e){ console.warn('disp filter unavailable',e); }
+  if(q===0){
+    golden.visible = false; vignette.visible = false;
+    if(waterL && waterL.filters) waterL.filters = [];
+    app.renderer.resolution = lowRes;
   }
   app.resize();
-  console.info('[Terra] quality →', q===1?'mid':'low');
+  console.info('[Terra] quality →', q===2?'high':q===1?'mid':'low');
 }
 const dayPhase=()=> (elapsed%DAY_SECONDS)/DAY_SECONDS;
 const sunlight=()=> Math.max(0,Math.sin(dayPhase()*Math.PI));
@@ -1724,7 +1778,13 @@ app.canvas.style.touchAction='none';
 function bindMobileControls(){
   const action=document.getElementById('touchAction');
   if(action){
-    action.addEventListener('pointerdown',e=>{ e.preventDefault(); if(entered) interact(); });
+    action.addEventListener('pointerdown',e=>{
+      e.preventDefault();
+      if(!entered) return;
+      if(window.Battle && Battle.active) return;
+      if(window.WorldMapIntegration && WorldMapIntegration.isOpen) return;
+      interact();
+    });
   }
 }
 bindMobileControls();
@@ -1796,6 +1856,7 @@ function renderTutorial() {
   }
   const step = tutorialState.steps[tutorialState.step];
   const touchMode = matchMedia('(hover:none), (pointer:coarse), (max-width:760px)').matches;
+  if ((window.Battle && Battle.active) || (window.WorldMapIntegration && WorldMapIntegration.isOpen)) { overlay.innerHTML=''; return; }
   let markerHtml = '';
   if(step.target === 'fab') {
     const fab = document.getElementById('craftFAB');
@@ -2228,6 +2289,8 @@ function stepCompanionPets(dt){
   }
 }
 function interact(){                              // 空格:在当前位置就近交互
+  if(window.Battle && Battle.active) return;
+  if(window.WorldMapIntegration && WorldMapIntegration.isOpen) return;
   const key=playerTileKey();
   if(tileMeta[key]){ interactFarm(key); return; }
   if(nearestIncubator()){ openBreed(); return; }
@@ -2382,7 +2445,7 @@ function enterWorld(){
   title.querySelector('.card').style.transform='translateY(-8vh) scale(.96)';
   // 云幕
   const cv=$('clouds'),cc=cv.getContext('2d');
-  const dpr=Math.min(devicePixelRatio||1,2),vw=innerWidth,vh=innerHeight;
+  const dpr=Math.min(devicePixelRatio||1, isTabletLike ? 3 : 2.5),vw=innerWidth,vh=innerHeight;
   cv.width=vw*dpr;cv.height=vh*dpr;cv.style.width=vw+'px';cv.style.height=vh+'px';cv.style.opacity=1;
   const t0=performance.now(),blobs=Array.from({length:26},()=>({x:Math.random()*1.6-.3,y:Math.random(),r:.12+Math.random()*.22,v:1.1+Math.random()*.9}));
   (function sweep(){const e=(performance.now()-t0)/2400;

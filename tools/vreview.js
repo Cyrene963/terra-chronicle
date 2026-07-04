@@ -5,7 +5,7 @@ const { chromium } = require('playwright');
   const errs=[];
   page.on('pageerror', e => errs.push('PAGEERROR: '+e.message));
   page.on('console', m => { if (m.type()==='error') errs.push('CONSOLE: '+m.text()); });
-  await page.goto('http://127.0.0.1:8867/index.html', { waitUntil: 'networkidle' });
+  await page.goto('http://127.0.0.1:8867/index.html', { waitUntil: 'domcontentloaded', timeout: 30000 });
   await page.waitForTimeout(2500);
   await page.evaluate(() => document.getElementById('enter').click());
   await page.waitForTimeout(4000);
