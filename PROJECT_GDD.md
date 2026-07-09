@@ -29,9 +29,11 @@ emoji、系统默认控件）、动画是否实际播放（对比连续两帧截
 ④ 结算反馈是否有"极品材料→极品卡牌"的爽感峰值。
 
 **第三条（Blocker 卡点，硬性）** 视觉审查未出具书面认可结论前，任何代码【绝不允许】
-提交为正式版本或部署到 https://terra.bz9.me 。审查结论须落盘为
-`docs/visual_review_YYYYMMDD.md`，包含：截图清单、逐项判定、整改项。有整改项时
-必须修完复审，复审通过才能部署。
+提交为正式版本或部署到权威公网运行入口。审查结论须同时落盘为
+`docs/visual_review_YYYYMMDD.md`（人类可读报告）和 `docs/visual-reviews/*.json`（机器可执行清单），
+包含截图清单、Vision reviewer/model/timestamp、当前 git SHA、逐项判定、5 小时心流模拟和整改项。
+正式发布前必须执行 `python3 tools/visual_release_gate.py`；该 gate fail 时禁止正式部署。
+有整改项时必须修完复审，复审通过才能部署。
 
 **第四条（资产准入）** 一切新生成图像资产必须经由带全局锚点的生成脚本产出；
 手写 CSS 纯色几何图形、emoji 一律视为占位符，禁止进入正式版本。

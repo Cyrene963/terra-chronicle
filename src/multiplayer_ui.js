@@ -618,7 +618,7 @@ const MultiplayerUI = {
 
       return `
         <div class="neighbor-item" data-id="${n.playerId}">
-          <div class="neighbor-avatar"><img src="assets/ui/avatar_${(String(n.playerId||n.name||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0)%4)+1}.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover" onerror="this.outerHTML='${n.isAI?'🤖':'👤'}'"></div>
+          <div class="neighbor-avatar"><img src="assets/ui/avatar_${(String(n.playerId||n.name||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0)%4)+1}.png" alt="${n.name} 的手绘庄园头像" style="width:100%;height:100%;border-radius:50%;object-fit:cover" onerror="this.onerror=null;this.src='assets/ui/avatar_1.png'"></div>
           <div class="neighbor-info">
             <div class="neighbor-topline"><div class="neighbor-name">${n.name}</div><div class="neighbor-rank">Lv.${n.level}</div></div>
             <div class="neighbor-status">边境近况 · ${statusText}</div>

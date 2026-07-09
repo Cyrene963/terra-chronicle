@@ -523,35 +523,17 @@ function makeNode(kind){
 
   if(walkSheetMap[kind]){
     const sheetKind = walkSheetMap[kind];
-    const anim=new PIXI.Container();
-    anim.anchor={x:.5,y:(a.anchorY??1)};
-    const fr=[];
-    for(let i=0;i<4;i++){
-      const sp=new PIXI.Sprite(); sp.anchor.set(.5, a.anchorY??1); sp.visible=i===0;
-      fr.push(sp); anim.addChild(sp);
-    }
+    const anim=new PIXI.AnimatedSprite([PIXI.Texture.WHITE]);
+    anim.anchor.set(.5, a.anchorY??1);
+    anim.animationSpeed=0.15; anim.loop=true;
     loadTex(`assets/sprites/${sheetKind}.png?v=2`).then(tex=>{
-      const source=tex.source;
-      const cols=4;
-      const fw=Math.floor(source.width/cols);
-      const fh=source.height;
-      fr.forEach((sp,i)=>{
-        const frame=new PIXI.Rectangle(i*fw,0,fw,fh);
-        // 每帧独立 Texture:Texture.from(source) 有缓存,4 帧会共用同一纹理导致灵兽不动
-        sp.texture=new PIXI.Texture({source, frame});
-        sp.width=a.w; sp.height=a.h;
-      });
-      let idx=0, acc=0;
-      anim._tick=(dt)=>{
-        acc+=dt;
-        if(acc>=0.1){
-          acc=0; fr[idx].visible=false; idx=(idx+1)%fr.length; fr[idx].visible=true;
-        }
-      };
+      const source=tex.source||tex.baseTexture;
+      const fw=Math.floor(tex.width/4), fh=tex.height;
+      anim.textures=Array.from({length:4},(_,i)=>new PIXI.Texture({source,frame:new PIXI.Rectangle(i*fw,0,fw,fh)}));
+      anim.gotoAndStop(0); anim.width=a.w; anim.height=a.h;
     }).catch(()=>{
-      // Fallback to static sprite if walk sheet not found yet
       loadTex(a.src).then(tex=>{
-        fr[0].texture=tex; fr[0].width=a.w; fr[0].height=a.h;
+        anim.textures=[tex]; anim.gotoAndStop(0); anim.width=a.w; anim.height=a.h;
       });
     });
     anim._baseScaleX=1; anim._baseScaleY=1;
@@ -1067,7 +1049,10 @@ function beastGoto(tx,ty){
 }
 function beastStep(dt){
   const moving = !!(beastAI.path && beastAI.path.length);
-  beast._body?._tick?.(dt);
+  if(beast._body instanceof PIXI.AnimatedSprite && beast._body.textures.length>1){
+    if(moving){ if(!beast._body.playing) beast._body.play(); }
+    else { beast._body.stop(); beast._body.gotoAndStop(0); }
+  }
   if(beast._body){
     const bw=beast._body._baseScaleX||beast._bw||1, bh=beast._body._baseScaleY||beast._bh||1;
     if(beastAI.state==='water'){                  // 浇水:等比脉冲+上浮,不拉伸脸/身体
@@ -1181,7 +1166,10 @@ function fireGoto(tx,ty){ const sx=Math.floor(fireBeast.x/TS),sy=Math.floor(fire
 function fireStep(dt){
   if(!fireBeast) return;
   const moving=!!(fireAI.path&&fireAI.path.length);
-  fireBeast._body?._tick?.(dt);
+  if(fireBeast._body instanceof PIXI.AnimatedSprite && fireBeast._body.textures.length>1){
+    if(moving){ if(!fireBeast._body.playing) fireBeast._body.play(); }
+    else { fireBeast._body.stop(); fireBeast._body.gotoAndStop(0); }
+  }
   if(fireBeast._body){
     const bw=fireBeast._body._baseScaleX||fireBeast._bw||1, bh=fireBeast._body._baseScaleY||fireBeast._bh||1;
     if(moving){ fireAI.hop+=dt*9; const h=Math.abs(Math.sin(fireAI.hop)); const s=1+h*0.025; fireBeast._body.y=-h*8; fireBeast._body.rotation=Math.sin(fireAI.hop*.55)*0.022; fireBeast._body.scale.set(bw*s,bh*s); }

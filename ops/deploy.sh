@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT="/root/terra-chronicle-game"
+# Formal deployment is fail-closed on a multimodal review of the current commit.
+python3 "$ROOT/tools/visual_release_gate.py"
 TARGET_DEFAULT="/var/www/terra-pixijs"
 TARGET="${1:-$TARGET_DEFAULT}"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"

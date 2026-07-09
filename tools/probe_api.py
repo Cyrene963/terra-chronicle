@@ -4,9 +4,11 @@
 import json, base64, io, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from PIL import Image
+from visual_style_contract import STYLE_ANCHOR, anchored
 API="https://ai.input.im/v1/images/generations"; KEY="20090603_WeHaveToBeinHKU"
 def probe(label, body):
     try:
+        body = dict(body); body["prompt"] = anchored(body.get("prompt", ""))
         req=urllib.request.Request(API,data=json.dumps(body).encode(),
             headers={"Authorization":"Bearer "+KEY,"Content-Type":"application/json"})
         with urllib.request.urlopen(req,timeout=420) as r: d=json.load(r)

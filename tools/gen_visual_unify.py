@@ -3,6 +3,7 @@
 import json, base64, io, os, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from PIL import Image, ImageFilter
+from visual_style_contract import STYLE_ANCHOR, anchored
 API="https://ai.input.im/v1/images/generations"; KEY="20090603_WeHaveToBeinHKU"
 ROOT="/root/terra-chronicle-game"
 ANCHOR=("MUST STRICTLY USE: Studio Ghibli art style, Legend of Zelda Breath of the Wild style, "
@@ -11,7 +12,7 @@ ANCHOR=("MUST STRICTLY USE: Studio Ghibli art style, Legend of Zelda Breath of t
 MAG=("single isolated game sprite centered on a perfectly flat solid pure magenta background (#FF00FF), "
  "the magenta covers the entire background evenly, no shadow cast on the background, ")
 def call(prompt,size="1024x1024",tries=3):
-    body=json.dumps({"model":"gpt-image-2","prompt":prompt,"size":size,"quality":"high","n":1}).encode()
+    body=json.dumps({"model":"gpt-image-2","prompt":anchored(prompt),"size":size,"quality":"high","n":1}).encode()
     for i in range(tries):
         try:
             req=urllib.request.Request(API,data=body,headers={"Authorization":"Bearer "+KEY,"Content-Type":"application/json"})

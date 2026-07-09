@@ -308,8 +308,12 @@ const WorldMap = {
     // 清空画布
     ctx.clearRect(0, 0, rect.width, rect.height);
 
-    // 背景 (深色太空/海洋)
-    ctx.fillStyle = '#0a0d12';
+    // 背景：暖调羊皮纸暗幕，避免重新落回黑色网页/太空面板感
+    const bg = ctx.createRadialGradient(rect.width * 0.5, rect.height * 0.46, 30, rect.width * 0.5, rect.height * 0.5, Math.max(rect.width, rect.height) * 0.72);
+    bg.addColorStop(0, '#4b402d');
+    bg.addColorStop(0.58, '#241f18');
+    bg.addColorStop(1, '#100e0b');
+    ctx.fillStyle = bg;
     ctx.fillRect(0, 0, rect.width, rect.height);
 
     // 应用相机变换

@@ -5,6 +5,7 @@
 """
 import requests, json, sys, time
 from PIL import Image, ImageFilter
+from visual_style_contract import STYLE_ANCHOR, anchored
 import io
 
 API_BASE = "https://ai.input.im"
@@ -16,7 +17,7 @@ def call_api(prompt, size="1024x1024", quality="high", steps=30):
     headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
     payload = {
         "model": "gpt-image-2",
-        "prompt": prompt,
+        "prompt": anchored(prompt),
         "n": 1,
         "size": size,
         "quality": quality,

@@ -3,6 +3,7 @@
 import json, base64, io, os, sys, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from PIL import Image
+from visual_style_contract import STYLE_ANCHOR, anchored
 
 API = "https://ai.input.im/v1/images/generations"
 KEY = "20090603_WeHaveToBeinHKU"
@@ -14,10 +15,7 @@ STYLE = ("hand-painted storybook game art, soft watercolor texture with clean sh
          "Studio Ghibli warmth, rich color, gentle painterly shading, masterpiece quality, "
          "no text, no watermark, no border")
 
-# 全局画风锚点:焊死在所有提示词末尾,禁止暗黑写实(2026-07-03 视觉宪法)
-STYLE_ANCHOR = ("MUST STRICTLY USE: Studio Ghibli art style, Legend of Zelda Breath of the Wild style, "
-                "bright and warm pastel colors, cute and stylized flat shading. "
-                "ABSOLUTELY NO dark fantasy, NO photorealism, NO horror elements.")
+# Shared contract is also enforced at the API boundary.
 STYLE = STYLE + ", " + STYLE_ANCHOR
 
 MAGENTA = ("single isolated game sprite centered, displayed on a perfectly flat solid pure "
@@ -120,7 +118,7 @@ TILES = [
 
 def call_api(prompt, size="1024x1024", tries=3):
     # 实测: 此代理 size>1536 不被采纳(square 上限 ~1254);quality=high 是真实可用的最高档。
-    body = json.dumps({"model":"gpt-image-2","prompt":prompt,"size":size,
+    body = json.dumps({"model":"gpt-image-2","prompt":anchored(prompt),"size":size,
                        "quality":"high","n":1}).encode()
     for i in range(tries):
         try:

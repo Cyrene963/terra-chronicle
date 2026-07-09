@@ -130,7 +130,7 @@ function injectStyle(){
   const css=`
   #battle{position:fixed;inset:0;z-index:80;display:none;opacity:0;
     transition:opacity .6s cubic-bezier(.4,0,.2,1);
-    background:url('assets/ui/battle_bg.jpg?v=2') center/cover, radial-gradient(ellipse at 50% 30%,#2a2340 0%,#15121f 60%,#0a0810 100%);
+    background:url('assets/ui/battle_bg.jpg?v=3') center/cover, radial-gradient(ellipse at 50% 30%,#6b6946 0%,#304b38 60%,#17251d 100%);
     font-family:'Noto Serif SC',serif;color:#f6f1e7;overflow:hidden;}
   #battle.on{display:block;opacity:1;}
   #battle .arena{position:absolute;inset:0;display:flex;flex-direction:column;}
@@ -702,7 +702,17 @@ function endTurn(){
     startPlayerTurn();
   }, 720);
 }
+function rewardOriginEcho(){
+  const crafted=(window.Terra?.farm?.inventory?.cards||[]);
+  const best=crafted.reduce((acc,c)=>!acc || (c.quality||0)>(acc.quality||0)?c:acc,null);
+  const bestQ=best?.quality||0;
+  return bestQ>=.82 ? `你的极品卡「${best.name}」让遗迹共鸣，奖励品质提升。` : bestQ>=.68 ? `高肥力产地锻造的「${best?.name||'卡牌'}」正在影响本次远征。` : '继续提高土地肥力，能让锻造卡牌与深渊回报形成更强共鸣。';
+}
 function rewardChoices(){
+  const crafted=(window.Terra?.farm?.inventory?.cards||[]);
+  const best=crafted.reduce((acc,c)=>!acc || (c.quality||0)>(acc.quality||0)?c:acc,null);
+  const bestQ=best?.quality||0;
+  const originEcho=rewardOriginEcho();
   const base=[
     {name:'污染种子', tag:'材料', icon:'✦', rarity:'rare', loot:{blight_seed:1}, desc:'灵兽孵化与后续防御科技材料'},
     {name:'深渊活力', tag:'祝福', icon:'♥', rarity:'rare', loot:{buff:{id:'abyss_vigor',hpMax:8,fights:2}}, desc:'接下来 2 场战斗生命上限 +8'},
@@ -710,6 +720,8 @@ function rewardChoices(){
     {name:'远征木箱', tag:'资源', icon:'▣', rarity:'common', loot:{wood:4}, desc:'补足锻造与农场扩建所需木材'},
     {name:'驯化春露兽', tag:'灵兽', icon:'◌', rarity:'beast', loot:{beast:{species:'spring_drop',element:'water',level:1,assignment:'irrigate'}}, desc:'捕获水系灵兽幼体，回农场后巡田灌溉'}
   ];
+  if(bestQ>=.82) base.push({name:'丰饶回响', tag:'产地共鸣', icon:'✧', rarity:'epic', loot:{wood:3, beast_soul:1, buff:{id:'root_guard',shield:6,fights:2}}, desc:`${originEcho} 木材×3、灵兽灵魂×1，并获得开局护甲。`});
+  else if(bestQ>=.68) base.push({name:'沃土余韵', tag:'产地共鸣', icon:'❧', rarity:'rare', loot:{wood:3, blight_seed:1}, desc:`${originEcho} 带回木材×3与污染种子×1。`});
   if(cb?.isElite) base.push({name:'精英残响', tag:'精英', icon:'◆', rarity:'epic', loot:{beast_soul:1, blight_seed:1, buff:{id:'root_guard',shield:6,fights:2}}, desc:'双资源 + 接下来 2 场开局护甲 +6'});
   if(cb?.isBoss) base.push({name:'深渊核心', tag:'首领', icon:'◈', rarity:'epic', loot:{beast_soul:2, blight_seed:2}, desc:'Boss 战利品，可连续推动工坊升级'});
   return base;
@@ -748,7 +760,8 @@ function finish(win){
 
     root.querySelector('#b_loot').innerHTML=
       `深渊退散，选择一份带回农场的战利品：
-       <span class="sub">奖励会直接影响下一轮锻造、灵兽与升级路线</span>`;
+       <span class="sub">奖励会直接影响下一轮锻造、灵兽与升级路线</span>
+       <span class="sub" style="color:#8b5a20;font-weight:900">${rewardOriginEcho()}</span>`;
     rewardChoices().forEach(r=>{
       const el=$('div',`rewardChoice ${r.rarity||'common'}`,rewards);
       el.innerHTML=`<div class="rmeta"><span class="ricon">${r.icon||'✦'}</span><span class="rtag">${r.tag||'战利品'}</span></div><div class="rname">${r.name}</div><div class="rdesc">${r.desc}</div>`;

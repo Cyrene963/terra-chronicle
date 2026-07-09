@@ -5,6 +5,7 @@
 import json, base64, io, os, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from PIL import Image, ImageFilter
+from visual_style_contract import STYLE_ANCHOR, anchored
 API="https://ai.input.im/v1/images/generations"; KEY="20090603_WeHaveToBeinHKU"
 OUT="/root/terra-chronicle-game/assets/sprites"; SRC=OUT+"/_src512"; RAW=OUT+"/_raw"
 os.makedirs(SRC,exist_ok=True); os.makedirs(RAW,exist_ok=True)
@@ -26,7 +27,7 @@ HEROES=[
   "three-quarter top-down RPG game view"),
 ]
 def call_api(prompt,tries=3):
-    body=json.dumps({"model":"gpt-image-2","prompt":prompt,"size":"1024x1024","quality":"high","n":1}).encode()
+    body=json.dumps({"model":"gpt-image-2","prompt":anchored(prompt),"size":"1024x1024","quality":"high","n":1}).encode()
     for i in range(tries):
         try:
             req=urllib.request.Request(API,data=body,headers={"Authorization":"Bearer "+KEY,"Content-Type":"application/json"})

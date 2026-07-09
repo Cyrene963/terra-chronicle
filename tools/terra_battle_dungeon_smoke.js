@@ -150,8 +150,28 @@ fs.mkdirSync(OUT, { recursive: true });
   }
   await capturePage.close();
 
+  const qualityPage = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
+  await qualityPage.goto(`${PUBLIC_BASE}/?v=quality-origin-echo`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await qualityPage.waitForFunction(() => window.Battle && window.Terra && window.__dbg?.ready, null, { timeout: 30000 });
+  await qualityPage.evaluate(() => {
+    window.Terra.farm.inventory.cards = [{ name:'丰饶试作', type:'atk', atk:99, quality:.92, cost:0, affixes:['丰饶产地'] }];
+    window.Battle.enter({ deck:window.Terra.farm.inventory.cards, debugHand:[{ name:'丰饶试作', type:'atk', val:99, quality:.92, cost:0, desc:'极品产地测试' }], onWin(){}, onLose(){} });
+  });
+  await qualityPage.waitForSelector('#battle.on .card', { timeout: 30000 });
+  await qualityPage.click('#battle .card');
+  await qualityPage.waitForSelector('#battle .result.on .rewardChoice', { timeout: 30000 });
+  const qualityOriginState = await qualityPage.evaluate(() => ({
+    lootText: document.querySelector('#b_loot')?.textContent || '',
+    rewards: Array.from(document.querySelectorAll('#battle .rewardChoice')).map(el => el.textContent.trim())
+  }));
+  if (!qualityOriginState.lootText.includes('极品卡') || !qualityOriginState.rewards.some(t => t.includes('丰饶回响'))) {
+    throw new Error(`quality-origin reward feedback missing: ${JSON.stringify(qualityOriginState)}`);
+  }
+  await qualityPage.screenshot({ path: path.join(OUT, '03_quality_origin_reward.png'), fullPage: false });
+  await qualityPage.close();
+
   await browser.close();
-  const report = { ok: consoleErrors.length === 0 && pageErrors.length === 0, versionsOk, versions, battleState, dungeonState, captureState, consoleErrors, pageErrors, outDir: OUT };
+  const report = { ok: consoleErrors.length === 0 && pageErrors.length === 0, versionsOk, versions, battleState, dungeonState, captureState, qualityOriginState, consoleErrors, pageErrors, outDir: OUT };
   fs.writeFileSync(path.join(OUT, 'report.json'), JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));
   if (!report.ok || !versionsOk) process.exit(1);
