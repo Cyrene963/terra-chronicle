@@ -46,7 +46,11 @@ const FILES = [
   const scripts = await page.evaluate(() => [...document.scripts].map(s => s.src).filter(Boolean));
   const required = ['state.js', 'alchemy.js', 'battle.js', 'dungeon.js', 'upgrade.js', 'main.js'];
   const loaded = Object.fromEntries(required.map(name => [name, hasExpectedScript(scripts, name, versions)]));
-  await page.screenshot({ path: path.join(OUT, 'public_landing.png'), fullPage: false });
+  try {
+    await page.screenshot({ path: path.join(OUT, 'public_landing.png'), fullPage: false, timeout: 15000 });
+  } catch (err) {
+    console.warn(`screenshot degraded: ${err.message}`);
+  }
   await browser.close();
 
   const report = {
