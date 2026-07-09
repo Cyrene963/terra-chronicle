@@ -21,6 +21,15 @@ def git_head() -> str:
     return subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
 
 
+def changed_since(revision: str) -> list[str]:
+    output = subprocess.check_output(["git", "diff", "--name-only", f"{revision}..HEAD"], cwd=ROOT, text=True)
+    return [line.strip() for line in output.splitlines() if line.strip()]
+
+
+def review_only_path(path: str) -> bool:
+    return path.startswith("docs/visual-reviews/") or path.startswith("docs/visual_review_")
+
+
 def fail(message: str) -> None:
     print(f"VISUAL_GATE_FAIL: {message}", file=sys.stderr)
     raise SystemExit(1)
@@ -47,8 +56,12 @@ def main() -> None:
     missing = [key for key in required if key not in data]
     if missing:
         fail(f"manifest missing keys: {', '.join(missing)}")
-    if data["git_sha"] != git_head():
-        fail(f"review is for {data['git_sha']}, current HEAD is {git_head()}")
+    current_head = git_head()
+    if data["git_sha"] != current_head:
+        changes = changed_since(data["git_sha"])
+        non_review_changes = [item for item in changes if not review_only_path(item)]
+        if non_review_changes:
+            fail(f"review is for {data['git_sha']}, current HEAD is {current_head}; unreviewed changes: {non_review_changes}")
     if data["status"] != "approved":
         fail(f"review status is {data['status']!r}, expected 'approved'")
     if data["reviewer"].get("type") not in {"multimodal_vision", "vision_subagent"}:
