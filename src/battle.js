@@ -479,16 +479,16 @@ function render(){
     let cls='intent', iconHtml='';
     if(it.kind==='atk'||it.kind==='heavy'){
       cls+=' atk';
-      iconHtml='<span class="icon">⚔</span>';
+      iconHtml='<span class="icon">刃</span>';
     } else if(it.kind==='def'){
       cls+=' def';
-      iconHtml='<span class="icon">🛡</span>';
+      iconHtml='<span class="icon">盾</span>';
     } else if(it.kind==='debuff'){
       cls+=' debuff';
-      iconHtml='<span class="icon">⚡</span>';
+      iconHtml='<span class="icon">蚀</span>';
     } else if(it.kind==='charge'){
       cls+=' debuff';
-      iconHtml='<span class="icon">☄</span>';
+      iconHtml='<span class="icon">聚</span>';
     }
     iEl.className=cls;
     const weak=it.weak?`<span class="eblock">弱点:${elemName(it.weak)}</span>`:'';
@@ -497,11 +497,11 @@ function render(){
     else if(it.kind==='charge') iEl.innerHTML=`${iconHtml}<span>${it.hint||'聚瘴'}</span>${weak}`;
     else if(it.kind==='debuff') iEl.innerHTML=`${iconHtml}<span>${it.hint||'瘴气压制'}</span>${weak}`;
     else iEl.innerHTML=`${iconHtml}<span>${it.hint||'即将格挡'} ${it.val}</span>${weak}`;
-    if(S.enemy.block>0) iEl.innerHTML+=`<span class="eblock">🛡${S.enemy.block}</span>`;
+    if(S.enemy.block>0) iEl.innerHTML+=`<span class="eblock">护甲 ${S.enemy.block}</span>`;
   } else iEl.textContent='';
   r('#b_hpbar').style.transform=`scaleX(${Math.max(0,S.pHP/S.pMax)})`;
   r('#b_shbar').style.transform=`scaleX(${Math.min(1,S.shield/S.pMax)})`;
-  r('#b_vnum').textContent=`${Math.max(0,S.pHP)}♥  ${S.shield}🛡`;
+  r('#b_vnum').textContent=`生命 ${Math.max(0,S.pHP)} · 护甲 ${S.shield}`;
   r('#b_orb').textContent=S.energy;
   r('#b_draw').textContent='抽牌堆 '+S.draw.length;
   r('#b_disc').textContent='弃牌堆 '+S.discard.length;
