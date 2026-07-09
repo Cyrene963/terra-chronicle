@@ -4,6 +4,7 @@ const path = require('path');
 const { scriptVersions, hasExpectedScript, badConsole, sha256 } = require('./smoke_common');
 const ROOT = path.resolve(__dirname, '..');
 const OUT = path.join(ROOT, 'dogfood-output', 'soft-farm-crop-ui-20260615');
+const PUBLIC_BASE = process.env.TERRA_PUBLIC_BASE_URL || 'http://165.232.142.30:8867';
 fs.mkdirSync(OUT, { recursive: true });
 (async () => {
   const browser = await chromium.launch({ headless: true });
@@ -12,7 +13,7 @@ fs.mkdirSync(OUT, { recursive: true });
   const pageErrors = [];
   page.on('console', msg => { if (badConsole(msg)) consoleErrors.push(`${msg.type()}: ${msg.text()}`); });
   page.on('pageerror', err => pageErrors.push(String(err)));
-  await page.goto('https://terra.bz9.me/?crop_ui_unification=20260615', { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.goto(`${PUBLIC_BASE}/?crop_ui_unification=20260615`, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.waitForFunction(() => {
     const enter = document.querySelector('#enter');
     return !!enter && getComputedStyle(enter).visibility !== 'hidden' && getComputedStyle(enter).display !== 'none';

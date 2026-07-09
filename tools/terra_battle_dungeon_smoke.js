@@ -5,6 +5,7 @@ const { scriptVersions, hasExpectedScript, badConsole } = require('./smoke_commo
 
 const ROOT = '/root/terra-chronicle-game';
 const OUT = path.join(ROOT, 'dogfood-output', 'terra-battle-dungeon-smoke');
+const PUBLIC_BASE = process.env.TERRA_PUBLIC_BASE_URL || 'http://165.232.142.30:8867';
 fs.mkdirSync(OUT, { recursive: true });
 
 (async () => {
@@ -15,7 +16,7 @@ fs.mkdirSync(OUT, { recursive: true });
   page.on('console', msg => { if (badConsole(msg)) consoleErrors.push(`${msg.type()}: ${msg.text()}`); });
   page.on('pageerror', err => pageErrors.push(err.stack || String(err)));
 
-  await page.goto('https://terra.bz9.me/?v=40-battle-dungeon-smoke', { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.goto(`${PUBLIC_BASE}/?v=40-battle-dungeon-smoke`, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.waitForSelector('#enter', { timeout: 20000 });
   await page.click('#enter');
   await page.waitForFunction(() => window.Battle && window.DungeonMap && window.__dbg?.ready, null, { timeout: 30000 });
@@ -107,7 +108,7 @@ fs.mkdirSync(OUT, { recursive: true });
     if (msg.type() === 'error') consoleErrors.push(`${msg.type()}: ${text}`);
   });
   capturePage.on('pageerror', err => pageErrors.push(err.stack || String(err)));
-  await capturePage.goto('https://terra.bz9.me/?v=54-capture-smoke', { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await capturePage.goto(`${PUBLIC_BASE}/?v=54-capture-smoke`, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await capturePage.waitForSelector('#enter', { timeout: 20000 });
   await capturePage.click('#enter');
   await capturePage.waitForFunction(() => window.Battle && window.__dbg?.ready, null, { timeout: 30000 });

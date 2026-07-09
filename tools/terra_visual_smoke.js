@@ -5,6 +5,7 @@ const { scriptVersions, hasExpectedScript, badConsole } = require('./smoke_commo
 
 const ROOT = '/root/terra-chronicle-game';
 const OUT = path.join(ROOT, 'dogfood-output', 'terra-visual-smoke');
+const PUBLIC_BASE = process.env.TERRA_PUBLIC_BASE_URL || 'http://165.232.142.30:8867';
 fs.mkdirSync(OUT, { recursive: true });
 
 async function visibleNonBlackPixels(page, screenshotPath) {
@@ -35,7 +36,7 @@ async function visibleNonBlackPixels(page, screenshotPath) {
   page.on('console', msg => { if (badConsole(msg)) consoleErrors.push(`${msg.type()}: ${msg.text()}`); });
   page.on('pageerror', err => consoleErrors.push(`pageerror: ${err.message}`));
 
-  await page.goto('https://terra.bz9.me/?smoke=v58-obtainment-gate', { waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.goto(`${PUBLIC_BASE}/?smoke=v58-obtainment-gate`, { waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.waitForFunction(() => {
     const enter = document.querySelector('#enter');
     return !!enter && getComputedStyle(enter).visibility !== 'hidden' && getComputedStyle(enter).display !== 'none';
@@ -204,7 +205,7 @@ async function visibleNonBlackPixels(page, screenshotPath) {
 
   await browser.close();
 
-  const report = { ok: true, url: 'https://terra.bz9.me/', versions, scripts, worldPixels, result, consoleErrors, screenshots: fs.readdirSync(OUT).filter(f => f.endsWith('.png')).map(f => path.join(OUT, f)) };
+  const report = { ok: true, url: `${PUBLIC_BASE}/`, versions, scripts, worldPixels, result, consoleErrors, screenshots: fs.readdirSync(OUT).filter(f => f.endsWith('.png')).map(f => path.join(OUT, f)) };
   if (!worldPixels.exists || worldPixels.nonBlack < Math.max(20, Math.floor(worldPixels.sample * 0.08))) throw new Error(`canvas appears black/empty: ${JSON.stringify(worldPixels)}`);
   if (!result.ecoStatus || !result.ecoScore || !result.dbgEcology || !result.fpsBadge || !result.qualityBadge) throw new Error(`hud/debug missing: ${JSON.stringify(result)}`);
   if (!result.cardRevealOn || !result.cardName) throw new Error(`card reveal failed: ${JSON.stringify(result)}`);
