@@ -3,8 +3,8 @@
 import json, base64, io, os, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from PIL import Image, ImageFilter
-from visual_style_contract import STYLE_ANCHOR, anchored
-API="https://ai.input.im/v1/images/generations"; KEY="20090603_WeHaveToBeinHKU"
+from visual_style_contract import API_BASE, API_URL, STYLE_ANCHOR, anchored, require_api_key
+API=API_URL; KEY=require_api_key()
 ROOT="/root/terra-chronicle-game"
 ANCHOR=("MUST STRICTLY USE: Studio Ghibli art style, Legend of Zelda Breath of the Wild style, "
  "bright and warm pastel colors, cute and stylized flat shading. "

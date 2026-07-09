@@ -5,8 +5,8 @@
 import json, base64, io, os, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from PIL import Image, ImageFilter
-from visual_style_contract import STYLE_ANCHOR, anchored
-API="https://ai.input.im/v1/images/generations"; KEY="20090603_WeHaveToBeinHKU"
+from visual_style_contract import API_BASE, API_URL, STYLE_ANCHOR, anchored, require_api_key
+API=API_URL; KEY=require_api_key()
 OUT="/root/terra-chronicle-game/assets/sprites"; SRC=OUT+"/_src512"; RAW=OUT+"/_raw"
 os.makedirs(SRC,exist_ok=True); os.makedirs(RAW,exist_ok=True)
 STYLE=("hand-painted storybook game art, crisp clean confident brushwork, high detail, "

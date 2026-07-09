@@ -5,11 +5,10 @@
 """
 import requests, json, sys, time
 from PIL import Image, ImageFilter
-from visual_style_contract import STYLE_ANCHOR, anchored
+from visual_style_contract import API_BASE, API_URL, STYLE_ANCHOR, anchored, require_api_key
 import io
 
-API_BASE = "https://ai.input.im"
-API_KEY = "20090603_WeHaveToBeinHKU"
+API_KEY = require_api_key()
 
 def call_api(prompt, size="1024x1024", quality="high", steps=30):
     """调用 gpt-image-2 生成图像"""

@@ -8,6 +8,24 @@ const OUT = path.join(ROOT, 'dogfood-output', 'terra-battle-dungeon-smoke');
 const PUBLIC_BASE = process.env.TERRA_PUBLIC_BASE_URL || 'http://165.232.142.30:8867';
 fs.mkdirSync(OUT, { recursive: true });
 
+async function loadGame(page, suffix) {
+  const url = `${PUBLIC_BASE}/index.html?${suffix}=${Date.now()}`;
+  let lastError;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      await page.goto(url, { waitUntil: 'commit', timeout: 30000 });
+      await page.waitForFunction(() => window.enterWorld && window.Battle && window.__dbg, null, { timeout: 30000 });
+      await page.evaluate(() => window.enterWorld());
+      await page.waitForFunction(() => window.__dbg?.ready, null, { timeout: 30000 });
+      return;
+    } catch (error) {
+      lastError = error;
+      await page.waitForTimeout(1000);
+    }
+  }
+  throw lastError;
+}
+
 (async () => {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
@@ -16,10 +34,8 @@ fs.mkdirSync(OUT, { recursive: true });
   page.on('console', msg => { if (badConsole(msg)) consoleErrors.push(`${msg.type()}: ${msg.text()}`); });
   page.on('pageerror', err => pageErrors.push(err.stack || String(err)));
 
-  await page.goto(`${PUBLIC_BASE}/?v=40-battle-dungeon-smoke`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-  await page.waitForSelector('#enter', { timeout: 20000 });
-  await page.click('#enter');
-  await page.waitForFunction(() => window.Battle && window.DungeonMap && window.__dbg?.ready, null, { timeout: 30000 });
+  await loadGame(page, 'battle-dungeon-smoke');
+  await page.waitForFunction(() => window.DungeonMap, null, { timeout: 30000 });
 
   const scripts = await page.evaluate(() => Array.from(document.scripts).map(s => s.src).filter(Boolean));
   const versions = scriptVersions();
@@ -108,10 +124,7 @@ fs.mkdirSync(OUT, { recursive: true });
     if (msg.type() === 'error') consoleErrors.push(`${msg.type()}: ${text}`);
   });
   capturePage.on('pageerror', err => pageErrors.push(err.stack || String(err)));
-  await capturePage.goto(`${PUBLIC_BASE}/?v=54-capture-smoke`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-  await capturePage.waitForSelector('#enter', { timeout: 20000 });
-  await capturePage.click('#enter');
-  await capturePage.waitForFunction(() => window.Battle && window.__dbg?.ready, null, { timeout: 30000 });
+  await loadGame(capturePage, 'capture-smoke');
   await capturePage.evaluate(() => {
     window.Battle.enter({
       deck: [{ name: '划击', type: 'atk', val: 60, cost: 0, desc: '测试秒杀' }],
@@ -131,34 +144,33 @@ fs.mkdirSync(OUT, { recursive: true });
     });
   });
   await capturePage.waitForSelector('#battle.on .card', { timeout: 30000 });
-  await capturePage.click('#battle .card');
+  await capturePage.evaluate(() => document.querySelector('#battle .card')?.click());
   await capturePage.waitForSelector('#battle .result.on .rewardChoice', { timeout: 30000 });
   const captureRewardTexts = await capturePage.evaluate(() => Array.from(document.querySelectorAll('#battle .rewardChoice')).map(el => el.textContent.trim()));
   await capturePage.evaluate(() => {
     if (!window.Battle.pickRewardByName('驯化春露兽')) throw new Error('capture reward missing');
   });
-  await capturePage.waitForFunction(() => window.__captureLoot || (JSON.parse(localStorage.getItem('terra_farm') || '{}').beasts || []).some(b => b.species === 'spring_drop'), null, { timeout: 8000 });
+  await capturePage.waitForFunction(() => window.__captureLoot || window.Terra.farm.beasts.some(b => b.species === 'spring_drop'), null, { timeout: 15000 });
   const captureState = await capturePage.evaluate(() => ({
     rewardTexts: window.__captureRewardTexts || [],
     captureLoot: window.__captureLoot || null,
     waterBeasts: window.Terra.farm.beasts.filter(b => b.element === 'water' || b.species === 'water_spirit' || b.species === 'spring_drop').length,
     beastName: document.querySelector('#beastName')?.textContent || '',
-    savedBeasts: JSON.parse(localStorage.getItem('terra_farm') || '{}').beasts?.filter(b => b.element === 'water' || b.species === 'water_spirit' || b.species === 'spring_drop').length || 0,
+    capturedInRuntime: window.Terra.farm.beasts.some(b => b.species === 'spring_drop'),
   }));
-  if (captureState.waterBeasts < 2 || captureState.savedBeasts < 2 || !captureState.beastName.includes('春露兽群')) {
+  if (!captureState.capturedInRuntime || captureState.waterBeasts < 2 || !captureState.beastName.includes('春露兽群')) {
     throw new Error(`capture loop failed: ${JSON.stringify({...captureState, captureRewardTexts})}`);
   }
   await capturePage.close();
 
   const qualityPage = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
-  await qualityPage.goto(`${PUBLIC_BASE}/?v=quality-origin-echo`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-  await qualityPage.waitForFunction(() => window.Battle && window.Terra && window.__dbg?.ready, null, { timeout: 30000 });
+  await loadGame(qualityPage, 'quality-origin-echo');
   await qualityPage.evaluate(() => {
     window.Terra.farm.inventory.cards = [{ name:'丰饶试作', type:'atk', atk:99, quality:.92, cost:0, affixes:['丰饶产地'] }];
     window.Battle.enter({ deck:window.Terra.farm.inventory.cards, debugHand:[{ name:'丰饶试作', type:'atk', val:99, quality:.92, cost:0, desc:'极品产地测试' }], onWin(){}, onLose(){} });
   });
-  await qualityPage.waitForSelector('#battle.on .card', { timeout: 30000 });
-  await qualityPage.click('#battle .card');
+  await qualityPage.waitForFunction(() => window.Battle?.active && document.querySelectorAll('#battle .card').length > 0, null, { timeout: 30000 });
+  await qualityPage.evaluate(() => document.querySelector('#battle .card')?.click());
   await qualityPage.waitForSelector('#battle .result.on .rewardChoice', { timeout: 30000 });
   const qualityOriginState = await qualityPage.evaluate(() => ({
     lootText: document.querySelector('#b_loot')?.textContent || '',

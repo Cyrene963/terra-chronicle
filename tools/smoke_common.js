@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = '/root/terra-chronicle-game';
-const LIVE_ROOT = '/var/www/terra-pixijs';
+const LIVE_ROOT = process.env.TERRA_LIVE_ROOT || '/var/www/terra-pixijs';
 
 function scriptVersions(indexPath = path.join(LIVE_ROOT, 'index.html')) {
   const html = fs.readFileSync(indexPath, 'utf8');

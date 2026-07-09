@@ -3,9 +3,9 @@
 import json, base64, io, os, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from PIL import Image
-from visual_style_contract import STYLE_ANCHOR, anchored
+from visual_style_contract import API_BASE, API_URL, STYLE_ANCHOR, anchored, require_api_key
 
-API="https://ai.input.im/v1/images/generations"; KEY="20090603_WeHaveToBeinHKU"
+API=API_URL; KEY=require_api_key()
 OUT="/root/terra-chronicle-game/assets/sprites"; RAW=OUT+"/_raw"
 STYLE=("hand-painted storybook game art, soft watercolor texture with clean shapes, "
        "Studio Ghibli warmth, gentle painterly shading, masterpiece quality, no text, no watermark")

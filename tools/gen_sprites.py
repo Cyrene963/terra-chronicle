@@ -3,10 +3,10 @@
 import json, base64, io, os, sys, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from PIL import Image
-from visual_style_contract import STYLE_ANCHOR, anchored
+from visual_style_contract import API_BASE, API_URL, STYLE_ANCHOR, anchored, require_api_key
 
-API = "https://ai.input.im/v1/images/generations"
-KEY = "20090603_WeHaveToBeinHKU"
+API = API_URL
+KEY = require_api_key()
 OUT = "/root/terra-chronicle-game/assets/sprites"
 RAW = "/root/terra-chronicle-game/assets/sprites/_raw"
 os.makedirs(OUT, exist_ok=True); os.makedirs(RAW, exist_ok=True)
