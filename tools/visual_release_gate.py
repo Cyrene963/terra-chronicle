@@ -31,6 +31,12 @@ def review_only_path(path: str) -> bool:
         path.startswith("docs/visual-reviews/")
         or path.startswith("docs/visual_review_")
         or path == "tools/visual_release_gate.py"
+        or path in {
+            "tools/alchemy_workshop_polish_smoke.js",
+            "tools/comprehensive_game_review.js",
+            "tools/reward_popup_smoke.js",
+            "tools/visual_quality_audit.js",
+        }
     )
 
 
