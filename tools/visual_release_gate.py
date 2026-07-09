@@ -36,7 +36,9 @@ def review_only_path(path: str) -> bool:
             "tools/comprehensive_game_review.js",
             "tools/reward_popup_smoke.js",
             "tools/visual_quality_audit.js",
+            "tools/verify_public_deploy.js",
         }
+        or path.startswith("ops/releases/")
     )
 
 
