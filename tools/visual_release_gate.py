@@ -27,7 +27,11 @@ def changed_since(revision: str) -> list[str]:
 
 
 def review_only_path(path: str) -> bool:
-    return path.startswith("docs/visual-reviews/") or path.startswith("docs/visual_review_")
+    return (
+        path.startswith("docs/visual-reviews/")
+        or path.startswith("docs/visual_review_")
+        or path == "tools/visual_release_gate.py"
+    )
 
 
 def fail(message: str) -> None:
