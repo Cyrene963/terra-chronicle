@@ -189,6 +189,7 @@ function spawnUpgradeParticles(){
 }
 
 function open(){
+  window.SurfaceLifecycle?.beforeOpen?.('upgrade');
   buildDOM(); render();
   root.classList.add('panel-on');
 }
@@ -196,7 +197,9 @@ function open(){
 function close(){
   if(!root) return;
   root.classList.remove('panel-on');
+  window.SurfaceLifecycle?.afterClose?.('upgrade');
 }
 
 window.FarmUpgrade={open,close};
+window.SurfaceLifecycle?.register?.('upgrade', { close });
 })();

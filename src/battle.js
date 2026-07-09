@@ -98,6 +98,32 @@ function intentFor(turn, enemy){
 }
 
 let S=null, cb=null, root=null, injected=false;
+const BATTLE_BODY_IDS=['energyPreview','energyHint'];
+let battleExiting=false;
+function clearBattleResidualUI(){
+  BATTLE_BODY_IDS.forEach(id=>document.getElementById(id)?.remove());
+  document.querySelectorAll('[data-battle-transient="1"]').forEach(el=>el.remove());
+}
+function finalizeBattleExit(){
+  if(root){
+    root.classList.remove('on');
+    root.style.opacity='0';
+    root.style.display='none';
+    const res=root.querySelector('#b_result');
+    if(res) res.classList.remove('on');
+    const rewards=root.querySelector('#b_rewards');
+    if(rewards) rewards.innerHTML='';
+    const loot=root.querySelector('#b_loot');
+    if(loot) loot.innerHTML='';
+    const phaseEl=root.querySelector('#b_bphase'); if(phaseEl){ phaseEl.textContent=''; phaseEl.className='bossphase'; }
+    const buffEl=root.querySelector('#b_buffs'); if(buffEl) buffEl.textContent='';
+  }
+  clearBattleResidualUI();
+  stopMiasma();
+  Battle.active=false;
+  battleExiting=false;
+  window.SurfaceLifecycle?.afterClose?.('battle');
+}
 
 function injectStyle(){
   if(injected) return; injected=true;
@@ -154,8 +180,8 @@ function injectStyle(){
   #battle .eblock{display:inline-block;margin-left:10px;color:#9fd4e8;font-size:14px;padding:3px 10px;border-radius:999px;background:rgba(159,212,232,.14);}
   #battle .floatN{position:absolute;left:0;top:0;font-family:'Cormorant Garamond',serif;font-size:36px;font-weight:600;
     pointer-events:none;will-change:transform,opacity;text-shadow:0 2px 8px rgba(0,0,0,.6);}
-  #battle .pbar{height:110px;display:flex;align-items:center;justify-content:space-between;padding:0 44px;
-    border-top:1px solid rgba(246,241,231,.18);background:linear-gradient(180deg,rgba(10,8,16,.52),rgba(7,5,10,.88));box-shadow:0 -16px 48px rgba(0,0,0,.32);backdrop-filter:blur(10px) saturate(1.08);}
+  #battle .pbar{height:118px;display:flex;align-items:center;justify-content:space-between;padding:0 44px;
+    border-top:1px solid rgba(214,184,111,.18);background:linear-gradient(180deg,rgba(20,14,12,.52),rgba(12,8,7,.90));box-shadow:0 -18px 52px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.04);backdrop-filter:blur(10px) saturate(1.04);}
   #battle .vit{display:flex;align-items:center;gap:28px;}
   #battle .stat{display:flex;flex-direction:column;gap:7px;min-width:130px;}
   #battle .stat .lab{font-size:11px;letter-spacing:.26em;opacity:.92;color:#f4d075;text-shadow:0 2px 8px rgba(0,0,0,.7);}
@@ -177,7 +203,7 @@ function injectStyle(){
   #battle .hand{position:absolute;bottom:76px;left:0;right:0;height:clamp(244px,30vh,292px);display:flex;align-items:flex-end;
     justify-content:center;gap:clamp(6px,1vw,14px);pointer-events:none;perspective:900px;}
   #battle .hand::before{content:'';position:absolute;left:50%;bottom:-42px;width:min(920px,86vw);height:250px;transform:translateX(-50%);border-radius:48% 48% 0 0;
-    background:linear-gradient(180deg,rgba(10,8,14,0),rgba(9,7,13,.74) 42%,rgba(7,5,10,.9));filter:blur(.2px);pointer-events:none;}
+    background:linear-gradient(180deg,rgba(24,17,12,0),rgba(22,16,12,.62) 42%,rgba(12,9,8,.84));filter:blur(.2px);pointer-events:none;}
   #battle .card{width:clamp(154px,11.4vw,178px);height:clamp(218px,16vw,254px);margin:0;border-radius:16px;cursor:pointer;pointer-events:auto;
     background:url('assets/sprites/card_frame_terra_real.png?v=1') center/100% 100% no-repeat;
     border:0;box-shadow:0 16px 34px rgba(0,0,0,.52),0 0 22px rgba(218,176,91,.12);
@@ -213,27 +239,28 @@ function injectStyle(){
   @keyframes chargeSpin{to{transform:rotate(360deg)}}
   #battle .card .ctype{font-size:clamp(12px,.9vw,14px);letter-spacing:.07em;text-align:center;color:#5b3514;opacity:1;margin:0 0 5px;text-shadow:0 1px 0 rgba(255,248,224,.5);font-weight:900;}
   #battle .card .cdesc{font-size:clamp(13.6px,1.04vw,15.4px);line-height:1.32;text-align:center;opacity:1;letter-spacing:.005em;background:rgba(255,248,224,.91);border:1px solid rgba(120,75,32,.32);border-radius:10px;padding:8px 8px;color:#26180c;min-height:52px;text-shadow:0 1px 0 rgba(255,248,224,.55);font-weight:900;}
-  #battle .topbar{position:absolute;top:18px;left:50%;right:auto;transform:translateX(-50%);text-align:center;min-width:min(620px,82vw);background:linear-gradient(180deg,rgba(13,9,12,.84),rgba(25,15,20,.56));border:1px solid rgba(244,208,117,.24);border-radius:22px;padding:12px 24px;box-shadow:0 16px 42px rgba(0,0,0,.32);backdrop-filter:blur(10px) saturate(1.08);}
+  #battle .topbar{position:absolute;top:18px;left:50%;right:auto;transform:translateX(-50%);text-align:center;min-width:min(620px,82vw);background:linear-gradient(180deg,rgba(29,20,14,.86),rgba(17,11,9,.72));border:1px solid rgba(214,184,111,.28);border-radius:24px;padding:14px 26px 16px;box-shadow:0 18px 46px rgba(0,0,0,.34), inset 0 0 0 1px rgba(255,255,255,.05);backdrop-filter:blur(10px) saturate(1.04);}
   #battle .topbar .t{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:18px;letter-spacing:.18em;opacity:1;color:#fff1cf;text-shadow:0 2px 8px rgba(0,0,0,.78);}
-  #battle .buffline{margin-top:9px;font-size:11px;letter-spacing:.2em;color:#f4d03f;opacity:.84;text-shadow:0 2px 8px rgba(0,0,0,.7);padding:6px 12px;border-radius:999px;background:rgba(244,208,63,.08);display:inline-block;}
-  #battle .bossphase{margin-top:8px;font-size:12px;letter-spacing:.24em;color:#ffb86c;opacity:.94;text-shadow:0 2px 10px rgba(0,0,0,.75);padding:5px 14px;border-radius:999px;background:rgba(255,184,108,.1);display:inline-block;}
+  #battle .buffline{margin-top:10px;font-size:11px;letter-spacing:.2em;color:#f4d03f;opacity:.9;text-shadow:0 2px 8px rgba(0,0,0,.7);padding:6px 14px;border-radius:999px;background:rgba(244,208,63,.10);display:inline-block;border:1px solid rgba(214,184,111,.14);}
+  #battle .bossphase{margin-top:8px;font-size:12px;letter-spacing:.24em;color:#ffb86c;opacity:.94;text-shadow:0 2px 10px rgba(0,0,0,.75);padding:6px 14px;border-radius:999px;background:rgba(255,184,108,.12);display:inline-block;border:1px solid rgba(255,184,108,.18);}
   #battle .bossphase.enraged{color:#ff8e6c;background:rgba(255,142,108,.14);animation:enragedPulse 1.2s ease-in-out infinite;}
   @keyframes enragedPulse{0%,100%{opacity:.94}50%{opacity:1;transform:scale(1.02)}}
-  #battle .deckcount{position:absolute;bottom:110px;font-size:12px;letter-spacing:.14em;opacity:.9;color:#f4d075;text-shadow:0 2px 8px rgba(0,0,0,.75);}
-  #battle .deckcount.draw{left:34px;} #battle .deckcount.disc{right:34px;}
+  #battle .deckcount{position:absolute;bottom:116px;font-size:11px;letter-spacing:.18em;opacity:.92;color:#f4d075;text-shadow:0 2px 8px rgba(0,0,0,.75);padding:8px 12px;border-radius:999px;background:rgba(20,14,12,.62);border:1px solid rgba(214,184,111,.14);box-shadow:0 6px 18px rgba(0,0,0,.26);}
+  #battle .deckcount.draw{left:28px;} #battle .deckcount.disc{right:28px;}
   #battle .result{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;
-    background:radial-gradient(circle at 50% 38%,rgba(201,162,75,.18),transparent 34%),rgba(8,6,14,.82);backdrop-filter:blur(9px) saturate(1.1);text-align:center;gap:0;padding:32px;}
+    background:radial-gradient(circle at 50% 38%,rgba(201,162,75,.16),transparent 34%),linear-gradient(180deg,rgba(14,10,9,.78),rgba(8,6,14,.88));backdrop-filter:blur(9px) saturate(1.04);text-align:center;gap:0;padding:32px;}
   #battle .result.on{display:flex;}
   #battle .result::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,244,210,.05),transparent 22%,rgba(0,0,0,.22));pointer-events:none;}
-  #battle .rewardPanel{position:relative;width:min(980px,92vw);max-height:88vh;display:flex;flex-direction:column;align-items:center;gap:18px;padding:72px 82px 78px;border:0;border-radius:30px;background:url('assets/sprites/reward_panel_terra_real.png?v=1') center/100% 100% no-repeat;box-shadow:0 34px 90px rgba(0,0,0,.58);overflow:hidden;}
+  #battle .rewardPanel{position:relative;width:min(980px,92vw);max-height:88vh;display:flex;flex-direction:column;align-items:center;gap:18px;padding:72px 82px 78px;border:0;border-radius:30px;background:url('assets/sprites/reward_panel_terra_real.png?v=1') center/100% 100% no-repeat;box-shadow:0 34px 90px rgba(0,0,0,.58), inset 0 0 0 1px rgba(255,255,255,.18);overflow:hidden;}
   #battle .rewardPanel::before{content:'';position:absolute;inset:58px 72px 66px;border:1px solid rgba(132,83,31,.12);border-radius:22px;pointer-events:none;}
+  #battle .rewardPanel::after{content:'';position:absolute;left:80px;right:80px;top:56px;height:46px;background:linear-gradient(180deg,rgba(255,255,255,.12),transparent);pointer-events:none;opacity:.55;}
   #battle .result h2{position:relative;font-family:'Cormorant Garamond','Noto Serif SC',serif;font-size:clamp(38px,5vw,62px);font-weight:300;letter-spacing:.34em;text-indent:.34em;color:#6a3f16;text-shadow:0 2px 0 rgba(255,245,210,.6),0 8px 22px rgba(95,55,18,.18);}
   #battle .result h2::after{content:'';display:block;width:240px;max-width:48vw;height:1px;margin:14px auto 0;background:linear-gradient(90deg,transparent,rgba(244,208,63,.8),transparent);}
   #battle .result .loot{position:relative;font-size:15px;letter-spacing:.13em;line-height:1.9;opacity:.96;color:#5e3f1e;max-width:760px;font-weight:800;}
   #battle .result .loot .sub{display:block;margin-top:4px;opacity:.78;font-size:12px;letter-spacing:.16em;color:#7c5a2f;}
   #battle .result .gold{color:#f4d03f;}
-  #battle .rewardChoices{position:relative;display:grid;grid-template-columns:repeat(3,minmax(178px,1fr));gap:20px 22px;justify-content:center;width:min(700px,86vw);margin-top:10px;}
-  #battle .rewardChoice{position:relative;min-height:142px;border:1px solid rgba(218,176,91,.58);border-radius:18px;background:linear-gradient(180deg,rgba(255,247,219,.98),rgba(218,183,119,.94));padding:14px 15px 16px;cursor:pointer;color:#2f2012;text-shadow:none;box-shadow:0 18px 34px rgba(0,0,0,.3),inset 0 0 0 1px rgba(255,255,255,.48);transition:transform .25s,box-shadow .25s,border-color .25s,filter .25s;overflow:hidden;}
+  #battle .rewardChoices{position:relative;display:grid;grid-template-columns:repeat(3,minmax(188px,1fr));gap:20px 22px;justify-content:center;width:min(760px,88vw);margin-top:12px;align-items:stretch;}
+  #battle .rewardChoice{position:relative;min-height:152px;border:1px solid rgba(218,176,91,.58);border-radius:18px;background:linear-gradient(180deg,rgba(255,247,219,.98),rgba(218,183,119,.94));padding:14px 15px 16px;cursor:pointer;color:#2f2012;text-shadow:none;box-shadow:0 18px 34px rgba(0,0,0,.3),inset 0 0 0 1px rgba(255,255,255,.48);transition:transform .25s,box-shadow .25s,border-color .25s,filter .25s;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-start;}
   #battle .rewardChoice::before{content:'';position:absolute;inset:6px;border:1px solid rgba(116,74,28,.24);border-radius:13px;pointer-events:none;}
   #battle .rewardChoice::after{content:'';position:absolute;left:-20%;right:-20%;top:-40%;height:70%;background:radial-gradient(ellipse at 50% 50%,rgba(255,255,255,.28),transparent 66%);pointer-events:none;}
   #battle .rewardChoice:hover{transform:translateY(-6px) scale(1.018);border-color:#f4d03f;box-shadow:0 24px 54px rgba(0,0,0,.42),0 0 28px rgba(244,208,63,.28),inset 0 0 0 1px rgba(255,255,255,.5);filter:saturate(1.06);}
@@ -328,6 +355,7 @@ function spawnCardParticles(x,y,cardType){
   const col=colors[cardType]||colors.atk;
   for(let i=0;i<12+Math.random()*8;i++){
     const p=document.createElement('div');
+    p.dataset.battleTransient='1';
     p.style.cssText=`position:absolute;left:${x}px;top:${y}px;width:${4+Math.random()*6}px;height:${4+Math.random()*6}px;border-radius:50%;background:#${col[Math.random()<0.5?0:1].toString(16)};pointer-events:none;z-index:95`;
     document.body.appendChild(p);
     const ang=Math.random()*Math.PI*2,speed=50+Math.random()*120;
@@ -408,6 +436,7 @@ function showEnergyPreview(current, max){
   if(!preview){
     preview=document.createElement('div');
     preview.id='energyPreview';
+    preview.dataset.battleTransient='1';
     preview.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:48px;font-weight:700;color:#f4d03f;text-shadow:0 4px 12px rgba(0,0,0,.8);pointer-events:none;opacity:0;transition:opacity .3s;z-index:95;font-family:"Cormorant Garamond",serif';
     document.body.appendChild(preview);
   }
@@ -511,6 +540,7 @@ function showEnergyHint(afterCost, max){
   if(!hint){
     hint=document.createElement('div');
     hint.id='energyHint';
+    hint.dataset.battleTransient='1';
     hint.style.cssText='position:fixed;top:20%;left:50%;transform:translateX(-50%);font-size:28px;font-weight:600;padding:12px 24px;border-radius:999px;background:rgba(10,12,14,.85);border:1px solid rgba(244,208,63,.6);backdrop-filter:blur(8px);pointer-events:none;opacity:0;transition:opacity .2s;z-index:94;font-family:"Noto Serif SC",serif';
     document.body.appendChild(hint);
   }
@@ -686,7 +716,7 @@ function rewardChoices(){
 }
 
 function pickReward(loot){
-  if(!S||!S.over) return;
+  if(!S||!S.over || battleExiting) return;
   S._loot=loot;
   exit();
 }
@@ -699,8 +729,12 @@ function pickRewardByName(name){
 }
 
 function finish(win){
-  S.over=true; render();
+  S.over=true;
+  S.phase='result';
+  render();
   const res=root.querySelector('#b_result');
+  hideEnergyHint();
+  clearBattleResidualUI();
   const rewards=root.querySelector('#b_rewards');
   rewards.innerHTML='';
   root.querySelector('#b_rtitle').textContent = win?'胜 利':'败 退';
@@ -736,12 +770,14 @@ function finish(win){
   S._win=win;
 }
 function exit(){
-  if(!Battle.active) return;
+  if(!Battle.active || battleExiting) return;
+  battleExiting=true;
   const win=S?S._win:false, loot=S?S._loot||{}:{}, c=cb;
-  Battle.active=false; cb=null; stopMiasma();
+  cb=null; clearBattleResidualUI();
   fadeToBlack(()=>{
-    root.classList.remove('on');
-    setTimeout(()=>{ root.style.display='none'; S=null; fadeFromBlack(); }, 200);
+    finalizeBattleExit();
+    S=null;
+    fadeFromBlack();
     if(win&&c&&c.onWin) c.onWin(loot);
     else if(!win&&c&&c.onLose) c.onLose();
   });
@@ -750,8 +786,11 @@ function exit(){
 const Battle={
   active:false,
   enter(opts){
+    window.SurfaceLifecycle?.beforeOpen?.('battle');
+    clearBattleResidualUI();
     fadeToBlack(()=>{
       injectStyle(); buildDOM();
+      clearBattleResidualUI();
       cb=opts||{};
       const deck=shuffle(buildDeck(cb.deck));
       S={ pHP:60, pMax:60, shield:0, thorns:0, energy:3, energyMax:3,
@@ -762,7 +801,9 @@ const Battle={
       else if(cb.isElite){ S.enemy.max=S.enemy.hp=70; }
       applyRunBuffs();
       setEnemyPresentation();
-      root.style.display='block'; root.querySelector('#b_result').classList.remove('on');
+      root.style.display='block';
+      root.style.opacity='1';
+      const result=root.querySelector('#b_result'); if(result) result.classList.remove('on');
       const ar=root.querySelector('.arena'); if(ar) ar.style.transform='';
       requestAnimationFrame(()=>{
         root.classList.add('on');
@@ -777,4 +818,8 @@ const Battle={
   pickRewardByName,
 };
 window.Battle=Battle;
+window.SurfaceLifecycle?.register?.('battle', {
+  close(){ if(Battle.active && !battleExiting) exit(); },
+  cleanup: clearBattleResidualUI
+});
 })();

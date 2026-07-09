@@ -43,6 +43,8 @@ async function loadTex(src, mode){
 /* ================= 1. 资产清单(换图接口) ================= */
 /* season:[春,夏,秋,冬] 四季专属贴图(取代代码调色);缺省回退到 src */
 const ASSETS = {
+  // 注意: idle 是正面/三分之四视角, walk_sheet 是明确朝右的侧身序列。
+  // runtime 必须以 walk 的朝向语义为准,否则会出现“逻辑没反,视觉直觉仍反”的错觉。
   player:   { src: 'assets/sprites/player_idle.png', w: 46,  h: 73,  anchorY: 1.0, faceDir: 1 },
   tree:     { src: 'assets/sprites/tree_oak.png',    w: 128, h: 125, anchorY: 0.96, collideR: 18,
               season: ['assets/sprites/tree_oak.png','assets/sprites/tree_oak.png','assets/sprites/tree_oak_autumn.png','assets/sprites/tree_oak_winter.png'] },
@@ -81,6 +83,10 @@ const ASSETS = {
 };
 
 const SELECTED_PET_DEFS = {
+  water_spirit:{
+    name:'水灵兽', element:'water', role:'巡田 / 守水', branches:['清泉灵','雨脉灵','潮息灵'],
+    passive:'巡田守水', active:'净润祝祷', effect:{water:0.6,quality:2,soil:3}, cost:{}
+  },
   beast_shrine_fox_spirit:{
     name:'神社狐灵', element:'spirit', role:'侦察 / 符咒', branches:['巡界狐','御札狐','稻荷狐'],
     passive:'狐火巡界', active:'御札标记', effect:{rare:0.08,pest:-4,spiritCharm:1}, cost:{beast_soul:1}
@@ -147,7 +153,8 @@ function genMap(){
     }
   }
   // 耕地两片(带肥力档案)
-  const plots=[[22,28,8,5],[14,36,7,4]];
+  // Wave 1: 首屏庄园区收窄主耕地高度，避免一进场就被大块深色矩形压住画面
+  const plots=[[22,29,8,4],[14,36,7,4]];
   for(const [px,py,pw,ph] of plots)
     for(let y=py;y<py+ph;y++)for(let x=px;x<px+pw;x++){
       grid[y][x]='p';
@@ -157,8 +164,15 @@ function genMap(){
         pest:5+((r*29)%1)*28|0,mana:20+((r*71)%1)*70|0};
     }
   // 小路:屋前向东过桥到果园 + 向南
-  for(let x=24;x<=46;x++){const y=26+Math.round(Math.sin(x*.3)*1.2); grid[y][x]='b'===grid[y][x]?'b':(grid[y][x]==='w'?grid[y][x]:'s'); grid[y+1][x]=grid[y+1][x]==='w'?'w':'s';}
-  for(let y=14;y<=26;y++){ if(grid[y][21]!=='w')grid[y][21]='s'; }
+  for(let x=23;x<=46;x++){
+    const y=26+Math.round(Math.sin(x*.3)*1.1);
+    for(let yy=y; yy<=y+1; yy++) if(grid[yy] && grid[yy][x]!=='w' && grid[yy][x]!=='b') grid[yy][x]='s';
+    if(grid[y-1] && x>=23 && x<=28 && grid[y-1][x]!=='w') grid[y-1][x]='s';
+  }
+  for(let y=14;y<=27;y++){
+    if(grid[y][21]!=='w') grid[y][21]='s';
+    if(grid[y][22] && grid[y][22]!=='w' && y>=20) grid[y][22]='s';
+  }
   // 水域阻挡
   for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++) if(grid[y][x]==='w') blocked.add(x+','+y);
 }
@@ -187,8 +201,24 @@ function placeObjects(){
   // 农庄
   OBJECTS.push({kind:'house',tx:20,ty:24});
   OBJECTS.push({kind:'windmill',tx:16,ty:20});
-  // 耕地栅栏(留缺口)
-  for(let x=21;x<=30;x++){ if(x!==25&&x!==26){OBJECTS.push({kind:'fence',tx:x,ty:27.4});OBJECTS.push({kind:'fence',tx:x,ty:33.4});} }
+  // Wave 1: 主屋周边补“有人经营”的生活摆位，减少随机荒地感
+  OBJECTS.push({kind:'bush',tx:17.8,ty:25.6});
+  OBJECTS.push({kind:'bush',tx:23.2,ty:25.4});
+  OBJECTS.push({kind:'rock',tx:18.4,ty:22.8});
+  OBJECTS.push({kind:'tree',tx:17.2,ty:28.3});
+  OBJECTS.push({kind:'tree',tx:23.8,ty:29.0});
+  OBJECTS.push({kind:'fence',tx:18.4,ty:27.2});
+  OBJECTS.push({kind:'fence',tx:19.4,ty:27.3});
+  OBJECTS.push({kind:'fence',tx:20.4,ty:27.35});
+  // 耕地栅栏(留缺口) — Wave 1: 弱化首屏横向硬切，把栅栏更多留在田地下沿
+  for(let x=22;x<=29;x++){
+    if(x!==25&&x!==26){
+      if(x<=23 || x>=28) OBJECTS.push({kind:'fence',tx:x,ty:28.1});
+      OBJECTS.push({kind:'fence',tx:x,ty:32.4});
+    }
+  }
+  OBJECTS.push({kind:'fence',tx:21.4,ty:30.1});
+  OBJECTS.push({kind:'fence',tx:30.6,ty:30.1});
   // 深渊传送门(东北角):清掉该格已有物件再放置
   for(let i=OBJECTS.length-1;i>=0;i--){ const o=OBJECTS[i];
     if(Math.abs(o.tx-47)<2 && Math.abs(o.ty-10)<2) OBJECTS.splice(i,1); }
@@ -321,7 +351,10 @@ function applySeasonGrade(st){
 
 /* ================= 5. 瓦片地图渲染 ================= */
 const KIND2PAL={g:'grass',G:'grassB',s:'soil',w:'water',b:'sand',p:'plot'};
-const tileSprites=[], waterTiles=[], snowAt=[], grassTiles=[];
+const tileSprites=[], waterTiles=[], snowAt=[], grassTiles=[], plotTiles=[];
+let plotBaseTex=null, plotIntroTex=null;
+loadTex(ASSETS.tiles.plot.src,'tile').then(tex=>{ plotBaseTex=tex; }).catch(()=>{});
+loadTex(ASSETS.tiles.soil.src,'tile').then(tex=>{ plotIntroTex=tex; }).catch(()=>{});
 for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
   const k=grid[y][x];
   const t=ASSETS.tiles[{g:'grass',G:'grass',s:'soil',w:'water',b:'sand',p:'plot'}[k]];
@@ -332,6 +365,7 @@ for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
   sp._k=k; sp._j=0.975+r*0.05;                 // 每块明度抖动(极轻,避免棋盘格感)
   sp._ph=r*6.28;                               // 水面相位
   if(k==='g'||k==='G') grassTiles.push(sp);    // 草地:随季换图
+  if(k==='p') plotTiles.push(sp);              // Wave 1: 首屏弱化深色耕地块存在感
   if(k==='w'){ waterL.addChild(sp); waterTiles.push(sp); snowAt.push(null); }   // 水→独立层
   else {
     groundL.addChild(sp);
@@ -355,21 +389,48 @@ for(let gy=0; gy<MAP; gy+=4) for(let gx=0; gx<MAP; gx+=4){
   veil.blendMode='multiply';
   groundVeilL.addChild(veil);
 }
+// Wave 1: 庄园周边额外低频整理层——让核心区域更像被照料过，外围仍保留野地感
+for(const zone of [
+  {x:20.5*TS,y:24.5*TS,w:TS*8.5,h:TS*6.2,tint:0xe2d58f,alpha:0.10},
+  {x:24.5*TS,y:23.2*TS,w:TS*5.2,h:TS*3.8,tint:0xf1de97,alpha:0.11},
+  {x:22.8*TS,y:29.0*TS,w:TS*7.2,h:TS*4.8,tint:0xd0c27e,alpha:0.08},
+  {x:17.6*TS,y:21.8*TS,w:TS*4.8,h:TS*4.0,tint:0xc5d884,alpha:0.07},
+  {x:28.2*TS,y:26.5*TS,w:TS*6.2,h:TS*4.4,tint:0xe6cf88,alpha:0.07},
+  {x:13.0*TS,y:25.5*TS,w:TS*10.5,h:TS*9.0,tint:0x90b96a,alpha:0.045},
+  {x:31.5*TS,y:24.0*TS,w:TS*9.5,h:TS*7.0,tint:0x94b863,alpha:0.04},
+  {x:21.6*TS,y:20.6*TS,w:TS*11.2,h:TS*8.4,tint:0xe8da92,alpha:0.035},
+  {x:25.8*TS,y:31.5*TS,w:TS*9.6,h:TS*6.8,tint:0xd8c57d,alpha:0.03},
+  {x:9.8*TS,y:27.8*TS,w:TS*12.8,h:TS*10.6,tint:0x86ad63,alpha:0.028},
+  {x:37.2*TS,y:22.0*TS,w:TS*12.5,h:TS*9.8,tint:0x7ea65b,alpha:0.024},
+  {x:6.5*TS,y:18.0*TS,w:TS*13.5,h:TS*11.5,tint:0x799d56,alpha:0.020},
+  {x:42.5*TS,y:28.0*TS,w:TS*12.8,h:TS*12.0,tint:0x739851,alpha:0.020},
+  {x:18.8*TS,y:34.2*TS,w:TS*14.2,h:TS*7.6,tint:0xd0bf76,alpha:0.018},
+  {x:33.0*TS,y:14.8*TS,w:TS*11.0,h:TS*8.5,tint:0x7ea25a,alpha:0.016},
+  {x:24.0*TS,y:25.0*TS,w:TS*16.0,h:TS*12.0,tint:0xf0df9a,alpha:0.012}
+]){
+  const veil=new PIXI.Sprite(TEX_GLOW);
+  veil.anchor.set(.5); veil.x=zone.x; veil.y=zone.y;
+  veil.width=zone.w; veil.height=zone.h;
+  veil.tint=zone.tint; veil.alpha=zone.alpha;
+  veil.blendMode='screen';
+  groundVeilL.addChild(veil);
+}
 
 /* ================= 5.5 水面优化（轻量级边缘柔化）================= */
 // 在水陆边界添加半透明泡沫层,用最轻量的方式平滑过渡(无重度滤镜)
 const isWater=(x,y)=>grid[y]&&grid[y][x]==='w';
 for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
   if(!isWater(x,y)) continue;
-  // 检测4邻方向是否有陆地,有则在边缘叠加柔光泡沫
-  const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+  // 检测8邻方向是否有陆地,增加斜向柔化，继续削弱直角台阶感
+  const dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]];
   for(const [dx,dy] of dirs){
     if(isWater(x+dx,y+dy)) continue;
     const foam=new PIXI.Sprite(TEX_GLOW); foam.anchor.set(.5);
-    foam.width=TS*1.2; foam.height=TS*1.2;
-    foam.x=x*TS+TS/2+dx*TS*0.35; foam.y=y*TS+TS/2+dy*TS*0.35;
+    const diag = dx!==0 && dy!==0;
+    foam.width=TS*(diag?1.05:1.2); foam.height=TS*(diag?1.05:1.2);
+    foam.x=x*TS+TS/2+dx*TS*(diag?0.28:0.35); foam.y=y*TS+TS/2+dy*TS*(diag?0.28:0.35);
     foam._ph=hash(x*19+dx*7,y*23+dy*5)*6.28;
-    foam.tint=0xeefaff; foam.alpha=.28; foam.blendMode='add';
+    foam.tint=diag?0xdaf7ff:0xeefaff; foam.alpha=diag?.16:.28; foam.blendMode='add';
     foamL.addChild(foam);
   }
 }
@@ -600,7 +661,7 @@ objL.addChild(player);
 const keys={};
 const movementKeys=new Set(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright']);
 addEventListener('keydown',e=>{
-  if(window.Battle&&Battle.active) return;          // 战斗中禁用世界输入
+  if(window.SurfaceLifecycle?.isInputLocked?.() || (window.Battle&&Battle.active)) return;
   const key=e.key.toLowerCase();
   keys[key]=true;
   if(movementKeys.has(key)) e.preventDefault();
@@ -644,7 +705,11 @@ function animateWalk(dt,moving,speed){
     scaleY: 1 + (enhanceRaw.scaleY - 1) * 0.38,
     offsetY: enhanceRaw.offsetY * 0.35
   };
-  const finalScaleX = facing*fd*PS*(1-squash*.18) * enhance.scaleX;
+
+  // 关键语义: 右移 = 看到角色面朝右, 左移 = 镜像到面朝左。
+  // 不再让 idle 的正面角度主导方向判断。
+  const facingScaleX = (facing >= 0 ? 1 : -1) * fd;
+  const finalScaleX = facingScaleX*PS*(1-squash*.18) * enhance.scaleX;
   const finalScaleY = PS*(1+squash*.32) * enhance.scaleY;
 
   player._rig.scale.set(finalScaleX, finalScaleY);
@@ -765,10 +830,12 @@ function movePlayer(dt){
 }
 
 /* ================= 8. 镜头 ================= */
+const INTRO_FOCUS={ x:22.5*TS, y:23.2*TS };
 const cam={x:player.x,y:player.y,zoom:.62,tzoom:1};
 function updateCamera(dt){
   const k=Math.min(1,dt*4.2);
-  cam.x+=(player.x-cam.x)*k; cam.y+=(player.y-cam.y)*k;
+  const focus = (tutorialState && tutorialState.phase === 'intro') ? INTRO_FOCUS : player;
+  cam.x+=(focus.x-cam.x)*k; cam.y+=(focus.y-cam.y)*k;
   cam.zoom+=(cam.tzoom-cam.zoom)*Math.min(1,dt*2.2);
   const vw=app.screen.width, vh=app.screen.height;
   // 镜头不越出世界边缘
@@ -1250,9 +1317,10 @@ function nearestFurnace(){ for(const o of OBJECTS){ if(o.kind!=='furnace')contin
 // 全局光(乘) + 暮金(加) + 晕影 + 太阳柔光
 const ambient=new PIXI.Sprite(PIXI.Texture.WHITE); ambient.blendMode='multiply';
 const golden=new PIXI.Sprite(TEX_GLOW); golden.blendMode='add'; golden.anchor.set(.5);
+const homesteadFocus=new PIXI.Sprite(TEX_GLOW); homesteadFocus.blendMode='add'; homesteadFocus.anchor.set(.5);
 const vignette=new PIXI.Sprite(TEX_VIGNET);
 const partC=new PIXI.Container();
-fxScreen.addChild(ambient, golden, partC, vignette);
+fxScreen.addChild(ambient, golden, homesteadFocus, partC, vignette);
 
 // 云影(世界空间,乘)
 const cloudShadows=[];
@@ -1454,6 +1522,22 @@ app.ticker.add(tk=>{
     if(ph>=1){ for(const g of grassTiles) g.alpha=1; grassSwap=null; }
   }
   const wph=elapsed*2;
+  const plotPhase = tutorialState?.phase;
+  for(const p of plotTiles){
+    if(plotPhase === 'intro') {
+      if(plotIntroTex && p.texture !== plotIntroTex) p.texture = plotIntroTex;
+      p.alpha = 1;
+      p.tint = 0xffffff;
+    } else if(plotPhase === 'first_card') {
+      if(plotIntroTex && p.texture !== plotIntroTex) p.texture = plotIntroTex;
+      p.alpha = 1;
+      p.tint = 0xe7cf92;
+    } else {
+      if(plotBaseTex && p.texture !== plotBaseTex) p.texture = plotBaseTex;
+      p.alpha = 1;
+      p.tint = 0xffffff;
+    }
+  }
   for(const sp of waterTiles){ if(!sp.visible) continue;        // 流水:沿河道移动的亮带(非逐格随机)
     const flow=Math.sin((sp.position.y*0.03+sp.position.x*0.013)-elapsed*1.5)*0.5+0.5;
     const b=0.94+flow*0.10; sp.tint=hex([108*b,176*b,198*b]);
@@ -1571,7 +1655,14 @@ app.ticker.add(tk=>{
   const p=dayPhase(), dusk=Math.max(0,1-Math.abs(p-.42)*9)+Math.max(0,1-Math.abs(p-.08)*9);
   golden.x=vw*.5; golden.y=vh*.55; golden.width=vw*1.5; golden.height=vh*1.2;
   golden.tint=0xe89646; golden.alpha=dusk*.34;
+  homesteadFocus.width = vw * 0.55;
+  homesteadFocus.height = vh * 0.42;
+  homesteadFocus.x = vw * 0.46;
+  homesteadFocus.y = vh * 0.44;
+  homesteadFocus.tint = 0xf3d78f;
+  homesteadFocus.alpha = tutorialState?.phase === 'intro' ? 0.16 : tutorialState?.phase === 'first_card' ? 0.08 : 0;
   vignette.width=vw; vignette.height=vh;
+  vignette.alpha = tutorialState?.phase === 'intro' ? 0.68 : tutorialState?.phase === 'first_card' ? 0.54 : 1;
   for(const c of cloudShadows){ c.x+=c._v*dt; if(c.x>MAP*TS+600)c.x=-600; }
 
   // 粒子系统更新 (v9.14: 优先使用高级粒子系统)
@@ -1586,12 +1677,9 @@ app.ticker.add(tk=>{
   if(hudClock<=0){ hudClock=.1; updateHUD(st,Math.floor(elapsed/DAY_SECONDS)); updateEcoHUD(); updatePerfHUD(); }
   updateInteractionIndicators();
   if(tutorialState.active){
-    // 教程进度兜底检测（无论玩家用 WASD 还是点击寻路靠近，都能推进）
-    if(tutorialState._alchemyOpened && !tutorialState._alchemyClosed){
-      const alchemyPanel = document.querySelector('#alchemy.on,#alchemyPanel.on,.alchemy-overlay.on,.alchemy-overlay.panel-on,#alchemyUI.panel-on,#alchemyUI.on');
-      if(!alchemyPanel) tutorialState._alchemyClosed = true;
-    }
-    if(tutorialState._alchemyClosed && !tutorialState._portalVisited && nearestPortal()) tutorialState._portalVisited = true;
+    // Wave 1: 第一小时目标链从“控件教学”改为“第一轮资源循环”
+    tutorialState._firstCardCrafted = tutorialState._firstCardCrafted || farm.inventory.cards.length > 0;
+    if(tutorialState._firstCardCrafted && !tutorialState._portalVisited && nearestPortal()) tutorialState._portalVisited = true;
     advanceTutorial();
   }
   springTick(dt);
@@ -1764,7 +1852,7 @@ function openPanel(meta){
 /* 点击/触摸 = 寻路移动 + 上下文交互;右键 = 查看地籍档案 */
 function screenToWorld(cx,cy){ return { wx:(cx-world.x)/world.scale.x, wy:(cy-world.y)/world.scale.y }; }
 app.canvas.addEventListener('pointerdown',e=>{
-  if(!entered || e.button===2) return;
+  if(!entered || e.button===2 || window.SurfaceLifecycle?.isInputLocked?.()) return;
   const {wx,wy}=screenToWorld(e.clientX,e.clientY);
   commandTo(wx,wy);
 });
@@ -1781,6 +1869,7 @@ function bindMobileControls(){
     action.addEventListener('pointerdown',e=>{
       e.preventDefault();
       if(!entered) return;
+      if(window.SurfaceLifecycle?.isInputLocked?.()) return;
       if(window.Battle && Battle.active) return;
       if(window.WorldMapIntegration && WorldMapIntegration.isOpen) return;
       interact();
@@ -1806,25 +1895,58 @@ const tutorialState = {
   step: 0,
   completed: false,
   steps: [
-    { id: 'move', title: 'WASD 移动', check: () => tutorialState._moved },
-    { id: 'chop', title: '点击树木伐木', target: 'tree', check: () => tutorialState._chopped || (farm.inventory.materials.wood||0) > 8 },
-    { id: 'alchemy', title: '打开炼金面板', target: 'fab', check: () => tutorialState._alchemyOpened },
-    { id: 'close', title: '关闭炼金面板', check: () => tutorialState._alchemyClosed },
-    { id: 'portal', title: '前往深渊传送门', target: 'portal', check: () => tutorialState._portalVisited }
+    { id: 'move', title: '走近你的庄园', check: () => tutorialState._moved },
+    { id: 'chop', title: '收集第一批木材', target: 'tree', check: () => tutorialState._chopped || (farm.inventory.materials.wood||0) >= 2 },
+    { id: 'alchemy', title: '点亮第一张卡牌', target: 'fab', check: () => tutorialState._firstCardCrafted || farm.inventory.cards.length > 0 },
+    { id: 'portal', title: '带着新卡前往远征门', target: 'portal', check: () => tutorialState._portalVisited }
   ],
   _moved: false,
   _chopped: false,
   _alchemyOpened: false,
   _alchemyClosed: false,
-  _portalVisited: false
+  _portalVisited: false,
+  _firstCardCrafted: false,
+  phase: 'intro'
 };
 window.tutorialState = tutorialState;
+function applyWave1SurfacePhase(){
+  const phase = tutorialState.completed ? 'freeplay' : (tutorialState.step <= 1 ? 'intro' : tutorialState.step === 2 ? 'first_card' : 'first_expedition');
+  tutorialState.phase = phase;
+  document.body.dataset.phase = phase;
+  const eventIndicator=$('eventIndicator'), ecoPanel=$('ecoPanel'), beastPanel=$('beastPanel');
+  const weatherTag=$('weatherTag'), seasonDial=$('seasonDial'), clock=$('clock'), stamina=$('stamina');
+  const whisper=$('whisper'), hintAction=$('hintAction'), cardPeek=$('cardPeek');
+  if(eventIndicator) eventIndicator.style.display = phase === 'freeplay' ? 'block' : 'none';
+  if(ecoPanel) ecoPanel.style.display = phase === 'freeplay' ? 'block' : 'none';
+  if(weatherTag) weatherTag.style.display = phase === 'intro' ? 'none' : 'block';
+  if(hintAction) hintAction.style.display = phase === 'intro' ? 'none' : 'block';
+  if(cardPeek) cardPeek.style.display = phase === 'intro' ? 'none' : 'block';
+  const craftFAB=document.getElementById('craftFAB');
+  if(craftFAB) craftFAB.style.display = phase === 'intro' ? 'none' : 'flex';
+  if(seasonDial) seasonDial.style.opacity = phase === 'intro' ? '.72' : '1';
+  if(clock) clock.style.opacity = phase === 'intro' ? '.72' : '1';
+  if(stamina) stamina.style.opacity = phase === 'intro' ? '.72' : '1';
+  if(beastPanel) beastPanel.style.display = phase === 'intro' ? 'none' : 'flex';
+  if(beastPanel) beastPanel.style.opacity = phase === 'first_card' ? '.82' : '1';
+  const worldBtn=document.getElementById('worldMapButton');
+  if(worldBtn) worldBtn.style.display = phase === 'freeplay' ? 'flex' : 'none';
+  const neighborBtn=document.getElementById('neighborTrigger');
+  if(neighborBtn) neighborBtn.style.display = phase === 'freeplay' ? 'flex' : 'none';
+  const onlineStatus=document.getElementById('onlineStatus');
+  if(onlineStatus) onlineStatus.style.display = phase === 'freeplay' ? 'flex' : 'none';
+  if(whisper && phase !== 'intro') whisper.style.opacity = 0;
+}
+
+window.applyWave1SurfacePhase = applyWave1SurfacePhase;
+
 function startTutorial() {
   const save = window.Terra?.farm?.tutorialCompleted;
-  if(save) { tutorialState.completed = true; return; }
+  if(save) { tutorialState.completed = true; applyWave1SurfacePhase(); return; }
   tutorialState.active = true;
   tutorialState.step = 0;
   tutorialState._alchemyClosed = false;
+  tutorialState._firstCardCrafted = farm.inventory.cards.length > 0;
+  applyWave1SurfacePhase();
   renderTutorial();
 }
 
@@ -1832,13 +1954,15 @@ function advanceTutorial() {
   const current = tutorialState.steps[tutorialState.step];
   if(current && current.check()) {
     tutorialState.step++;
+    applyWave1SurfacePhase();
     if(tutorialState.step >= tutorialState.steps.length) {
       tutorialState.completed = true;
       tutorialState.active = false;
+      applyWave1SurfacePhase();
       if(window.Terra?.farm) window.Terra.farm.tutorialCompleted = true;
       window.Terra?.save();
       removeTutorialUI();
-      toastHint('引导完成 · 自由探索大陆');
+      toastHint('第一轮循环完成 · 继续经营庄园');
     } else {
       renderTutorial();
     }
@@ -1856,7 +1980,7 @@ function renderTutorial() {
   }
   const step = tutorialState.steps[tutorialState.step];
   const touchMode = matchMedia('(hover:none), (pointer:coarse), (max-width:760px)').matches;
-  if ((window.Battle && Battle.active) || (window.WorldMapIntegration && WorldMapIntegration.isOpen)) { overlay.innerHTML=''; return; }
+  if (window.SurfaceLifecycle?.isInputLocked?.() || (window.Battle && Battle.active) || (window.WorldMapIntegration && WorldMapIntegration.isOpen)) { overlay.innerHTML=''; return; }
   let markerHtml = '';
   if(step.target === 'fab') {
     const fab = document.getElementById('craftFAB');
@@ -1871,16 +1995,14 @@ function renderTutorial() {
       if(screenPos) markerHtml = `<div class="tutorialMarker" style="position:absolute;left:${screenPos.x}px;top:${screenPos.y}px;width:80px;height:80px;transform:translate(-50%,-50%);border:3px solid rgba(244,208,63,.8);border-radius:50%;animation:tutorialPulse 1.5s ease-in-out infinite;pointer-events:none"></div>`;
     }
   }
-  const title = step.id === 'move' && touchMode ? '点按地面移动' : step.title;
+  const title = step.id === 'move' && touchMode ? '点按地面走近庄园' : step.title;
   const hint = step.id === 'move'
-    ? (touchMode ? '点按任意可行走地面，角色会自动寻路' : '点击地面寻路，或按住 WASD / 方向键')
+    ? (touchMode ? '先靠近屋前土地与工坊，熟悉你的庄园范围' : '点击地面寻路，或按住 WASD / 方向键靠近屋前区域')
     : step.id === 'chop'
-      ? (touchMode ? '靠近树木后点右下「交互」或直接点击树木' : '点击树木或靠近后按空格')
+      ? (touchMode ? '先收集少量木材，为第一张卡准备材料' : '点击树木或靠近后按空格，先拿到第一批木材')
       : step.id === 'alchemy'
-        ? (touchMode ? '点击金色炼金按钮打开工坊；材料不足也可以先进入查看' : '点击金色炼金按钮打开工坊')
-        : step.id === 'close'
-          ? '关闭炼金面板后，再前往传送门开始第一次战斗'
-          : '点击或移动到传送门附近';
+        ? (touchMode ? '打开金色炼金炉，做出你的第一张卡牌' : '打开炼金工坊，把材料锻造成第一张可用卡牌')
+        : '带着新卡靠近远征门，验证第一轮庄园循环';
   if(window.Battle&&Battle.active){overlay.innerHTML='';}else overlay.innerHTML = `
     <div style="position:absolute;inset:0;background:rgba(0,0,0,.12);pointer-events:none;"></div>
     <div style="position:absolute;left:50%;top:18%;transform:translateX(-50%);width:min(86vw,520px);text-align:center;color:#f6f1e7;pointer-events:none;text-shadow:0 4px 18px rgba(0,0,0,.95)">
@@ -2409,11 +2531,24 @@ updateDock();
 
 /* 灵兽状态面板 */
 const BEAST_STATE={idle:'闲逛中 …',seek:'前往灌溉 …',water:'正在浇水 …'};
-function setBeastStatus(s){ const el=$('beastState'); if(el) el.textContent=`水灵兽 Lv.${beastLevel('water_spirit')} · ${BEAST_STATE[s]||'—'}`; }
+function updateBeastPanelDuty(){
+  const duty=$('beastDuty');
+  const bond=$('beastBond');
+  const water=beastBySpecies('water_spirit');
+  const assign=water?.assignment||'irrigate';
+  const map={ irrigate:'当前职责 · 巡田守水', assist:'当前职责 · 炼成协作', guard:'当前职责 · 守望庄园', idle:'当前职责 · 休整待命' };
+  if(duty) duty.textContent = map[assign] || '当前职责 · 巡田守水';
+  if(bond){
+    const label = (water?.level||1) >= 4 ? '契约羁绊 · 深植' : (water?.level||1) >= 2 ? '契约羁绊 · 渐深' : '契约羁绊 · 初醒';
+    const span = bond.querySelector('span'); if(span) span.textContent = label;
+  }
+}
+function setBeastStatus(s){ const el=$('beastState'); if(el) el.textContent=`水灵兽 Lv.${beastLevel('water_spirit')} · ${BEAST_STATE[s]||'—'}`; updateBeastPanelDuty(); }
 function updateBeastRosterUI(){
   const named=$('beastName'); if(!named) return;
   const waterCount=farm.beasts.filter(b=>b.element==='water' || b.species==='water_spirit' || b.species==='spring_drop').length;
   named.textContent=waterCount>1?`春露兽群 · ${waterCount} 只`:'水灵兽 · 未名';
+  updateBeastPanelDuty();
   updatePetCodex();
 }
 window.updateBeastRosterUI=updateBeastRosterUI;
@@ -2423,12 +2558,36 @@ setBeastStatus('idle');
 function updatePetCodex(){
   const list=$('petCodexList'); if(!list) return;
   const pets=selectedPetSummary();
-  list.innerHTML=pets.map(p=>`<div class="pet"><img src="${p.src}" alt=""><div><b>${p.name} · Lv.${p.level}</b><div class="role">${p.role} · ${p.branch}</div><div class="skill">被动: ${p.passive}<br>主动: ${p.active}</div><button class="petUse" data-species="${p.species}">发动主动</button></div></div>`).join('');
+  const bonded = pets[0];
+  const reserveList = bonded ? pets.slice(1) : pets;
+  const bondedSummary = bonded ? `
+    <div class="summary">
+      <div class="t">当前绑定</div>
+      <div class="n">${bonded.name} · Lv.${bonded.level}</div>
+      <div class="s">${bonded.role} · ${bonded.branch} · ${bonded.level>=4?'契约深植':'契约初醒'}。先以 ${bonded.species.includes('fire')?'火炼协作':'巡田守水'} 维持庄园第一轮循环。</div>
+      <div class="minirow"><span>当前岗位 ${bonded.species.includes('fire')?'协作':'巡田'}</span><span>推荐动作 ${bonded.species.includes('fire')?'点亮炼成':'维持水脉'}</span><span>羁绊 ${bonded.level>=4?'深植':bonded.level>=2?'渐深':'初醒'}</span></div>
+      <div class="minirow"><span>精力 ${bonded.level>=3?'稳定':'轻盈'}</span><span>驻地 庄园核心</span><span>值守 今日在线</span></div>
+    </div>
+  ` : '';
+  const renderPet = p => `<div class="pet"><img src="${p.src}" alt=""><div><b>${p.name} · Lv.${p.level}</b><div class="role">职责 ${p.role} · 契约分支 ${p.branch}</div><div class="skill">被动契约: ${p.passive}<br>主动契约: ${p.active}</div><div class="mood">当前情绪 · ${p.level>=3?'默契渐深':'初结契约'} · 当前岗位待命</div><div class="minirow"><span>羁绊 ${p.level>=4?'深植':p.level>=2?'渐深':'初醒'}</span><span>岗位 待命</span><span>元素 ${p.species.includes('fire')?'火':'水'}</span></div><button class="petUse" data-species="${p.species}">唤起契约</button></div></div>`;
+  let html = bondedSummary;
+  if (bonded) {
+    html += '<div class="section">当前同伴</div>';
+    html += renderPet(bonded);
+  }
+  if (reserveList.length) {
+    html += '<div class="section">待命伙伴</div>';
+    html += reserveList.map(renderPet).join('');
+  }
+  if (!bonded && !reserveList.length) {
+    html += '<div class="section">暂无契约灵兽</div>';
+  }
+  list.innerHTML = html;
   list.querySelectorAll('.petUse').forEach(btn=>btn.onclick=(e)=>{e.stopPropagation(); useSelectedPetActive(btn.dataset.species);});
 }
 updatePetCodex();
 const petPanel=$('beastPanel'), petCodex=$('petCodex'), petCodexClose=$('petCodexClose');
-if(petPanel&&petCodex) petPanel.onclick=()=>petCodex.classList.toggle('on');
+if(petPanel&&petCodex) petPanel.onclick=()=>{ updatePetCodex(); petCodex.classList.toggle('on'); };
 if(petCodexClose&&petCodex) petCodexClose.onclick=(e)=>{e.stopPropagation(); petCodex.classList.remove('on');};
 
 /* ================= 12. 标题 → 世界 转场 ================= */
@@ -2436,49 +2595,49 @@ function enterWorld(){
   if(entered)return; entered=true;
   console.log('[Terra] Entering world - Time:', elapsed.toFixed(1), 'Day phase:', dayPhase().toFixed(2), 'Sunlight:', sunlight().toFixed(2));
   const title=$('title');
-  // 立即禁用标题屏交互，允许游戏世界接收点击
   title.style.pointerEvents='none';
-  title.querySelector('.bg').style.transition='transform 2.4s cubic-bezier(.55,0,.3,1)';
-  title.querySelector('.bg').style.transform='scale(1.22)';
-  title.querySelector('.card').style.transition='opacity 1.1s, transform 1.4s cubic-bezier(.55,0,.3,1)';
+  title.querySelector('.bg').style.transition='transform 1.4s cubic-bezier(.55,0,.3,1)';
+  title.querySelector('.bg').style.transform='scale(1.12)';
+  title.querySelector('.card').style.transition='opacity .55s, transform .75s cubic-bezier(.55,0,.3,1)';
   title.querySelector('.card').style.opacity=0;
-  title.querySelector('.card').style.transform='translateY(-8vh) scale(.96)';
-  // 云幕
+  title.querySelector('.card').style.transform='translateY(-4vh) scale(.98)';
   const cv=$('clouds'),cc=cv.getContext('2d');
   const dpr=Math.min(devicePixelRatio||1, isTabletLike ? 3 : 2.5),vw=innerWidth,vh=innerHeight;
   cv.width=vw*dpr;cv.height=vh*dpr;cv.style.width=vw+'px';cv.style.height=vh+'px';cv.style.opacity=1;
-  const t0=performance.now(),blobs=Array.from({length:26},()=>({x:Math.random()*1.6-.3,y:Math.random(),r:.12+Math.random()*.22,v:1.1+Math.random()*.9}));
-  (function sweep(){const e=(performance.now()-t0)/2400;
+  const t0=performance.now(),blobs=Array.from({length:14},()=>({x:Math.random()*1.4-.2,y:Math.random(),r:.10+Math.random()*.16,v:.8+Math.random()*.6}));
+  (function sweep(){const e=(performance.now()-t0)/1400;
     cc.setTransform(dpr,0,0,dpr,0,0);cc.clearRect(0,0,vw,vh);
-    for(const b of blobs){const x=vw*(b.x+e*b.v*1.8-1.1),y=vh*b.y,r=b.r*vw*(1+e*.5);
+    for(const b of blobs){const x=vw*(b.x+e*b.v*1.4-.8),y=vh*b.y,r=b.r*vw*(1+e*.32);
       const gg=cc.createRadialGradient(x,y,0,x,y,r);
-      const a=Math.min(1,Math.min(e*3,(1.05-e)*2.6));
-      gg.addColorStop(0,`rgba(250,248,242,${.95*a})`);gg.addColorStop(1,'rgba(250,248,242,0)');
+      const a=Math.min(1,Math.min(e*3,(1.02-e)*2.2));
+      gg.addColorStop(0,`rgba(250,248,242,${.90*a})`);gg.addColorStop(1,'rgba(250,248,242,0)');
       cc.fillStyle=gg;cc.beginPath();cc.arc(x,y,r,0,7);cc.fill();}
-    if(e<1.05)requestAnimationFrame(sweep);else cv.style.opacity=0;})();
-  // 镜头降落到主角 + HUD淡入
+    if(e<1.02)requestAnimationFrame(sweep);else cv.style.opacity=0;})();
   setTimeout(()=>{title.style.opacity=0;
-    cam.zoom=.5;cam.tzoom=1;
+    cam.zoom=.56;cam.tzoom=.92;
     document.body.classList.add('hud-on');
-    // 显示炼金FAB（从标题进入后立即可见）
     const fab=document.getElementById('craftFAB');
     if(fab){fab.style.display='flex';fab.style.opacity='1';}
-  },900);
+  },420);
   setTimeout(()=>{title.remove();
-    $('whisper').style.opacity=1;
-    setTimeout(()=>{$('whisper').style.opacity=0;},10000);
+    const whisper=$('whisper');
+    if(whisper){
+      whisper.textContent='你的庄园刚刚苏醒：先靠近土地，收第一批木材，点亮第一张卡。';
+      whisper.style.opacity=1;
+      setTimeout(()=>{whisper.style.opacity=0;},5200);
+    }
     startTutorial();
-  },3200);
+  },1650);
 }
 window.enterWorld=enterWorld;  // 暴露给 MultiplayerUI
 $('enter').onclick=enterWorld;
 
-/* 初始化联机 UI（在加载完成后） */
+/* Wave 1: title 先收窄为诚实的单人切片；联机/大陆/邻居壳体保留代码但默认不公开 */
 setTimeout(()=>{
   if(typeof MultiplayerUI !== 'undefined'){
     const wsUrl = window.location.hostname === 'localhost'
       ? 'ws://localhost:8866'
-      : 'wss://terra.bz9.me/ws';
+      : 'ws://165.232.142.30:8866';
     MultiplayerUI.init(wsUrl);
   }
 }, 100);
@@ -2506,6 +2665,4 @@ setTimeout(()=>{
 
 })();
 
-/* 大陆地图入口(20260704 重新挂载;init 自建 HUD 罗盘按钮,故障不影响主游戏) */
-setTimeout(()=>{ try{ window.WorldMapIntegration&&WorldMapIntegration.init&&WorldMapIntegration.init(); }
-  catch(e){ console.warn('[Terra] worldmap init failed:',e); } }, 3000);
+/* Wave 1: world map 暂时从公共第一小时移除，待 atlas 重做后再公开回归 */

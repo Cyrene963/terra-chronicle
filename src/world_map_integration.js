@@ -10,6 +10,8 @@ const WorldMapIntegration = {
   mapCanvas: null,
   mapButton: null,
   profilePanel: null,
+  leftRailSummary: null,
+  rightRailSummary: null,
 
   // State
   isOpen: false,
@@ -71,18 +73,75 @@ const WorldMapIntegration = {
       position: fixed;
       inset: 0;
       z-index: 60;
-      background: rgba(8, 10, 14, 0.95);
+      background: radial-gradient(circle at 50% 46%, rgba(62,46,24,.18), transparent 28%), linear-gradient(180deg, rgba(24,20,14,.94), rgba(10,9,8,.97));
       backdrop-filter: blur(8px);
       display: none;
       opacity: 0;
       transition: opacity 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+      box-shadow: inset 0 0 0 14px rgba(106,79,37,.18), inset 0 0 0 1px rgba(214,184,111,.18);
     `;
+
+    // Atlas frame / rail shell
+    const atlasRail = document.createElement('div');
+    atlasRail.style.cssText = `
+      position:absolute;
+      left:24px; right:24px; top:24px; bottom:24px;
+      border:1px solid rgba(214,184,111,.12);
+      border-radius:22px;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.04), inset 0 0 0 18px rgba(0,0,0,.05);
+      pointer-events:none;
+    `;
+    this.mapOverlay.appendChild(atlasRail);
+
+    const leftRail = document.createElement('div');
+    leftRail.style.cssText = `
+      position:absolute;
+      left:38px; top:130px; bottom:38px; width:248px;
+      border-radius:18px;
+      background:rgba(246,241,231,.045);
+      border:1px solid rgba(214,184,111,.10);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.03);
+      pointer-events:none;
+      color:var(--ivory);
+      font-family:'Noto Serif SC',serif;
+      padding:18px 18px 14px;
+    `;
+    leftRail.innerHTML = `
+      <div style="font-size:10px; letter-spacing:.22em; opacity:.72; color:#d6b86f; text-transform:uppercase;">图册摘要</div>
+      <div style="margin-top:10px; font-size:15px; letter-spacing:.16em;">庄园群像与流域势能</div>
+      <div style="margin-top:10px; font-size:11px; line-height:1.8; opacity:.66;">这里将汇聚庄园卷宗、边境压力、往来线路与关隘动势。当前版本先作为图册骨架保留。</div>
+      <div id="atlasSummaryBlock" style="margin-top:16px"></div>
+    `;
+    this.leftRailSummary = leftRail.querySelector('#atlasSummaryBlock');
+    this.mapOverlay.appendChild(leftRail);
+
+    const rightRail = document.createElement('div');
+    rightRail.style.cssText = `
+      position:absolute;
+      right:38px; top:130px; bottom:38px; width:170px;
+      border-radius:18px;
+      background:rgba(246,241,231,.03);
+      border:1px solid rgba(214,184,111,.08);
+      pointer-events:none;
+      color:var(--ivory);
+      font-family:'Noto Serif SC',serif;
+      padding:16px 14px 12px;
+    `;
+    rightRail.innerHTML = `
+      <div style="font-size:10px; letter-spacing:.18em; color:#d6b86f; text-transform:uppercase; margin-bottom:8px;">图册图例</div>
+      <div id="atlasLegendBlock" style="font-size:11px; line-height:1.75; opacity:.68">这里将显示关隘、商路、邻邦势能与图例提示。</div>
+    `;
+    this.rightRailSummary = rightRail.querySelector('#atlasLegendBlock');
+    this.mapOverlay.appendChild(rightRail);
 
     // Canvas container
     const canvasContainer = document.createElement('div');
     canvasContainer.style.cssText = `
       position: absolute;
-      inset: 0;
+      left:300px; right:220px; top:90px; bottom:42px;
+      border-radius:16px;
+      overflow:hidden;
+      box-shadow: inset 0 0 0 1px rgba(214,184,111,.10);
     `;
 
     this.mapCanvas = document.createElement('canvas');
@@ -116,6 +175,10 @@ const WorldMapIntegration = {
       color: var(--ivory);
       font-family: 'Noto Serif SC', serif;
       pointer-events: auto;
+      padding: 10px 14px;
+      border-radius: 14px;
+      background: rgba(246,241,231,.06);
+      border: 1px solid rgba(214,184,111,.14);
     `;
 
     this.mapOverlay.appendChild(closeHint);
@@ -123,8 +186,9 @@ const WorldMapIntegration = {
     // Title (top-left)
     const title = document.createElement('div');
     title.innerHTML = `
-      <div style="font-family: 'Cormorant Garamond', serif; font-size: 12px; letter-spacing: 0.5em; opacity: 0.6; margin-bottom: 8px;">CONTINENTAL MAP</div>
-      <div style="font-size: 24px; font-weight: 500; letter-spacing: 0.2em;">大陆地图</div>
+      <div style="font-family: 'Cormorant Garamond', serif; font-size: 12px; letter-spacing: 0.5em; opacity: 0.72; margin-bottom: 8px;">ATLAS OF ESTATES</div>
+      <div style="font-size: 24px; font-weight: 500; letter-spacing: 0.2em;">大陆图册</div>
+      <div style="font-size: 11px; letter-spacing: 0.18em; opacity: .58; margin-top: 6px;">流域 / 邻邦 / 关隘 / 往来势能</div>
     `;
     title.style.cssText = `
       position: absolute;
@@ -133,6 +197,11 @@ const WorldMapIntegration = {
       color: var(--ivory);
       font-family: 'Noto Serif SC', serif;
       pointer-events: none;
+      padding: 12px 16px;
+      border-radius: 16px;
+      background: rgba(246,241,231,.05);
+      border: 1px solid rgba(214,184,111,.12);
+      width: 248px;
     `;
 
     this.mapOverlay.appendChild(title);
@@ -148,14 +217,14 @@ const WorldMapIntegration = {
       position: absolute;
       left: 32px;
       bottom: 32px;
-      width: min(360px, calc(100vw - 64px));
+      width: min(380px, calc(100vw - 64px));
       max-height: calc(100vh - 140px);
-      background: rgba(246, 241, 231, 0.95);
+      background: linear-gradient(180deg, rgba(246, 241, 231, 0.96), rgba(232, 215, 183, 0.95));
       backdrop-filter: blur(14px) saturate(1.1);
-      border: 1px solid var(--hairline);
-      border-radius: 12px;
+      border: 1px solid rgba(143,109,66,.28);
+      border-radius: 16px;
       padding: 28px 32px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255,255,255,.35);
       opacity: 0;
       transform: translateY(20px);
       pointer-events: none;
@@ -225,6 +294,7 @@ const WorldMapIntegration = {
   /* ================= 打开地图 ================= */
   openMap() {
     if (this.isOpen) return;
+    window.SurfaceLifecycle?.beforeOpen?.('worldmap');
 
     this.isOpen = true;
     const tutorialOverlay = document.getElementById('tutorialOverlay');
@@ -248,6 +318,7 @@ const WorldMapIntegration = {
 
     // Load current player and neighbors
     this.loadPlayerData();
+    this.updateAtlasSummary();
 
     console.log('[WorldMapIntegration] Map opened');
   },
@@ -263,6 +334,7 @@ const WorldMapIntegration = {
 
     setTimeout(() => {
       this.mapOverlay.style.display = 'none';
+      window.SurfaceLifecycle?.afterClose?.('worldmap');
     }, 500);
 
     console.log('[WorldMapIntegration] Map closed');
@@ -366,6 +438,46 @@ const WorldMapIntegration = {
     WorldMap.camera.y = rect.height / 2 - centerPixel.y * WorldMap.camera.scale;
   },
 
+  updateAtlasSummary() {
+    if (!this.leftRailSummary) return;
+    const current = this.currentPlayerId ? WorldMap.players.get(this.currentPlayerId) : null;
+    const neighborCount = this.neighbors?.length || 0;
+    this.leftRailSummary.innerHTML = `
+      <div style="font-size:10px; letter-spacing:.22em; color:rgba(214,184,111,.82); text-transform:uppercase; margin-bottom:10px;">当前庄园</div>
+      <div style="font-size:16px; letter-spacing:.16em; margin-bottom:8px;">${current?.name || '旅行者庄园'}</div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+        <span style="font-size:9px; letter-spacing:.12em; padding:3px 8px; border-radius:999px; background:rgba(246,241,231,.08); border:1px solid rgba(214,184,111,.12);">流域 ${current ? `${current.q},${current.r}` : '未定'}</span>
+        <span style="font-size:9px; letter-spacing:.12em; padding:3px 8px; border-radius:999px; background:rgba(246,241,231,.08); border:1px solid rgba(214,184,111,.12);">邻邦 ${neighborCount}</span>
+        <span style="font-size:9px; letter-spacing:.12em; padding:3px 8px; border-radius:999px; background:rgba(246,241,231,.08); border:1px solid rgba(214,184,111,.12);">位阶 Lv.${current?.level || 1}</span>
+      </div>
+      <div style="display:grid; gap:10px; margin-top:14px;">
+        <div style="padding:10px 12px; border-radius:12px; background:rgba(246,241,231,.05); border:1px solid rgba(214,184,111,.08);">
+          <div style="font-size:9px; letter-spacing:.16em; color:#d6b86f; text-transform:uppercase; margin-bottom:6px;">边境势能</div>
+          <div style="font-size:11px; line-height:1.75; opacity:.72;">当前版本先保留势能位。未来这里会显示潮汐、水脉、虫潮与往来压力。</div>
+        </div>
+        <div style="padding:10px 12px; border-radius:12px; background:rgba(246,241,231,.05); border:1px solid rgba(214,184,111,.08);">
+          <div style="font-size:9px; letter-spacing:.16em; color:#d6b86f; text-transform:uppercase; margin-bottom:6px;">关隘与往来</div>
+          <div style="font-size:11px; line-height:1.75; opacity:.72;">未来 atlas 将在此汇总关隘、驿站、商路与邻邦往来线索。</div>
+        </div>
+        <div style="padding:10px 12px; border-radius:12px; background:rgba(246,241,231,.05); border:1px solid rgba(214,184,111,.08);">
+          <div style="font-size:9px; letter-spacing:.16em; color:#d6b86f; text-transform:uppercase; margin-bottom:6px;">图册注记</div>
+          <div style="font-size:11px; line-height:1.75; opacity:.72;">这里预留给流域图例、邻邦卷宗标签和未来的边境回响记录。</div>
+        </div>
+      </div>
+    `;
+    if (this.rightRailSummary) {
+      this.rightRailSummary.innerHTML = `
+        <div style="font-size:10px; letter-spacing:.16em; color:#d6b86f; text-transform:uppercase; margin-bottom:8px;">图册图例</div>
+        <div style="display:grid; gap:8px; margin-bottom:12px;">
+          <div style="padding:8px 10px; border-radius:10px; background:rgba(246,241,231,.05); border:1px solid rgba(214,184,111,.08);">庄园卷宗 · 当前地带的可查看条目</div>
+          <div style="padding:8px 10px; border-radius:10px; background:rgba(246,241,231,.05); border:1px solid rgba(214,184,111,.08);">邻邦卷宗 · 周边势能与往来提示</div>
+          <div style="padding:8px 10px; border-radius:10px; background:rgba(246,241,231,.05); border:1px solid rgba(214,184,111,.08);">关隘 / 商路 · 后续回归图例位</div>
+        </div>
+        <div style="font-size:11px; line-height:1.75; opacity:.68;">完整 atlas 回归后，这里会显示图例、热点与边境态势说明。</div>
+      `;
+    }
+  },
+
   /* ================= 显示玩家档案 ================= */
   showPlayerProfile(player) {
     if (!player) return;
@@ -374,7 +486,7 @@ const WorldMapIntegration = {
 
     this.profilePanel.innerHTML = `
       <div style="font-family: 'Cormorant Garamond', serif; font-size: 10px; letter-spacing: 0.5em; color: var(--gold); text-transform: uppercase; margin-bottom: 12px;">
-        ${isCurrentPlayer ? 'YOUR LOCATION' : 'NEIGHBOR'}
+        ${isCurrentPlayer ? '庄园卷宗' : '邻邦卷宗'}
       </div>
 
       <h3 style="font-size: 24px; font-weight: 500; letter-spacing: 0.14em; margin-bottom: 8px; color: var(--ink);">
@@ -382,38 +494,39 @@ const WorldMapIntegration = {
       </h3>
 
       <div style="font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 13px; opacity: 0.6; margin-bottom: 24px; color: var(--ink);">
-        坐标 (${player.q}, ${player.r})
+        庄园坐标 (${player.q}, ${player.r})
       </div>
 
-      <div style="margin-bottom: 20px;">
-        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
-          <span style="font-size: 12px; letter-spacing: 0.26em; color: var(--ink);">等 级</span>
-          <span style="font-family: 'Cormorant Garamond', serif; font-size: 20px; color: var(--ink);">${player.level}</span>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px;">
+        <div style="padding:12px 14px; border-radius:14px; background:rgba(255,255,255,.34); border:1px solid rgba(143,109,66,.14);">
+          <div style="font-size:10px; letter-spacing:.18em; color:rgba(143,109,66,.78); text-transform:uppercase;">位阶</div>
+          <div style="font-family:'Cormorant Garamond',serif; font-size:22px; margin-top:6px; color:var(--ink);">Lv.${player.level}</div>
         </div>
-        <div style="height: 2px; background: rgba(43,39,34,0.12); position: relative; overflow: hidden;">
+        <div style="padding:12px 14px; border-radius:14px; background:rgba(255,255,255,.34); border:1px solid rgba(143,109,66,.14);">
+          <div style="font-size:10px; letter-spacing:.18em; color:rgba(143,109,66,.78); text-transform:uppercase;">庄园气质</div>
+          <div style="font-family:'Cormorant Garamond',serif; font-size:18px; margin-top:8px; color:var(--ink);">${player.playstyle}</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 24px; padding:12px 14px; border-radius:14px; background:rgba(255,255,255,.28); border:1px solid rgba(143,109,66,.14);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="font-size: 10px; letter-spacing: 0.18em; color: rgba(143,109,66,.78); text-transform:uppercase;">庄园徽色</span>
+          <div style="width: 32px; height: 32px; border-radius: 6px; background: ${player.color}; border: 1px solid rgba(0,0,0,0.1);"></div>
+        </div>
+        <div style="height: 2px; background: rgba(43,39,34,0.12); position: relative; overflow: hidden; border-radius:2px;">
           <div style="position: absolute; inset: 0; background: var(--gold); transform-origin: left; transform: scaleX(${player.level / 10});"></div>
         </div>
       </div>
 
-      <div style="margin-bottom: 20px;">
-        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
-          <span style="font-size: 12px; letter-spacing: 0.26em; color: var(--ink);">游戏风格</span>
-          <span style="font-family: 'Cormorant Garamond', serif; font-size: 18px; color: var(--ink);">${player.playstyle}</span>
+      <div style="border-top: 1px solid rgba(143,109,66,.18); padding-top: 16px; margin-top: 8px;">
+        <div style="font-size: 10px; letter-spacing: 0.22em; color: rgba(143,109,66,.8); text-transform: uppercase; margin-bottom: 10px;">卷宗摘要</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+          <span style="font-size:9px; letter-spacing:.12em; padding:3px 8px; border-radius:999px; background:rgba(255,255,255,.42); border:1px solid rgba(143,109,66,.16); color:rgba(43,39,34,.72);">流域 ${player.q},${player.r}</span>
+          <span style="font-size:9px; letter-spacing:.12em; padding:3px 8px; border-radius:999px; background:rgba(255,255,255,.42); border:1px solid rgba(143,109,66,.16); color:rgba(43,39,34,.72);">气质 ${player.playstyle}</span>
+          <span style="font-size:9px; letter-spacing:.12em; padding:3px 8px; border-radius:999px; background:rgba(255,255,255,.42); border:1px solid rgba(143,109,66,.16); color:rgba(43,39,34,.72);">位阶 Lv.${player.level}</span>
         </div>
+        ${isCurrentPlayer ? '<div style="font-size:11px; line-height:1.8; color:rgba(43,39,34,.68);">你的庄园卷宗将用于未来的流域势能、边境往来与大陆图册记录。</div>' : `<div style="font-size:11px; line-height:1.8; color:rgba(43,39,34,.68);">${player.isAI ? '邻邦来信 · 边境影响、物资往来、气候回响待重建' : '真实庄园卷宗 · 未来将接入访问、物资与边境往来'}</div>`}
       </div>
-
-      <div style="margin-bottom: 24px;">
-        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
-          <span style="font-size: 12px; letter-spacing: 0.26em; color: var(--ink);">主导颜色</span>
-          <div style="width: 32px; height: 32px; border-radius: 6px; background: ${player.color}; border: 1px solid rgba(0,0,0,0.1);"></div>
-        </div>
-      </div>
-
-      ${isCurrentPlayer ? '' : `
-        <div style="border-top: 1px solid var(--hairline); padding-top: 20px; font-size: 11px; letter-spacing: 0.18em; line-height: 2; opacity: 0.6; color: var(--ink);">
-          ${player.isAI ? 'AI 邻居 · 可以互动交流资源' : '真实玩家 · 可以访问农场'}
-        </div>
-      `}
     `;
 
     this.profilePanel.style.opacity = '1';
@@ -440,4 +553,5 @@ const WorldMapIntegration = {
 // Export to global
 if (typeof window !== 'undefined') {
   window.WorldMapIntegration = WorldMapIntegration;
+  window.SurfaceLifecycle?.register?.('worldmap', { close: () => WorldMapIntegration.closeMap() });
 }

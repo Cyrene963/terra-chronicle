@@ -18,18 +18,23 @@ const { chromium } = require('playwright');
   await page.screenshot({ path: 'shots/v2_walkB.png' });
   await page.keyboard.up('d');
   await page.waitForTimeout(600);
-  // 大陆地图
-  await page.evaluate(() => window.WorldMapIntegration && WorldMapIntegration.openMap());
-  await page.waitForTimeout(2000);
-  await page.screenshot({ path: 'shots/v3_worldmap.png' });
-  await page.evaluate(() => window.WorldMapIntegration && WorldMapIntegration.closeMap());
-  await page.waitForTimeout(500);
-  // 邻居图鉴
-  await page.evaluate(() => { const t=document.getElementById('neighborTrigger'); if(t) t.click(); });
-  await page.waitForTimeout(1500);
-  await page.screenshot({ path: 'shots/v4_neighbors.png' });
-  await page.keyboard.press('Escape');
-  await page.evaluate(() => { const p=document.getElementById('neighborPanel'); if(p) p.style.display='none'; });
+  // Wave 1: world map / neighbor 从第一小时 public runtime 降权，不再强制验证它们
+  const mapVisible = await page.evaluate(() => !!document.getElementById('worldMapButton'));
+  if(mapVisible){
+    await page.evaluate(() => window.WorldMapIntegration && WorldMapIntegration.openMap && WorldMapIntegration.openMap());
+    await page.waitForTimeout(2000);
+    await page.screenshot({ path: 'shots/v3_worldmap.png' });
+    await page.evaluate(() => window.WorldMapIntegration && WorldMapIntegration.closeMap && WorldMapIntegration.closeMap());
+    await page.waitForTimeout(500);
+  }
+  const neighborVisible = await page.evaluate(() => !!document.getElementById('neighborTrigger'));
+  if(neighborVisible){
+    await page.evaluate(() => { const t=document.getElementById('neighborTrigger'); if(t) t.click(); });
+    await page.waitForTimeout(1500);
+    await page.screenshot({ path: 'shots/v4_neighbors.png' });
+    await page.keyboard.press('Escape');
+    await page.evaluate(() => { const p=document.getElementById('neighborPanel'); if(p) p.style.display='none'; });
+  }
   // 战斗
   await page.evaluate(() => window.Battle && Battle.enter({deck:[], onWin:()=>{}, onLose:()=>{}}));
   await page.waitForTimeout(3000);

@@ -86,6 +86,37 @@
   /* ---------- HUD ---------- */
   #hud{position:fixed;inset:0;z-index:30;pointer-events:none;opacity:0;transition:opacity 1.8s 1s}
   .hud-on #hud{opacity:1}
+  body[data-phase="intro"] #weatherTag,
+  body[data-phase="intro"] #eventIndicator,
+  body[data-phase="intro"] #ecoPanel,
+  body[data-phase="intro"] #beastPanel,
+  body[data-phase="intro"] #petCodex,
+  body[data-phase="intro"] #hintAction,
+  body[data-phase="intro"] #cardPeek,
+  body[data-phase="intro"] #craftFAB { opacity:0 !important; pointer-events:none !important; }
+  body[data-phase="intro"] #beastPanel { display:none !important; }
+  body[data-phase="intro"] #dock { transform:translateX(-50%) scale(.92); opacity:.96; }
+  body[data-phase="intro"] #seasonDial,
+  body[data-phase="intro"] #clock,
+  body[data-phase="intro"] #stamina { opacity:.72; }
+
+  body[data-phase="first_card"] #eventIndicator,
+  body[data-phase="first_card"] #ecoPanel,
+  body[data-phase="first_card"] #petCodex { opacity:0 !important; pointer-events:none !important; }
+  body[data-phase="first_card"] #beastPanel { display:flex !important; opacity:.82; }
+  body[data-phase="first_card"] #craftFAB { opacity:1; pointer-events:auto; }
+
+  body[data-phase="first_expedition"] #beastPanel { display:flex !important; opacity:1; }
+  body[data-phase="first_expedition"] #craftFAB { opacity:1; pointer-events:auto; }
+
+  body[data-phase="first_expedition"] #eventIndicator,
+  body[data-phase="first_expedition"] #ecoPanel { opacity:0 !important; pointer-events:none !important; }
+
+  body[data-phase="freeplay"] #weatherTag,
+  body[data-phase="freeplay"] #ecoPanel,
+  body[data-phase="freeplay"] #beastPanel,
+  body[data-phase="freeplay"] #hintAction,
+  body[data-phase="freeplay"] #cardPeek { opacity:1; }
 
   #seasonDial{position:absolute;top:34px;left:38px;width:108px;height:108px;position:relative;filter:drop-shadow(0 4px 16px rgba(0,0,0,.75))}
   #seasonDial svg{width:100%;height:100%;overflow:visible}
@@ -257,26 +288,41 @@
     box-shadow:0 8px 24px rgba(0,0,0,.45),0 18px 52px rgba(10,10,10,.32),inset 0 1px 0 rgba(255,255,255,.7);
   }
   #beastPanel .portrait{
-    width:46px;height:46px;border-radius:12px;flex:none;
-    background:radial-gradient(circle at 50% 38%,#bfeaf2,#7fc6dc);
-    background-image:url('assets/sprites/beast_water.png');background-size:130%;background-position:center 30%;
-    box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.6),0 4px 12px rgba(127,198,220,.35);
+    width:52px;height:52px;border-radius:14px;flex:none;
+    background:radial-gradient(circle at 50% 38%,#d7f3ff,#82d6e9);
+    background-image:url('assets/sprites/beast_water.png');background-size:132%;background-position:center 30%;
+    box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.7),0 6px 16px rgba(127,198,220,.38),0 0 0 3px rgba(214,184,111,.18);
   }
-  #beastPanel .meta .nm{font-size:13px;letter-spacing:.22em;font-weight:500}
+  #beastPanel .meta .kicker{font-family:'Cormorant Garamond',serif;font-size:10px;letter-spacing:.24em;color:rgba(143,109,66,.76);text-transform:uppercase}
+  #beastPanel .meta .nm{font-size:13px;letter-spacing:.22em;font-weight:500;margin-top:2px}
   #beastPanel .meta .st{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:13px;
     letter-spacing:.1em;color:var(--gold);margin-top:3px}
+  #beastPanel .meta .duty{font-size:10px;letter-spacing:.12em;color:rgba(43,39,34,.66);margin-top:4px}
+  #beastPanel .meta .bond{font-size:10px;letter-spacing:.1em;color:rgba(43,39,34,.58);margin-top:4px;display:flex;align-items:center;gap:6px}
+  #beastPanel .meta .bond i{width:8px;height:8px;border-radius:50%;background:#8fd0e3;box-shadow:0 0 10px rgba(143,208,227,.55)}
+  #beastPanel .meta .openhint{font-size:9px;letter-spacing:.18em;color:rgba(143,109,66,.58);margin-top:5px;text-transform:uppercase}
   #beastPanel{cursor:pointer;transition:transform .22s,box-shadow .22s}
   #beastPanel:hover{transform:translateY(-2px);box-shadow:0 18px 48px rgba(10,10,10,.34),0 0 20px rgba(127,198,220,.22)}
   #petCodex{position:fixed;left:30px;bottom:112px;width:min(420px,calc(100vw - 60px));z-index:42;pointer-events:none;opacity:0;transform:translateY(12px) scale(.98);transition:opacity .24s,transform .24s;background:rgba(246,241,231,.96);backdrop-filter:blur(18px) saturate(1.15);border:1px solid rgba(43,39,34,.26);border-radius:18px;box-shadow:0 22px 60px rgba(10,10,10,.42);padding:18px;color:var(--ink)}
   #petCodex.on{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
   #petCodex .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-family:'Cormorant Garamond',serif;color:var(--gold);letter-spacing:.24em;text-transform:uppercase;font-size:11px}
   #petCodex .close{cursor:pointer;font-size:18px;letter-spacing:0;color:var(--ink);opacity:.55}
-  #petCodex .pet{display:grid;grid-template-columns:48px 1fr;gap:12px;padding:11px 0;border-top:1px solid rgba(139,115,85,.16)}
+  #petCodex .summary{padding:12px 14px 14px;border:1px solid rgba(143,109,66,.18);border-radius:14px;background:rgba(255,255,255,.28);margin-bottom:10px}
+  #petCodex .summary .t{font-size:10px;letter-spacing:.16em;color:rgba(143,109,66,.82);text-transform:uppercase}
+  #petCodex .summary .n{font-size:16px;letter-spacing:.14em;font-weight:600;margin-top:6px}
+  #petCodex .summary .s{font-size:11px;line-height:1.7;color:rgba(43,39,34,.7);margin-top:6px}
+  #petCodex .summary .minirow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  #petCodex .summary .minirow span{font-size:9px;letter-spacing:.12em;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.42);border:1px solid rgba(143,109,66,.18);color:rgba(43,39,34,.72)}
+  #petCodex .section{margin-top:10px;padding-top:8px;border-top:1px solid rgba(139,115,85,.14);font-size:10px;letter-spacing:.18em;color:rgba(143,109,66,.78);text-transform:uppercase}
+  #petCodex .pet{display:grid;grid-template-columns:56px 1fr;gap:14px;padding:12px 0;border-top:1px solid rgba(139,115,85,.16)}
   #petCodex .pet:first-of-type{border-top:0}
-  #petCodex .pet img{width:48px;height:48px;object-fit:contain;filter:drop-shadow(0 7px 10px rgba(20,30,34,.24))}
+  #petCodex .pet img{width:56px;height:56px;object-fit:contain;filter:drop-shadow(0 8px 12px rgba(20,30,34,.24))}
   #petCodex .pet b{font-size:13px;letter-spacing:.18em;font-weight:600}
   #petCodex .pet .role{font-size:10px;letter-spacing:.12em;color:var(--gold);margin-top:3px}
   #petCodex .pet .skill{font-size:10px;line-height:1.65;opacity:.7;margin-top:5px}
+  #petCodex .pet .mood{font-size:10px;letter-spacing:.1em;color:rgba(43,39,34,.64);margin-top:4px}
+  #petCodex .pet .minirow{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+  #petCodex .pet .minirow span{font-size:9px;letter-spacing:.12em;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.42);border:1px solid rgba(143,109,66,.18);color:rgba(43,39,34,.72)}
   #petCodex .petUse{margin-top:8px;border:1px solid rgba(143,109,66,.45);background:rgba(255,255,255,.3);border-radius:999px;padding:5px 10px;font-size:10px;letter-spacing:.16em;color:var(--ink);cursor:pointer}
   #petCodex .petUse:hover{background:var(--gold);color:white}
 
@@ -423,9 +469,16 @@
   <div id="hintAction"><span class="key">空格</span><span id="hintTxt">播种</span></div>
   <div id="beastPanel">
     <div class="portrait"></div>
-    <div class="meta"><div class="nm" id="beastName">水灵兽 · 未名</div><div class="st" id="beastState">闲逛中 …</div></div>
+    <div class="meta">
+      <div class="kicker">Bound Companion</div>
+      <div class="nm" id="beastName">水灵兽 · 未名</div>
+      <div class="st" id="beastState">闲逛中 …</div>
+      <div class="duty" id="beastDuty">当前职责 · 巡田守水</div>
+      <div class="bond" id="beastBond"><i></i><span>契约羁绊 · 初醒</span></div>
+      <div class="openhint">Tap to open Spirit Ledger</div>
+    </div>
   </div>
-  <div id="petCodex"><div class="hd">Companion Codex · 精选灵兽 <span class="close" id="petCodexClose">×</span></div><div id="petCodexList"></div></div>
+  <div id="petCodex"><div class="hd">Spirit Ledger · 契约灵兽 <span class="close" id="petCodexClose">×</span></div><div id="petCodexList"></div></div>
   <div id="ecoPanel">
     <div class="k">Ecology · 生态</div>
     <div class="main"><b id="ecoStatus">平衡</b><span id="ecoScore">72</span></div>
@@ -487,6 +540,7 @@
 
 <script src="vendor/pixi.min.js"></script>
 <script src="src/animation-manager.js"></script>
+<script src="src/surface_manager.js?v=1"></script>
 <script src="src/state.js?v=8"></script>
 <script src="src/game_feel_enhanced.js?v=1"></script>
 <script src="src/feedback_system.js?v=1"></script>
@@ -508,10 +562,10 @@
 <script src="src/world_map_integration.js?v=3"></script>
 <!-- 核心游戏系统 -->
 <script src="src/alchemy.js?v=46"></script>
-<script src="src/battle_effects.js?v=1"></script>
-<script src="src/battle.js?v=68"></script>
-<script src="src/dungeon.js?v=50"></script>
-<script src="src/upgrade.js?v=38"></script>
-<script src="src/main.js?v=83"></script>
+<script src="src/battle_effects.js?v=2"></script>
+<script src="src/battle.js?v=69"></script>
+<script src="src/dungeon.js?v=51"></script>
+<script src="src/upgrade.js?v=39"></script>
+<script src="src/main.js?v=84"></script>
 </body>
 </html>

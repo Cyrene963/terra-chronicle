@@ -314,7 +314,9 @@ function updateDisplay(){
 }
 
 function open(){
+  window.SurfaceLifecycle?.beforeOpen?.('alchemy');
   buildDOM();
+  root.style.pointerEvents='auto';
   cauldron.starwheat=[]; cauldron.dewberry=[]; cauldron.wood=0;
   updateDisplay();
 
@@ -376,12 +378,17 @@ function close(){
     root.style.transform='scale(0.96)';
     setTimeout(()=>{
       root.classList.remove('panel-on');
+      root.style.pointerEvents='none';
+      window.SurfaceLifecycle?.afterClose?.('alchemy');
     }, 350);
   } else {
     // Fallback
     root.classList.remove('panel-on');
+    root.style.pointerEvents='none';
+    window.SurfaceLifecycle?.afterClose?.('alchemy');
   }
 }
 
 window.Alchemy={open,close};
+window.SurfaceLifecycle?.register?.('alchemy', { close });
 })();

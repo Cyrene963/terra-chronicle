@@ -5,10 +5,11 @@
 'use strict';
 
 const MultiplayerUI = {
-  mode: 'offline', // 'offline' | 'friends' | 'world'
+  mode: 'offline', // Wave 1: public runtime defaults to honest single-player slice
   wsClient: null,
   neighbors: [],
   onlinePlayers: 0,
+  publicScope: 'solo',
 
   /* ================= 初始化 ================= */
   init(wsServerUrl = 'ws://localhost:8866') {
@@ -37,20 +38,17 @@ const MultiplayerUI = {
     const modeSelector = document.createElement('div');
     modeSelector.id = 'modeSelector';
     modeSelector.innerHTML = `
-      <div class="mode-card" data-mode="offline">
-        <div class="mode-icon">🏡</div>
-        <div class="mode-title">离线探索</div>
-        <div class="mode-desc">纯单机体验 · AI 邻居填充</div>
+      <div class="mode-card primary" data-mode="offline">
+        <div class="mode-title">庄园启程</div>
+        <div class="mode-desc">单人体验 · 种地、炼成、远征的第一轮循环</div>
       </div>
-      <div class="mode-card" data-mode="friends">
-        <div class="mode-icon">👥</div>
-        <div class="mode-title">好友私服</div>
-        <div class="mode-desc">2-8 人共享经济圈</div>
+      <div class="mode-card locked" data-mode="friends">
+        <div class="mode-title">共域预览</div>
+        <div class="mode-desc">好友流域与邻邦系统重建中</div>
       </div>
-      <div class="mode-card" data-mode="world">
-        <div class="mode-icon">🌍</div>
-        <div class="mode-title">全服大陆</div>
-        <div class="mode-desc">文明级外交与博弈</div>
+      <div class="mode-card locked" data-mode="world">
+        <div class="mode-title">大陆纪元</div>
+        <div class="mode-desc">真实联机大陆暂未开放，后续以统一模拟重建</div>
       </div>
     `;
 
@@ -65,6 +63,7 @@ const MultiplayerUI = {
     // 绑定点击事件
     modeSelector.querySelectorAll('.mode-card').forEach(card => {
       card.onclick = () => {
+        if (card.classList.contains('locked')) return;
         this.selectMode(card.dataset.mode);
         modeSelector.style.opacity = '0';
         modeSelector.style.transform = 'translateY(-20px) scale(0.95)';
@@ -96,13 +95,16 @@ const MultiplayerUI = {
         border: 1px solid rgba(246,241,231,0.2);
         border-radius: 12px;
         padding: 24px 18px;
-        min-width: 140px;
+        min-width: 180px;
         text-align: center;
         cursor: pointer;
         transition: all 0.35s cubic-bezier(.34,1.56,.64,1);
         position: relative;
         overflow: hidden;
       }
+      .mode-card.primary { border-color: rgba(201,162,75,.48); box-shadow: 0 10px 26px rgba(201,162,75,.18); }
+      .mode-card.locked { opacity: .72; filter: saturate(.65); }
+      .mode-card.locked::after { content:'暂未开放'; position:absolute; top:10px; right:10px; font-size:10px; letter-spacing:.16em; color:rgba(246,241,231,.62); }
 
       .mode-card::before {
         content: '';
@@ -123,27 +125,21 @@ const MultiplayerUI = {
         opacity: 1;
       }
 
-      .mode-icon {
-        font-size: 42px;
-        margin-bottom: 12px;
-        filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
-      }
-
       .mode-title {
-        font-size: 15px;
+        font-size: 16px;
         font-weight: 600;
-        letter-spacing: 0.24em;
+        letter-spacing: 0.22em;
         color: var(--ivory);
-        margin-bottom: 8px;
+        margin-bottom: 10px;
         text-shadow: 0 2px 8px rgba(0,0,0,0.8);
       }
 
       .mode-desc {
         font-family: 'Cormorant Garamond', serif;
-        font-size: 11px;
-        letter-spacing: 0.12em;
-        color: rgba(246,241,231,0.7);
-        line-height: 1.6;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        color: rgba(246,241,231,0.76);
+        line-height: 1.7;
       }
 
       /* 在线状态 HUD */
@@ -196,15 +192,15 @@ const MultiplayerUI = {
         position: absolute;
         right: 32px;
         bottom: 24px;
-        width: 300px;
-        max-width: min(300px, calc(100vw - 64px));
-        max-height: min(340px, calc(100vh - 140px));
-        background: rgba(246,241,231,.97);
+        width: 320px;
+        max-width: min(320px, calc(100vw - 64px));
+        max-height: min(360px, calc(100vh - 140px));
+        background: linear-gradient(180deg, rgba(246,241,231,.97), rgba(232,215,183,.95));
         backdrop-filter: blur(22px) saturate(1.2);
-        border: 1px solid rgba(43,39,34,.28);
+        border: 1px solid rgba(143,109,66,.28);
         border-radius: 18px;
         padding: 16px;
-        box-shadow: 0 8px 24px rgba(0,0,0,.45);
+        box-shadow: 0 8px 24px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.35);
         pointer-events: auto;
         opacity: 0;
         transform: translateY(12px) scale(0.95);
@@ -232,6 +228,7 @@ const MultiplayerUI = {
         color: var(--gold);
         text-transform: uppercase;
       }
+      #neighborPanel .header .title small{display:block;font-size:10px;letter-spacing:.18em;color:rgba(143,109,66,.72);margin-top:4px;font-weight:400;text-transform:none}
 
       #neighborPanel .header .close {
         cursor: pointer;
@@ -250,16 +247,18 @@ const MultiplayerUI = {
       }
 
       #neighborPanel .neighbor-item {
-        display: flex;
-        align-items: center;
+        display: grid;
+        grid-template-columns: 42px 1fr auto;
+        align-items: start;
         gap: 12px;
-        padding: 10px;
-        margin-bottom: 8px;
-        background: rgba(255,255,255,0.4);
-        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 10px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.42), rgba(246,241,231,0.34));
+        border-radius: 12px;
         border: 1px solid rgba(43,39,34,0.1);
         transition: all 0.2s;
         cursor: pointer;
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,.28);
       }
 
       #neighborPanel .neighbor-item:hover {
@@ -283,6 +282,8 @@ const MultiplayerUI = {
       #neighborPanel .neighbor-info {
         flex: 1;
       }
+      #neighborPanel .neighbor-topline{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+      #neighborPanel .neighbor-rank{font-size:10px;letter-spacing:.16em;color:rgba(143,109,66,.76)}
 
       #neighborPanel .neighbor-name {
         font-size: 13px;
@@ -297,22 +298,28 @@ const MultiplayerUI = {
         color: rgba(43,39,34,0.6);
         margin-top: 2px;
       }
+      #neighborPanel .neighbor-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+      #neighborPanel .neighbor-chips span{font-size:9px;letter-spacing:.12em;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.42);border:1px solid rgba(143,109,66,.16);color:rgba(43,39,34,.72)}
+      #neighborPanel .neighbor-consequence{margin-top:8px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.28);border:1px solid rgba(143,109,66,.12);font-size:10px;line-height:1.7;color:rgba(43,39,34,.66)}
 
       #neighborPanel .neighbor-actions {
         display: flex;
+        flex-direction: column;
         gap: 6px;
       }
 
       #neighborPanel .neighbor-action {
-        width: 28px;
+        min-width: 42px;
         height: 28px;
-        border-radius: 6px;
+        border-radius: 999px;
         background: rgba(201,162,75,0.2);
         border: 1px solid rgba(201,162,75,0.4);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 14px;
+        font-size: 10px;
+        letter-spacing:.12em;
+        padding:0 10px;
         cursor: pointer;
         transition: all 0.2s;
       }
@@ -496,6 +503,7 @@ const MultiplayerUI = {
 
   /* ================= HUD 在线状态 ================= */
   createOnlineStatusHUD() {
+    if (this.publicScope === 'solo') return;
     const hud = document.getElementById('hud');
     if (!hud) return;
 
@@ -536,6 +544,7 @@ const MultiplayerUI = {
 
   /* ================= 邻居面板 ================= */
   createNeighborPanel() {
+    if (this.publicScope === 'solo') return;
     const hud = document.getElementById('hud');
     if (!hud) return;
 
@@ -551,7 +560,7 @@ const MultiplayerUI = {
     panel.id = 'neighborPanel';
     panel.innerHTML = `
       <div class="header">
-        <div class="title">邻居 · Neighbors</div>
+        <div class="title">邻邦往来 · Border Ledger<small>边境近况 / 物资往来 / 气候回响</small></div>
         <div class="close">×</div>
       </div>
       <div class="neighbor-list"></div>
@@ -594,7 +603,7 @@ const MultiplayerUI = {
     if (this.neighbors.length === 0) {
       list.innerHTML = `
         <div class="empty-state">
-          ${this.mode === 'offline' ? '周围暂无AI邻居<br>继续探索吧！' : '周围暂无在线玩家<br>邀请好友一起加入！'}
+          ${this.mode === 'offline' ? '暂无邻邦卷宗抵达<br>等庄园进入更深季节后，再开启边境往来。' : '当前暂无在线庄园卷宗<br>待共享大陆重建后回归。'}
         </div>
       `;
       return;
@@ -611,12 +620,16 @@ const MultiplayerUI = {
         <div class="neighbor-item" data-id="${n.playerId}">
           <div class="neighbor-avatar"><img src="assets/ui/avatar_${(String(n.playerId||n.name||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0)%4)+1}.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover" onerror="this.outerHTML='${n.isAI?'🤖':'👤'}'"></div>
           <div class="neighbor-info">
-            <div class="neighbor-name">${n.name} Lv.${n.level}</div>
-            <div class="neighbor-status">${statusText}</div>
+            <div class="neighbor-topline"><div class="neighbor-name">${n.name}</div><div class="neighbor-rank">Lv.${n.level}</div></div>
+            <div class="neighbor-status">边境近况 · ${statusText}</div>
+            <div class="neighbor-status" style="margin-top:4px; opacity:.72">往来摘要 · ${n.isAI?'流域观察中':'未来可访问庄园'}</div>
+            <div class="neighbor-chips"><span>势能 ${n.level>=3?'活跃':'平缓'}</span><span>${n.isAI?'邻邦卷宗':'庄园卷宗'}</span><span>${n.isAI?'AI 边境':'共享往来'}</span></div>
+            <div class="neighbor-consequence">${n.isAI?'卷宗判断 · 这片邻邦将来会把雨势、虫害或物资压力写回你的庄园。':'卷宗判断 · 未来这里会承载真实玩家庄园的互访、馈赠与边境回响。'}</div>
+            <div class="neighbor-consequence" style="margin-top:6px">后果预位 · ${n.environment?.hasPest?'虫压上升':''}${n.environment?.hasRain?(n.environment?.hasPest?' / ':'')+'水势偏强':''}${!n.environment?.hasPest&&!n.environment?.hasRain?'当前平静，等待卷宗更新。':''}</div>
           </div>
           <div class="neighbor-actions">
-            <div class="neighbor-action" data-action="send" title="发送资源">📦</div>
-            <div class="neighbor-action" data-action="request" title="请求援助">🤝</div>
+            <div class="neighbor-action" data-action="send" title="馈赠物资">馈赠</div>
+            <div class="neighbor-action" data-action="request" title="请求援助">求援</div>
           </div>
         </div>
       `;

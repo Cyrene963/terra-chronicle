@@ -47,6 +47,7 @@ function createCardProjectile(fromEl, targetEl, cardType, onHit) {
   projectile.style.boxShadow = `0 0 30px ${color.glow}, 0 0 50px ${color.glow}80`;
   projectile.style.filter = `brightness(1.3)`;
 
+  projectile.dataset.battleTransient = '1';
   document.body.appendChild(projectile);
 
   // 拖尾粒子容器 - 增加密度
@@ -92,6 +93,7 @@ function createCardProjectile(fromEl, targetEl, cardType, onHit) {
         opacity: 0.9;
         box-shadow: 0 0 12px ${color.glow};
       `;
+      particle.dataset.battleTransient = '1';
       document.body.appendChild(particle);
       trail.push({ el: particle, t: performance.now() });
 
@@ -148,6 +150,7 @@ function createImpactExplosion(x, y, color, cardType = 'atk') {
     box-shadow: 0 0 60px rgba(255,255,255,0.9);
     opacity: 1;
   `;
+  flash.dataset.battleTransient = '1';
   document.body.appendChild(flash);
   setTimeout(() => {
     flash.style.transition = 'opacity 80ms';
@@ -170,6 +173,7 @@ function createImpactExplosion(x, y, color, cardType = 'atk') {
     box-shadow: 0 0 20px ${color.glow};
     opacity: 0.9;
   `;
+  shockwave.dataset.battleTransient = '1';
   document.body.appendChild(shockwave);
 
   const sw_t0 = performance.now();
@@ -260,6 +264,7 @@ function createImpactExplosion(x, y, color, cardType = 'atk') {
         transform: rotate(${angle}rad);
         opacity: 1;
       `;
+      spark.dataset.battleTransient = '1';
       document.body.appendChild(spark);
       setTimeout(() => {
         spark.style.transition = 'opacity 150ms, transform 150ms';
@@ -339,6 +344,7 @@ function spawnDamageNumber(value, x, y, type = 'damage') {
     will-change: transform, opacity;
     filter: brightness(1.2);
   `;
+  num.dataset.battleTransient = '1';
   document.body.appendChild(num);
 
   const t0 = performance.now();
@@ -461,6 +467,7 @@ function spawnSlashEffects(targetEl, count = 3) {
     slash.style.transform = `rotate(${rotation}deg)`;
     slash.style.animationDelay = (i * 30) + 'ms';
 
+    slash.dataset.battleTransient = '1';
     document.body.appendChild(slash);
 
     setTimeout(() => slash.remove(), 400);
@@ -493,6 +500,7 @@ function shieldBreakEffect(x, y) {
       box-shadow: 0 0 8px rgba(143,182,216,0.6);
       opacity: 1;
     `;
+    shard.dataset.battleTransient = '1';
     document.body.appendChild(shard);
 
     const t0 = performance.now();
@@ -538,6 +546,7 @@ function shieldBreakEffect(x, y) {
     border: 3px solid #bcd8ee;
     box-shadow: 0 0 20px rgba(188,216,238,0.8);
   `;
+  ring.dataset.battleTransient = '1';
   document.body.appendChild(ring);
 
   const t0 = performance.now();
@@ -586,6 +595,7 @@ function levelUpCeremony(targetEl, title = '等级提升') {
     transform: scaleY(0);
     transform-origin: ${cy}px center;
   `;
+  beam.dataset.battleTransient = '1';
   document.body.appendChild(beam);
 
   requestAnimationFrame(() => {
@@ -620,6 +630,7 @@ function levelUpCeremony(targetEl, title = '等级提升') {
         box-shadow: 0 0 12px rgba(244,208,63,0.8);
         opacity: 1;
       `;
+      particle.dataset.battleTransient = '1';
       document.body.appendChild(particle);
 
       const t0 = performance.now();
@@ -671,6 +682,7 @@ function levelUpCeremony(targetEl, title = '等级提升') {
     transform: translate(-50%, -50%) scale(0);
     opacity: 0;
   `;
+  titleEl.dataset.battleTransient = '1';
   document.body.appendChild(titleEl);
 
   requestAnimationFrame(() => {

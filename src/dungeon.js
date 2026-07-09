@@ -260,6 +260,7 @@ function selectNode(node){
 }
 
 function open(){
+  window.SurfaceLifecycle?.beforeOpen?.('dungeon');
   buildDOM();
   if(!mapData){ mapData=generateMap(); progress={floor:0,path:[]}; }
 
@@ -291,13 +292,14 @@ function close(){
     root.style.transition='opacity 0.45s cubic-bezier(.4,0,.2,1)';
     root.style.opacity='0';
     root.classList.remove('on');
-    setTimeout(()=>{if(root)root.style.display='none';},450);
+    setTimeout(()=>{if(root)root.style.display='none'; window.SurfaceLifecycle?.afterClose?.('dungeon');},450);
   } else {
     // Fallback
     root.classList.remove('on');
-    setTimeout(()=>{if(root)root.style.display='none';},500);
+    setTimeout(()=>{if(root)root.style.display='none'; window.SurfaceLifecycle?.afterClose?.('dungeon');},500);
   }
 }
 
 window.DungeonMap = { open, close, grantLoot };
+window.SurfaceLifecycle?.register?.('dungeon', { close });
 })();

@@ -9,7 +9,8 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "verify:public": "node tools/verify_public_deploy.js && node tools/soft_farm_unification_smoke.js && node tools/soft_farm_crop_ui_smoke.js && node tools/terra_battle_dungeon_smoke.js && node tools/terra_visual_smoke.js"
+    "verify:public": "node tools/verify_public_deploy.js && node tools/soft_farm_unification_smoke.js && node tools/soft_farm_crop_ui_smoke.js && node tools/terra_battle_dungeon_smoke.js && node tools/terra_visual_smoke.js",
+    "verify:surface": "node tools/surface_lifecycle_smoke.js"
   },
   "repository": {
     "type": "git",
