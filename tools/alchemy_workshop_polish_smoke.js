@@ -5,6 +5,7 @@ const { ROOT, scriptVersions, hasExpectedScript, badConsole } = require('./smoke
 
 const OUT = path.join(ROOT, 'dogfood-output', 'alchemy-workshop-polish-20260616');
 fs.mkdirSync(OUT, { recursive: true });
+const PUBLIC_BASE = process.env.TERRA_PUBLIC_BASE_URL || 'http://165.232.142.30:8867';
 
 (async () => {
   const browser = await chromium.launch({ headless: true });
@@ -12,7 +13,7 @@ fs.mkdirSync(OUT, { recursive: true });
   const consoleErrors = [];
   page.on('console', msg => { if (badConsole(msg)) consoleErrors.push(`${msg.type()}: ${msg.text()}`); });
   page.on('pageerror', err => consoleErrors.push(`pageerror: ${err.message}`));
-  await page.goto(`https://terra.bz9.me/?alchemy_workshop_polish=${Date.now()}`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.goto(`${PUBLIC_BASE}/?alchemy_workshop_polish=${Date.now()}`, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.waitForSelector('#enter', { timeout: 20000 });
   const scripts = await page.evaluate(() => [...document.scripts].map(s => s.src).filter(Boolean));
   const versions = scriptVersions();

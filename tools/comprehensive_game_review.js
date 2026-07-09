@@ -1,6 +1,6 @@
 /**
  * Terra Chronicle 游戏全面体验测试
- * 目标：https://terra.bz9.me
+ * 目标：TERRA_PUBLIC_BASE_URL，默认权威公网 IP
  *
  * 测试路径：
  * 1. 标题页和入场转场
@@ -16,7 +16,7 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
 
-const GAME_URL = 'https://terra.bz9.me';
+const GAME_URL = process.env.TERRA_PUBLIC_BASE_URL || 'http://165.232.142.30:8867';
 const SCREENSHOTS_DIR = path.join(__dirname, '../review_screenshots');
 const REPORT_FILE = path.join(__dirname, '../GAME_REVIEW_REPORT.md');
 

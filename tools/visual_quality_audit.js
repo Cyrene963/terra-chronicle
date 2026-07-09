@@ -228,6 +228,8 @@ function scoreVisualElement(check, elementData) {
   };
 }
 
+const PUBLIC_BASE = process.env.TERRA_PUBLIC_BASE_URL || 'http://165.232.142.30:8867';
+
 (async () => {
   console.log('Starting visual quality audit...\n');
 
@@ -248,7 +250,7 @@ function scoreVisualElement(check, elementData) {
     }
   });
 
-  await page.goto('https://terra.bz9.me/?smoke=visual-audit', {
+  await page.goto(`${PUBLIC_BASE}/?smoke=visual-audit`, {
     waitUntil: 'domcontentloaded',
     timeout: 45000
   });
