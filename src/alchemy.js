@@ -99,6 +99,28 @@ function injectStyle(){
   #alchemyUI .discovery .msg{font-size:54px;color:#fff;letter-spacing:.28em;position:relative;z-index:1;
     text-shadow:0 4px 20px rgba(0,0,0,.38),0 0 26px rgba(255,255,255,.45);animation:discoveryBounce .7s cubic-bezier(.34,1.56,.64,1);}
   @keyframes discoveryBounce{0%{transform:scale(.8);opacity:0}50%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+  @media(max-width:760px){
+    #alchemyUI{overflow-y:auto;overscroll-behavior:contain;align-items:flex-start;}
+    #alchemyUI .panel{width:100%;min-height:100dvh;display:flex;flex-direction:column;gap:10px;padding:58px 14px max(20px,env(safe-area-inset-bottom));border-radius:0;overflow:visible;}
+    #alchemyUI .leftPane{width:100%;}
+    #alchemyUI .rightPane{width:100%;align-self:auto;}
+    #alchemyUI .cauldron{width:min(230px,58vw);height:min(230px,58vw);margin:-16px auto 0;}
+    #alchemyUI .cauldronArt{inset:-10px;width:calc(100% + 20px);height:calc(100% + 20px);}
+    #alchemyUI .bubbles{inset:52px 52px auto;height:52px;}
+    #alchemyUI .formulaHint{display:none;}
+    #alchemyUI .panel-header{margin-bottom:8px;}
+    #alchemyUI .panel-title{font-size:25px;}
+    #alchemyUI .panel-subtitle{font-size:10px;letter-spacing:.1em;}
+    #alchemyUI .ingredients{gap:8px;margin-bottom:10px;}
+    #alchemyUI .ingr{min-height:58px;grid-template-columns:46px minmax(0,1fr) auto;gap:8px;padding:8px 10px;border-radius:12px;}
+    #alchemyUI .ingr .icon{width:42px;height:42px;}
+    #alchemyUI .ingr .name{font-size:14px;}
+    #alchemyUI .ingr .role{font-size:9px;line-height:1.3;}
+    #alchemyUI .ingr .count{font-size:10px;white-space:nowrap;}
+    #alchemyUI .actions{justify-content:stretch;gap:10px;}
+    #alchemyUI .btn{flex:1;min-height:46px;padding:10px 12px;font-size:13px;}
+    #alchemyUI .panel-close{position:fixed;top:max(10px,env(safe-area-inset-top));right:10px;width:46px;height:46px;z-index:5;}
+  }
   `;
   const s=$$('style');s.textContent=css;document.head.appendChild(s);
 }

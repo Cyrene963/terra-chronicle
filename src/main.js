@@ -31,13 +31,19 @@
 const ASSET_V="?v=13";
 /* 贴图加载: mode='tile' → NEAREST+CLAMP(消除瓦片接缝+锐利);
    其余(精灵)→ LINEAR+mipmap(高清源缩小时干净不闪烁,painterly 风格不能用 NEAREST 否则缩小抖动) */
-async function loadTex(src, mode){
-  const tex=await PIXI.Assets.load(src+ASSET_V);
-  const s=tex.source;
-  if(mode==='tile'){ s.scaleMode='nearest'; s.addressMode='clamp-to-edge'; }
-  else { s.scaleMode='linear'; s.autoGenerateMipmaps=true; }
-  s.update?.();
-  return tex;
+const texturePromiseCache=new Map();
+function loadTex(src, mode){
+  const key=`${mode||'sprite'}:${src}`;
+  if(texturePromiseCache.has(key)) return texturePromiseCache.get(key);
+  const promise=PIXI.Assets.load(src+ASSET_V).then(tex=>{
+    const s=tex.source;
+    if(mode==='tile'){ s.scaleMode='nearest'; s.addressMode='clamp-to-edge'; }
+    else { s.scaleMode='linear'; s.autoGenerateMipmaps=true; }
+    s.update?.();
+    return tex;
+  }).catch(err=>{ texturePromiseCache.delete(key); throw err; });
+  texturePromiseCache.set(key,promise);
+  return promise;
 }
 
 /* ================= 1. 资产清单(换图接口) ================= */
@@ -373,6 +379,7 @@ function applySeasonGrade(st){
 const KIND2PAL={g:'grass',G:'grassB',s:'soil',w:'water',b:'sand',p:'plot'};
 const tileSprites=[], waterTiles=[], snowAt=[], grassTiles=[], plotTiles=[];
 const groundTextureLoads=[];
+const groundTextureBuckets=new Map();
 let plotBaseTex=null, plotIntroTex=null;
 loadTex(ASSETS.tiles.plot.src,'tile').then(tex=>{ plotBaseTex=tex; }).catch(()=>{});
 loadTex(ASSETS.tiles.soil.src,'tile').then(tex=>{ plotIntroTex=tex; }).catch(()=>{});
@@ -381,8 +388,10 @@ for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
   const t=ASSETS.tiles[{g:'grass',G:'grass',s:'soil',w:'water',b:'sand',p:'plot'}[k]];
   const sp=new PIXI.Sprite(PIXI.Texture.WHITE);
   sp.width=TS+2; sp.height=TS+2;
-  const loadPromise=t.src?loadTex(t.src,'tile').then(tex=>{sp.texture=tex;sp.width=TS+2;sp.height=TS+2;}):Promise.resolve();
-  groundTextureLoads.push(loadPromise.catch(()=>{}));
+  if(t.src){
+    if(!groundTextureBuckets.has(t.src)) groundTextureBuckets.set(t.src,[]);
+    groundTextureBuckets.get(t.src).push(sp);
+  }
   const r=hash(x*13+7,y*11+3);
   sp._tx=x; sp._ty=y; sp._k=k; sp._j=0.975+r*0.05;
   sp._ph=r*6.28;
@@ -392,35 +401,58 @@ for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
     sp.position.set(x*TS-1,y*TS-1); waterL.addChild(sp); waterTiles.push(sp); snowAt.push(null);
   } else if(k==='p'){
     sp.position.set(x*TS-1,y*TS-1); dynamicGroundL.addChild(sp);
-    const sn=new PIXI.Sprite(PIXI.Texture.WHITE);
-    sn.width=TS+2; sn.height=TS+2; sn.position.set(x*TS-1,y*TS-1);
-    sn.tint=0xf4f7fb; sn.alpha=.82+r*.18; snowL.addChild(sn); snowAt.push(sn);
+    snowAt.push(null);
   } else {
     const chunk=groundChunkFor(x,y);
     sp.position.set((x%GROUND_CHUNK_TILES)*TS-1,(y%GROUND_CHUNK_TILES)*TS-1);
     chunk.addChild(sp);
-    const snowChunk=snowChunkFor(x,y);
-    const sn=new PIXI.Sprite(PIXI.Texture.WHITE);
-    sn.width=TS+2; sn.height=TS+2;
-    sn.position.set((x%GROUND_CHUNK_TILES)*TS-1,(y%GROUND_CHUNK_TILES)*TS-1);
-    sn.tint=0xf4f7fb; sn.alpha=.82+r*.18; snowChunk.addChild(sn); snowAt.push(sn);
+    snowAt.push(null);
   }
   tileSprites.push(sp);
 }
+let snowBuilt=false,snowBuildIndex=0;
+function buildSnowLayer(){
+  if(snowBuilt)return;
+  const end=Math.min(MAP*MAP,snowBuildIndex+96);
+  for(;snowBuildIndex<end;snowBuildIndex++){
+    const y=Math.floor(snowBuildIndex/MAP),x=snowBuildIndex%MAP,k=grid[y][x];if(k==='w')continue;
+    const r=hash(x*13+7,y*11+3),sn=new PIXI.Sprite(PIXI.Texture.WHITE);
+    sn.width=TS+2;sn.height=TS+2;sn.tint=0xf4f7fb;sn.alpha=.82+r*.18;sn._tx=x;sn._ty=y;
+    if(k==='p'){sn.position.set(x*TS-1,y*TS-1);snowL.addChild(sn);}
+    else{const chunk=snowChunkFor(x,y);sn.position.set((x%GROUND_CHUNK_TILES)*TS-1,(y%GROUND_CHUNK_TILES)*TS-1);chunk.addChild(sn);}
+    snowAt[snowBuildIndex]=sn;
+  }
+  if(snowBuildIndex<MAP*MAP){
+    if('requestIdleCallback' in window)requestIdleCallback(buildSnowLayer,{timeout:3000});
+    else setTimeout(buildSnowLayer,120);
+  }else{snowBuilt=true;cullWorld();}
+}
+for(const [src,sprites] of groundTextureBuckets){
+  const loadPromise=loadTex(src,'tile').then(tex=>{
+    for(const sp of sprites){ sp.texture=tex; sp.width=TS+2; sp.height=TS+2; }
+  });
+  groundTextureLoads.push(loadPromise.catch(()=>{}));
+}
 snowL.visible=false; snowL.alpha=0;
-let groundCacheReady=false;
+let groundCacheReady=false, groundCacheStarted=false;
 function cacheGroundChunksIncrementally(){
+  if(groundCacheStarted || isHeadless) return;
+  groundCacheStarted=true;
   const startCx=22.5/GROUND_CHUNK_TILES, startCy=23.2/GROUND_CHUNK_TILES;
   const queue=[...groundChunks.values()].sort((a,b)=>
     Math.hypot(a._cx-startCx,a._cy-startCy)-Math.hypot(b._cx-startCx,b._cy-startCy));
   const step=()=>{
     const chunk=queue.shift();
     if(!chunk){ groundCacheReady=true; cullWorld(); return; }
-    try{
-      chunk.cacheAsTexture({resolution:1,antialias:false});
-      chunk._cached=true;
-    }catch(err){ console.warn('[Terra] ground chunk cache skipped',chunk.label,err); }
-    setTimeout(step,32);
+    const cacheOne=()=>{
+      try{
+        chunk.cacheAsTexture({resolution:1,antialias:false});
+        chunk._cached=true;
+      }catch(err){ console.warn('[Terra] ground chunk cache skipped',chunk.label,err); }
+      setTimeout(step,180);
+    };
+    if('requestIdleCallback' in window) requestIdleCallback(cacheOne,{timeout:1200});
+    else setTimeout(cacheOne,80);
   };
   step();
 }
@@ -434,7 +466,7 @@ if(isHeadless){
   groundCacheReady=true;
   requestAnimationFrame(cullWorld);
 }else{
-  Promise.all(groundTextureLoads).then(()=>requestAnimationFrame(cacheGroundChunksIncrementally));
+  // Production caching starts only after the title is gone so the primary CTA stays responsive.
 }
 
 /* ================= 5.25 地表综合色层 ================= */
@@ -444,9 +476,11 @@ if(isHeadless){
 /* ================= 5.5 水面优化（轻量级边缘柔化）================= */
 // 在水陆边界添加半透明泡沫层,用最轻量的方式平滑过渡(无重度滤镜)
 const isWater=(x,y)=>grid[y]&&grid[y][x]==='w';
-for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
+let foamBuilt=false;
+function buildFoamLayer(){
+ if(foamBuilt)return;foamBuilt=true;
+ for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
   if(!isWater(x,y)) continue;
-  // 检测8邻方向是否有陆地,增加斜向柔化，继续削弱直角台阶感
   const dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]];
   for(const [dx,dy] of dirs){
     if(isWater(x+dx,y+dy)) continue;
@@ -459,6 +493,8 @@ for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
     foam.tint=diag?0xdaf7ff:0xeefaff; foam.alpha=diag?.16:.28; foam.blendMode='add';
     foamL.addChild(foam);
   }
+ }
+ cullWorld();
 }
 
 // 位移波纹滤镜(给水面微扰动效,仅 quality>0 时启用)
@@ -508,10 +544,16 @@ function preloadSeasons(){
   const set=new Set();
   for(const k in ASSETS){ const a=ASSETS[k]; if(a&&a.season) a.season.forEach(s=>set.add(s)); }
   if(ASSETS.tiles.grass.season) ASSETS.tiles.grass.season.forEach(s=>set.add(s));
-  set.forEach(s=>loadTex(s));
+  const load=()=>set.forEach(s=>loadTex(s));
+  if('requestIdleCallback' in window) requestIdleCallback(load,{timeout:5000});
+  else setTimeout(load,2500);
 }
-preloadSeasons();
 let grassSwap=null;
+function scheduleDeferredWorldLayers(){
+  const run=()=>{buildFoamLayer();buildSnowLayer();};
+  if('requestIdleCallback' in window)requestIdleCallback(run,{timeout:2500});
+  else setTimeout(run,1000);
+}
 function swapSeason(idx){
   for(const o of OBJECTS){ const n=o.node, a=ASSETS[o.kind];
     if(n._alt && a.season){
@@ -522,6 +564,7 @@ function swapSeason(idx){
   if(ASSETS.tiles.grass.season)
     loadTex(ASSETS.tiles.grass.season[idx]).then(tex=>{ grassSwap={t:0,tex,done:false}; });
   snowTarget = idx===3 ? 0.9 : 0;
+  if(idx===3&&!snowBuilt)buildSnowLayer();
 }
 
 /* —— 视口剔除: 只渲染镜头附近的瓦片/物件(性能核心) —— */
@@ -1473,6 +1516,13 @@ const dayPhase=()=> (elapsed%DAY_SECONDS)/DAY_SECONDS;
 const sunlight=()=> Math.max(0,Math.sin(dayPhase()*Math.PI));
 
 app.ticker.add(tk=>{
+  if(!entered || document.getElementById('title')){
+    world.renderable=false;
+    fxScreen.renderable=false;
+    return;
+  }
+  world.renderable=true;
+  fxScreen.renderable=true;
   const dt=Math.min(.05,tk.deltaMS/1000);
   fpsN++;
   const fnow=performance.now();
@@ -2682,14 +2732,32 @@ if(petCodexClose&&petCodex) petCodexClose.onclick=(e)=>{
 /* ================= 12. 标题 → 世界 转场 ================= */
 function enterWorld(){
   if(entered)return; entered=true;
+  window.__terraEnterCount=(window.__terraEnterCount||0)+1;
   console.log('[Terra] Entering world - Time:', elapsed.toFixed(1), 'Day phase:', dayPhase().toFixed(2), 'Sunlight:', sunlight().toFixed(2));
   const title=$('title');
   title.style.pointerEvents='none';
+  const enterButton=$('enter');
+  if(enterButton){enterButton.setAttribute('aria-busy','true');enterButton.textContent='大陆苏醒中';}
   title.querySelector('.bg').style.transition='transform 1.4s cubic-bezier(.55,0,.3,1)';
   title.querySelector('.bg').style.transform='scale(1.12)';
   title.querySelector('.card').style.transition='opacity .55s, transform .75s cubic-bezier(.55,0,.3,1)';
   title.querySelector('.card').style.opacity=0;
   title.querySelector('.card').style.transform='translateY(-4vh) scale(.98)';
+  const lightweightTransition=matchMedia('(pointer:coarse)').matches || matchMedia('(prefers-reduced-motion:reduce)').matches;
+  if(lightweightTransition){
+    title.remove();
+    cam.zoom=.92;cam.tzoom=.92;
+    document.body.classList.add('hud-on');
+    const fab=document.getElementById('craftFAB');
+    if(fab){fab.style.display='flex';fab.style.opacity='1';}
+    const whisper=$('whisper');
+    if(whisper){whisper.textContent='你的庄园刚刚苏醒：先靠近土地，收第一批木材，点亮第一张卡。';whisper.style.opacity=1;setTimeout(()=>{whisper.style.opacity=0;},5200);}
+    startTutorial();
+    preloadSeasons();
+    scheduleDeferredWorldLayers();
+    Promise.all(groundTextureLoads).then(()=>setTimeout(cacheGroundChunksIncrementally,1200));
+    return;
+  }
   const cv=$('clouds'),cc=cv.getContext('2d');
   const dpr=1,vw=innerWidth,vh=innerHeight;
   cv.width=vw;cv.height=vh;cv.style.width=vw+'px';cv.style.height=vh+'px';cv.style.opacity=1;
@@ -2716,10 +2784,14 @@ function enterWorld(){
       setTimeout(()=>{whisper.style.opacity=0;},5200);
     }
     startTutorial();
+    preloadSeasons();
+    scheduleDeferredWorldLayers();
+    Promise.all(groundTextureLoads).then(()=>setTimeout(cacheGroundChunksIncrementally,600));
   },1650);
 }
 window.enterWorld=enterWorld;  // 暴露给 MultiplayerUI
 $('enter').onclick=enterWorld;
+if(window.__terraEnterRequested) enterWorld();
 
 /* Wave 1: title 先收窄为诚实的单人切片；联机/大陆/邻居壳体保留代码但默认不公开 */
 setTimeout(()=>{

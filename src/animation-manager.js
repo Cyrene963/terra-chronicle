@@ -374,44 +374,9 @@
     setTimeout(() => ripple.remove(), duration);
   }
 
-  /* ================= 7. 性能监控与自适应 ================= */
-  let frameTimestamps = [];
-  let currentFPS = 60;
-
-  function updateFPS() {
-    const now = performance.now();
-    frameTimestamps.push(now);
-
-    // 保留最近 60 帧
-    while (frameTimestamps.length > 60) {
-      frameTimestamps.shift();
-    }
-
-    if (frameTimestamps.length >= 10) {
-      const elapsed = now - frameTimestamps[0];
-      currentFPS = (frameTimestamps.length - 1) / (elapsed / 1000);
-    }
-
-    requestAnimationFrame(updateFPS);
-  }
-
-  updateFPS();
-
-  function autoAdjustQuality() {
-    if (currentFPS < 25 && qualityLevel !== 'low') {
-      setQuality('low');
-      console.log('[AnimationManager] FPS low, switching to LOW quality');
-    } else if (currentFPS < 40 && qualityLevel === 'high') {
-      setQuality('medium');
-      console.log('[AnimationManager] FPS moderate, switching to MEDIUM quality');
-    } else if (currentFPS >= 55 && qualityLevel !== 'high') {
-      setQuality('high');
-      console.log('[AnimationManager] FPS good, switching to HIGH quality');
-    }
-  }
-
-  // 每 3 秒检查一次
-  setInterval(autoAdjustQuality, 3000);
+  /* ================= 7. 性能质量 ================= */
+  // The Pixi ticker in main.js owns FPS sampling and calls setQuality(). Keeping a second
+  // perpetual rAF sampler here caused duplicate work and competing quality decisions.
 
   function setQuality(level) {
     if (!['high', 'medium', 'low'].includes(level)) return;

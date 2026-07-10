@@ -272,7 +272,38 @@ function injectStyle(){
   #battle .rewardChoice .rtag{padding:4px 7px;border-radius:999px;background:rgba(78,49,22,.13);border:1px solid rgba(78,49,22,.16);}
   #battle .rewardChoice .rname{position:relative;font-size:17px;letter-spacing:.12em;color:#5b3514;margin:0 0 8px;font-weight:900;text-align:left;}
   #battle .rewardChoice .rdesc{position:relative;font-size:12.6px;line-height:1.55;letter-spacing:.035em;opacity:.92;text-align:left;font-weight:700;color:#352313;}
-  @media(max-width:760px){#battle .rewardPanel{padding:28px 18px;width:94vw}#battle .rewardChoices{grid-template-columns:1fr 1fr;width:90vw}#battle .rewardChoice{min-height:132px}}
+  @media(max-width:760px){
+    #battle .topbar{top:max(8px,env(safe-area-inset-top));min-width:0;width:calc(100vw - 20px);padding:7px 10px 8px;}
+    #battle .topbar .t{font-size:13px;letter-spacing:.08em;}
+    #battle .buffline,#battle .bossphase{margin-top:4px;font-size:9px;letter-spacing:.06em;padding:3px 7px;max-width:92vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    #battle .enemy{transform:translateY(-70px);}
+    #battle .enemy img{width:min(270px,64vw);max-height:31vh;object-fit:contain;}
+    #battle .ename{font-size:20px;letter-spacing:.12em;}
+    #battle .intent{font-size:11px;min-width:150px;max-width:82vw;padding:7px 10px;}
+    #battle .pbar{height:88px;padding:8px 10px max(8px,env(safe-area-inset-bottom));gap:8px;}
+    #battle .vit{gap:8px;min-width:0;}
+    #battle .stat{min-width:70px;gap:3px;}
+    #battle .stat .lab{font-size:8px;letter-spacing:.08em;}
+    #battle .vnum{font-size:10px;letter-spacing:.03em;white-space:nowrap;}
+    #battle .energy{gap:6px;}
+    #battle .orb{width:42px;height:42px;font-size:19px;}
+    #battle .endBtn{min-height:44px;padding:9px 11px;font-size:11px;letter-spacing:.08em;text-indent:0;white-space:nowrap;}
+    #battle .hand{bottom:82px;left:0;right:0;height:202px;justify-content:flex-start;gap:8px;padding:0 18px 8px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;perspective:none;-webkit-overflow-scrolling:touch;}
+    #battle .hand::-webkit-scrollbar{display:none;}
+    #battle .hand::before{display:none;}
+    #battle .card{flex:0 0 126px;width:126px;height:184px;padding:12px 10px 9px;border-radius:12px;scroll-snap-align:center;}
+    #battle .card:hover{transform:none;}
+    #battle .card .cost{width:30px;height:30px;font-size:17px;}
+    #battle .card .cname{font-size:14px;margin:1px 0 5px;}
+    #battle .card .cart{height:64px;min-height:64px;margin-bottom:5px;}
+    #battle .card .ctype{font-size:9px;margin-bottom:3px;}
+    #battle .card .cdesc{font-size:10px;line-height:1.2;min-height:38px;padding:5px;}
+    #battle .deckcount{bottom:294px;font-size:8px;padding:4px 6px;}
+    #battle .deckcount.draw{left:8px;}#battle .deckcount.disc{right:8px;}
+    #battle .rewardPanel{padding:28px 18px;width:94vw}
+    #battle .rewardChoices{grid-template-columns:1fr 1fr;width:90vw}
+    #battle .rewardChoice{min-height:132px}
+  }
   `;
   const st=document.createElement('style'); st.textContent=css; document.head.appendChild(st);
 }
@@ -795,6 +826,13 @@ function exit(){
     else if(!win&&c&&c.onLose) c.onLose();
   });
 }
+function closeImmediately(){
+  if(!Battle.active && !root?.classList.contains('on')) return;
+  cb=null;
+  S=null;
+  battleExiting=false;
+  finalizeBattleExit();
+}
 
 const Battle={
   active:false,
@@ -832,7 +870,10 @@ const Battle={
 };
 window.Battle=Battle;
 window.SurfaceLifecycle?.register?.('battle', {
-  close(){ if(Battle.active && !battleExiting) exit(); },
+  close(options={}){
+    if(options.immediate) closeImmediately();
+    else if(Battle.active && !battleExiting) exit();
+  },
   cleanup: clearBattleResidualUI
 });
 })();

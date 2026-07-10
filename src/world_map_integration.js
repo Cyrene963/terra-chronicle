@@ -15,6 +15,7 @@ const WorldMapIntegration = {
 
   // State
   isOpen: false,
+  transitionToken: 0,
   currentPlayerId: null,
   neighbors: [],
   injectedNeighborIds: [],
@@ -294,6 +295,13 @@ const WorldMapIntegration = {
   /* ================= 打开地图 ================= */
   openMap() {
     if (this.isOpen) return;
+    if (!this.mapOverlay || !this.mapButton) this.init();
+    if (!this.mapOverlay) {
+      console.error('[WorldMapIntegration] Map overlay unavailable');
+      window.SurfaceLifecycle?.afterClose?.('worldmap');
+      return;
+    }
+    const token=++this.transitionToken;
     window.SurfaceLifecycle?.beforeOpen?.('worldmap');
 
     this.isOpen = true;
@@ -303,7 +311,7 @@ const WorldMapIntegration = {
 
     // Fade in
     requestAnimationFrame(() => {
-      this.mapOverlay.style.opacity = '1';
+      if(token===this.transitionToken&&this.isOpen)this.mapOverlay.style.opacity = '1';
     });
 
     // Initialize WorldMap if not already
@@ -324,17 +332,19 @@ const WorldMapIntegration = {
   },
 
   /* ================= 关闭地图 ================= */
-  closeMap() {
+  closeMap(options={}) {
     if (!this.isOpen) return;
 
+    const token=++this.transitionToken;
     this.isOpen = false;
     this.mapOverlay.style.opacity = '0';
 
     this.hideProfilePanel();
 
-    setTimeout(() => {
-      this.mapOverlay.style.display = 'none';
-      window.SurfaceLifecycle?.afterClose?.('worldmap');
+    window.SurfaceLifecycle?.afterClose?.('worldmap');
+    if(options.immediate)this.mapOverlay.style.display='none';
+    else setTimeout(() => {
+      if(token===this.transitionToken&&!this.isOpen)this.mapOverlay.style.display = 'none';
     }, 500);
 
     console.log('[WorldMapIntegration] Map closed');
@@ -553,5 +563,5 @@ const WorldMapIntegration = {
 // Export to global
 if (typeof window !== 'undefined') {
   window.WorldMapIntegration = WorldMapIntegration;
-  window.SurfaceLifecycle?.register?.('worldmap', { close: () => WorldMapIntegration.closeMap() });
+  window.SurfaceLifecycle?.register?.('worldmap', { close: options => WorldMapIntegration.closeMap(options) });
 }

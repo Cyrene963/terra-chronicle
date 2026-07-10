@@ -16,12 +16,13 @@ fs.mkdirSync(OUT, { recursive: true });
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
-  const url = `http://127.0.0.1:8867/index.html?surface-smoke=${Date.now()}`;
+  const baseUrl = process.env.TERRA_PUBLIC_BASE_URL || 'http://127.0.0.1:8867';
+  const url = `${baseUrl}/index.html?surface-smoke=${Date.now()}`;
   let loaded = false;
   for (let attempt = 1; attempt <= 3 && !loaded; attempt++) {
     try {
       await page.goto(url, { waitUntil: 'commit', timeout: 30000 });
-      await page.waitForFunction(() => window.SurfaceLifecycle && window.Alchemy && window.DungeonMap && window.Battle && window.FarmUpgrade, null, { timeout: 30000 });
+      await page.waitForFunction(() => window.SurfaceLifecycle && window.Alchemy && window.DungeonMap && window.Battle && window.FarmUpgrade && window.enterWorld && window.__dbg, null, { timeout: 30000 });
       loaded = true;
     } catch (err) {
       if (attempt === 3) throw err;

@@ -69,7 +69,7 @@ function injectStyle(){
   #upgradePanel .toast.on{opacity:1;transform:translate(-50%,0) scale(1);}
   #upgradePanel .toast .tt{font-size:16px;letter-spacing:.14em;color:#f4d075;margin-bottom:4px;}
   #upgradePanel .toast .tb{font-size:12px;letter-spacing:.06em;line-height:1.6;color:#e5d4b7;}
-  @media (max-width:760px){#upgradePanel{padding:12px;}#upgradePanel .shell{height:calc(100vh - 24px);grid-template-columns:1fr;padding:18px;}#upgradePanel .side{display:none;}#upgradePanel .upgrades{grid-template-columns:1fr;}#upgradePanel h3{font-size:34px;}}
+  @media (max-width:760px){#upgradePanel{padding:max(8px,env(safe-area-inset-top)) 8px max(8px,env(safe-area-inset-bottom));}#upgradePanel .shell{height:calc(100dvh - max(16px,env(safe-area-inset-top) + env(safe-area-inset-bottom)));grid-template-columns:1fr;padding:52px 14px 14px;}#upgradePanel .side{display:none;}#upgradePanel .upgrades{grid-template-columns:1fr;gap:10px;}#upgradePanel .upg{min-height:132px;padding:14px;}#upgradePanel h3{font-size:30px;}#upgradePanel .close{top:max(10px,env(safe-area-inset-top));right:10px;width:46px;height:46px;}}
   `;
   const s=$('style');s.textContent=css;document.head.appendChild(s);
 }

@@ -114,7 +114,8 @@ for rel in files:
     if os.path.exists(p):
         b=open(p,'rb').read(); out['key_files'][rel]={'sha256':hashlib.sha256(b).hexdigest(),'size':len(b)}
 html=open(os.path.join(root,'index.html'),'r',encoding='utf-8').read()
-out['mounted_scripts']=re.findall(r'<script src="([^"]+)"', html)
+out['mounted_scripts']=re.findall(r'<script src=["\x27]([^"\x27]+)', html)
+out['mounted_scripts'] += re.findall(r'\.src\s*=\s*["\x27]([^"\x27]+)["\x27]', html)
 open(manifest,'w').write(json.dumps(out,ensure_ascii=False,indent=2))
 PY
 
