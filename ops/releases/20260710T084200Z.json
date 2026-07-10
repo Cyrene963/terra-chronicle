@@ -1,0 +1,64 @@
+{
+  "timestamp": "20260710T084200Z",
+  "git_sha": "52b4ab47452f28605acd96a78970be87898b5b60",
+  "upstream": "origin/main",
+  "source_path": "/root/terra-chronicle-game",
+  "target_path": "/var/www/terra-pixijs",
+  "verify_status": "passed",
+  "key_files": {
+    "index.html": {
+      "sha256": "a4d422883f38629715889e14f3c87dff2bf3b5aec05ebbb6d9775288078986b9",
+      "size": 42925
+    },
+    "src/main.js": {
+      "sha256": "1152cdb8295e1c29928ae4f21510699480c71ae06a901adf4a984c205ddc4e4e",
+      "size": 138179
+    },
+    "src/battle.js": {
+      "sha256": "21c3d5a63dc0e3b511f980a4d463efad86e791afde148a4f89b898c29c655cf0",
+      "size": 55269
+    },
+    "src/multiplayer_ui.js": {
+      "sha256": "a091166684e6087dc76a4d52c41db2945793c98162b9c2f120a387ed5090b420",
+      "size": 23109
+    },
+    "src/world_map.js": {
+      "sha256": "3cbbd29e2885903c0ae1c18d6dcb33e14ab3c1418d228c1a408fb61d60d1a409",
+      "size": 22150
+    },
+    "src/world_map_integration.js": {
+      "sha256": "29d7be1e4ce99febdbe229698e0658c37f74cd547efb4bb51610ec19b51f1ee0",
+      "size": 24687
+    },
+    "package.json": {
+      "sha256": "1477e1da3aa3adea9d4c147c39d32cd377da61fa4beab374620ac3ca14bc8ef9",
+      "size": 1555
+    }
+  },
+  "mounted_scripts": [
+    "vendor/pixi.min.js",
+    "src/animation-manager.js?v=2",
+    "src/surface_manager.js?v=1",
+    "src/state.js?v=8",
+    "src/game_feel_enhanced.js?v=1",
+    "src/feedback_system.js?v=1",
+    "src/soil_particles.js?v=1",
+    "src/seasonal_events.js?v=1",
+    "src/day_night_enhanced.js?v=2",
+    "src/water_shader.js?v=14",
+    "src/advanced_particles.js?v=14",
+    "src/post_processing.js?v=14",
+    "src/material_enhancement.js?v=14",
+    "src/websocket_client.js",
+    "src/neighbor_system.js",
+    "src/multiplayer_ui.js?v=5",
+    "src/world_map.js?v=5",
+    "src/world_map_integration.js?v=5",
+    "src/alchemy.js?v=48",
+    "src/battle_effects.js?v=2",
+    "src/battle.js?v=74",
+    "src/dungeon.js?v=54",
+    "src/upgrade.js?v=40",
+    "src/main.js?v=90"
+  ]
+}
