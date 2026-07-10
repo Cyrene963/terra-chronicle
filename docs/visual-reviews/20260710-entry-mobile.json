@@ -2,7 +2,7 @@
   "git_sha": "cc3e63ae1a571e2f4b9e1620e221e4681b2efd86",
   "status": "approved",
   "reviewer": {
-    "type": "multimodal_vision_and_runtime",
+    "type": "multimodal_vision",
     "model": "gpt-5.6 native vision",
     "timestamp": "2026-07-10T16:40:00+08:00",
     "report": "docs/visual_review_20260710_entry_mobile.md"
