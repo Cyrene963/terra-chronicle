@@ -240,7 +240,7 @@ let feedbackSystem = null;  // 交互反馈系统（在图层初始化后创建�
 const isHeadless = navigator.webdriver || navigator.userAgent.includes('HeadlessChrome');
 
 const isTabletLike = /iPad|Tablet/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-const baseDPR = isHeadless ? 1 : Math.min(window.devicePixelRatio || 1, isTabletLike ? 3 : 2.5);
+const baseDPR = isHeadless ? 1 : Math.min(window.devicePixelRatio || 1, isTabletLike ? 1.75 : 1.5);
 await app.init({ resizeTo: window, background: 0x0d0f12, antialias: true,
   resolution: baseDPR,
   autoDensity: true,
@@ -265,8 +265,28 @@ const TEX_VIGNET = (()=>{const c=document.createElement('canvas');c.width=c.heig
 
 /* ---- 图层结构 ---- */
 const world = new PIXI.Container();              // 镜头作用对象
-const groundL = new PIXI.Container();            // 瓦片层(草/土/沙/耕地)
-const groundVeilL = new PIXI.Container();        // 地表低频综合色块(打散棋盘格/重复感)
+const groundL = new PIXI.Container();            // 静态地表分块缓存层
+const dynamicGroundL = new PIXI.Container();     // 耕地等会换图的动态地表层
+const groundChunks = new Map();
+const snowChunks = new Map();
+const GROUND_CHUNK_TILES = 8;
+const GROUND_CHUNK_PX = GROUND_CHUNK_TILES * TS;
+function chunkFor(map,parent,x,y,prefix){
+  const cx=Math.floor(x/GROUND_CHUNK_TILES), cy=Math.floor(y/GROUND_CHUNK_TILES), key=`${cx},${cy}`;
+  let chunk=map.get(key);
+  if(!chunk){
+    chunk=new PIXI.Container();
+    chunk.label=`${prefix}-${key}`;
+    chunk.position.set(cx*GROUND_CHUNK_PX,cy*GROUND_CHUNK_PX);
+    chunk._cx=cx; chunk._cy=cy; chunk._cached=false;
+    map.set(key,chunk); parent.addChild(chunk);
+  }
+  return chunk;
+}
+const groundChunkFor=(x,y)=>chunkFor(groundChunks,groundL,x,y,'ground');
+const snowChunkFor=(x,y)=>chunkFor(snowChunks,snowL,x,y,'snow');
+const groundVeilL = new PIXI.Container();        // 兼容图层；大面积 multiply veil 已禁用以避免移动端过度绘制
+ groundVeilL.renderable = false;
 const waterL = new PIXI.Container();             // 水面层(独立,轻量波纹滤镜)
 const foamL = new PIXI.Container();              // 水岸泡沫
 const snowL = new PIXI.Container();              // 冬季积雪覆盖层
@@ -274,7 +294,7 @@ const overlayL = new PIXI.Container();           // 地表覆盖(作物/云影)
 const objL = new PIXI.Container();               // Y-Sort 实体层
 objL.sortableChildren = true;
 const fxScreen = new PIXI.Container();           // 屏幕空间: 粒子/光/晕影
-world.addChild(groundL, groundVeilL, waterL, foamL, snowL, overlayL, objL);
+world.addChild(groundL, dynamicGroundL, groundVeilL, waterL, foamL, snowL, overlayL, objL);
 app.stage.addChild(world, fxScreen);
 
 /* 初始化交互反馈系统 */
@@ -352,6 +372,7 @@ function applySeasonGrade(st){
 /* ================= 5. 瓦片地图渲染 ================= */
 const KIND2PAL={g:'grass',G:'grassB',s:'soil',w:'water',b:'sand',p:'plot'};
 const tileSprites=[], waterTiles=[], snowAt=[], grassTiles=[], plotTiles=[];
+const groundTextureLoads=[];
 let plotBaseTex=null, plotIntroTex=null;
 loadTex(ASSETS.tiles.plot.src,'tile').then(tex=>{ plotBaseTex=tex; }).catch(()=>{});
 loadTex(ASSETS.tiles.soil.src,'tile').then(tex=>{ plotIntroTex=tex; }).catch(()=>{});
@@ -359,62 +380,66 @@ for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
   const k=grid[y][x];
   const t=ASSETS.tiles[{g:'grass',G:'grass',s:'soil',w:'water',b:'sand',p:'plot'}[k]];
   const sp=new PIXI.Sprite(PIXI.Texture.WHITE);
-  sp.width=TS+2; sp.height=TS+2; sp.position.set(x*TS-1,y*TS-1);  // 1px 重叠:消除瓦片接缝
-  if(t.src) loadTex(t.src,'tile').then(tex=>{sp.texture=tex;sp.width=TS+2;sp.height=TS+2;});
+  sp.width=TS+2; sp.height=TS+2;
+  const loadPromise=t.src?loadTex(t.src,'tile').then(tex=>{sp.texture=tex;sp.width=TS+2;sp.height=TS+2;}):Promise.resolve();
+  groundTextureLoads.push(loadPromise.catch(()=>{}));
   const r=hash(x*13+7,y*11+3);
-  sp._k=k; sp._j=0.975+r*0.05;                 // 每块明度抖动(极轻,避免棋盘格感)
-  sp._ph=r*6.28;                               // 水面相位
-  if(k==='g'||k==='G') grassTiles.push(sp);    // 草地:随季换图
-  if(k==='p') plotTiles.push(sp);              // Wave 1: 首屏弱化深色耕地块存在感
-  if(k==='w'){ waterL.addChild(sp); waterTiles.push(sp); snowAt.push(null); }   // 水→独立层
-  else {
-    groundL.addChild(sp);
-    const sn=new PIXI.Sprite(PIXI.Texture.WHITE);   // 积雪覆盖(冬季由 snowL.alpha 控制)
+  sp._tx=x; sp._ty=y; sp._k=k; sp._j=0.975+r*0.05;
+  sp._ph=r*6.28;
+  if(k==='g'||k==='G') grassTiles.push(sp);
+  if(k==='p') plotTiles.push(sp);
+  if(k==='w'){
+    sp.position.set(x*TS-1,y*TS-1); waterL.addChild(sp); waterTiles.push(sp); snowAt.push(null);
+  } else if(k==='p'){
+    sp.position.set(x*TS-1,y*TS-1); dynamicGroundL.addChild(sp);
+    const sn=new PIXI.Sprite(PIXI.Texture.WHITE);
     sn.width=TS+2; sn.height=TS+2; sn.position.set(x*TS-1,y*TS-1);
     sn.tint=0xf4f7fb; sn.alpha=.82+r*.18; snowL.addChild(sn); snowAt.push(sn);
+  } else {
+    const chunk=groundChunkFor(x,y);
+    sp.position.set((x%GROUND_CHUNK_TILES)*TS-1,(y%GROUND_CHUNK_TILES)*TS-1);
+    chunk.addChild(sp);
+    const snowChunk=snowChunkFor(x,y);
+    const sn=new PIXI.Sprite(PIXI.Texture.WHITE);
+    sn.width=TS+2; sn.height=TS+2;
+    sn.position.set((x%GROUND_CHUNK_TILES)*TS-1,(y%GROUND_CHUNK_TILES)*TS-1);
+    sn.tint=0xf4f7fb; sn.alpha=.82+r*.18; snowChunk.addChild(sn); snowAt.push(sn);
   }
   tileSprites.push(sp);
 }
 snowL.visible=false; snowL.alpha=0;
+let groundCacheReady=false;
+function cacheGroundChunksIncrementally(){
+  const startCx=22.5/GROUND_CHUNK_TILES, startCy=23.2/GROUND_CHUNK_TILES;
+  const queue=[...groundChunks.values()].sort((a,b)=>
+    Math.hypot(a._cx-startCx,a._cy-startCy)-Math.hypot(b._cx-startCx,b._cy-startCy));
+  const step=()=>{
+    const chunk=queue.shift();
+    if(!chunk){ groundCacheReady=true; cullWorld(); return; }
+    try{
+      chunk.cacheAsTexture({resolution:1,antialias:false});
+      chunk._cached=true;
+    }catch(err){ console.warn('[Terra] ground chunk cache skipped',chunk.label,err); }
+    setTimeout(step,32);
+  };
+  step();
+}
+function refreshGroundChunkCaches(){
+  if(!groundCacheReady) return;
+  const queue=[...groundChunks.values()];
+  const step=()=>{ const chunk=queue.shift(); if(!chunk)return; chunk.updateCacheTexture?.(); setTimeout(step,32); };
+  step();
+}
+if(isHeadless){
+  groundCacheReady=true;
+  requestAnimationFrame(cullWorld);
+}else{
+  Promise.all(groundTextureLoads).then(()=>requestAnimationFrame(cacheGroundChunksIncrementally));
+}
 
-/* ================= 5.25 地表综合色层（削弱草地棋盘格/重复感） ================= */
-for(let gy=0; gy<MAP; gy+=4) for(let gx=0; gx<MAP; gx+=4){
-  const r=hash(gx*5+17, gy*7+29);
-  const veil=new PIXI.Sprite(TEX_GLOW);
-  veil.anchor.set(.5);
-  veil.x=(gx+2)*TS; veil.y=(gy+2)*TS;
-  veil.width=TS*(4.8+r*1.6); veil.height=TS*(4.2+r*1.4);
-  veil.alpha=0.045 + r*0.03;
-  veil.tint = r>.66 ? 0xb8d98c : r>.33 ? 0x9cc470 : 0x86ad63;
-  veil.blendMode='multiply';
-  groundVeilL.addChild(veil);
-}
-// Wave 1: 庄园周边额外低频整理层——让核心区域更像被照料过，外围仍保留野地感
-for(const zone of [
-  {x:20.5*TS,y:24.5*TS,w:TS*8.5,h:TS*6.2,tint:0xe2d58f,alpha:0.10},
-  {x:24.5*TS,y:23.2*TS,w:TS*5.2,h:TS*3.8,tint:0xf1de97,alpha:0.11},
-  {x:22.8*TS,y:29.0*TS,w:TS*7.2,h:TS*4.8,tint:0xd0c27e,alpha:0.08},
-  {x:17.6*TS,y:21.8*TS,w:TS*4.8,h:TS*4.0,tint:0xc5d884,alpha:0.07},
-  {x:28.2*TS,y:26.5*TS,w:TS*6.2,h:TS*4.4,tint:0xe6cf88,alpha:0.07},
-  {x:13.0*TS,y:25.5*TS,w:TS*10.5,h:TS*9.0,tint:0x90b96a,alpha:0.045},
-  {x:31.5*TS,y:24.0*TS,w:TS*9.5,h:TS*7.0,tint:0x94b863,alpha:0.04},
-  {x:21.6*TS,y:20.6*TS,w:TS*11.2,h:TS*8.4,tint:0xe8da92,alpha:0.035},
-  {x:25.8*TS,y:31.5*TS,w:TS*9.6,h:TS*6.8,tint:0xd8c57d,alpha:0.03},
-  {x:9.8*TS,y:27.8*TS,w:TS*12.8,h:TS*10.6,tint:0x86ad63,alpha:0.028},
-  {x:37.2*TS,y:22.0*TS,w:TS*12.5,h:TS*9.8,tint:0x7ea65b,alpha:0.024},
-  {x:6.5*TS,y:18.0*TS,w:TS*13.5,h:TS*11.5,tint:0x799d56,alpha:0.020},
-  {x:42.5*TS,y:28.0*TS,w:TS*12.8,h:TS*12.0,tint:0x739851,alpha:0.020},
-  {x:18.8*TS,y:34.2*TS,w:TS*14.2,h:TS*7.6,tint:0xd0bf76,alpha:0.018},
-  {x:33.0*TS,y:14.8*TS,w:TS*11.0,h:TS*8.5,tint:0x7ea25a,alpha:0.016},
-  {x:24.0*TS,y:25.0*TS,w:TS*16.0,h:TS*12.0,tint:0xf0df9a,alpha:0.012}
-]){
-  const veil=new PIXI.Sprite(TEX_GLOW);
-  veil.anchor.set(.5); veil.x=zone.x; veil.y=zone.y;
-  veil.width=zone.w; veil.height=zone.h;
-  veil.tint=zone.tint; veil.alpha=zone.alpha;
-  veil.blendMode='screen';
-  groundVeilL.addChild(veil);
-}
+/* ================= 5.25 地表综合色层 ================= */
+// Disabled: hundreds of large multiply/screen glow sprites caused severe overdraw and
+// duplicated the painterly detail already present in the generated terrain textures.
 
 /* ================= 5.5 水面优化（轻量级边缘柔化）================= */
 // 在水陆边界添加半透明泡沫层,用最轻量的方式平滑过渡(无重度滤镜)
@@ -429,6 +454,7 @@ for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
     const diag = dx!==0 && dy!==0;
     foam.width=TS*(diag?1.05:1.2); foam.height=TS*(diag?1.05:1.2);
     foam.x=x*TS+TS/2+dx*TS*(diag?0.28:0.35); foam.y=y*TS+TS/2+dy*TS*(diag?0.28:0.35);
+    foam._tx=x; foam._ty=y;
     foam._ph=hash(x*19+dx*7,y*23+dy*5)*6.28;
     foam.tint=diag?0xdaf7ff:0xeefaff; foam.alpha=diag?.16:.28; foam.blendMode='add';
     foamL.addChild(foam);
@@ -500,8 +526,24 @@ function swapSeason(idx){
 
 /* —— 视口剔除: 只渲染镜头附近的瓦片/物件(性能核心) —— */
 function cullWorld(){
-  // Previous broad culling pass was disabled for render stability. Keep this as a no-op so the ticker
-  // does not re-touch every tile/object every 120ms.
+  const vw=app.screen.width, vh=app.screen.height, s=world.scale.x||1;
+  const wx0=(0-world.x)/s, wy0=(0-world.y)/s, wx1=(vw-world.x)/s, wy1=(vh-world.y)/s;
+  const tx0=Math.max(0,Math.floor(wx0/TS)-3), ty0=Math.max(0,Math.floor(wy0/TS)-3);
+  const tx1=Math.min(MAP-1,Math.floor(wx1/TS)+3), ty1=Math.min(MAP-1,Math.floor(wy1/TS)+3);
+  const cx0=Math.max(0,Math.floor(tx0/GROUND_CHUNK_TILES)), cy0=Math.max(0,Math.floor(ty0/GROUND_CHUNK_TILES));
+  const cx1=Math.floor(tx1/GROUND_CHUNK_TILES), cy1=Math.floor(ty1/GROUND_CHUNK_TILES);
+  for(const chunk of groundChunks.values()) chunk.renderable=chunk._cx>=cx0&&chunk._cx<=cx1&&chunk._cy>=cy0&&chunk._cy<=cy1;
+  for(const chunk of snowChunks.values()) chunk.renderable=chunk._cx>=cx0&&chunk._cx<=cx1&&chunk._cy>=cy0&&chunk._cy<=cy1;
+  for(const tile of waterTiles) tile.renderable=tile._tx>=tx0&&tile._tx<=tx1&&tile._ty>=ty0&&tile._ty<=ty1;
+  for(const foam of foamL.children) foam.renderable=foam._tx>=tx0-1&&foam._tx<=tx1+1&&foam._ty>=ty0-1&&foam._ty<=ty1+1;
+  for(const tile of plotTiles) tile.renderable=tile._tx>=tx0&&tile._tx<=tx1&&tile._ty>=ty0&&tile._ty<=ty1;
+  for(const o of OBJECTS){
+    const n=o.node;
+    n.renderable=n.x>wx0-240&&n.x<wx1+240&&n.y>wy0-320&&n.y<wy1+180;
+  }
+  for(const pc of Object.values(planted)){
+    const n=pc?.node; if(n) n.renderable=n.x>wx0-90&&n.x<wx1+90&&n.y>wy0-100&&n.y<wy1+100;
+  }
 }
 
 /* ================= 6. 精灵节点工厂(占位符 ⇄ 贴图) ================= */
@@ -1393,7 +1435,7 @@ if (typeof SeasonalParticleSystem !== 'undefined') {
 /* ================= 10. 时间系统与主循环 ================= */
 // 初始时间设为正午(白天最亮时刻),避免进入游戏后黑屏
 let elapsed=DAY_SECONDS*0.5, timeScale=1, entered=false;
-let recolorClock=0, cullClock=0, hudClock=0, curWaterBase=[84,150,164], curCrop=0x96be64;
+let recolorClock=0, cullClock=0, hudClock=0, dayNightClock=0, waterFxClock=0, objectFxClock=0, interactionClock=0, particleClock=0, curWaterBase=[84,150,164], curCrop=0x96be64;
 
 /* —— 自适应画质: FPS 不足时逐级降载(软渲染/低端机自救) + AnimationManager 联动 —— */
 let quality=2, fpsN=0, fpsT0=performance.now(), fpsLast=0, seasonFilterOn=true;
@@ -1403,9 +1445,9 @@ function setQuality(q){
   if(q>=quality) return; quality=q;
 
   // 先砍特效,后砍分辨率;Retina/iPad 禁止掉到 0.75 这种糊成一片的级别
-  const deviceDPR = Math.min(window.devicePixelRatio || 1, isTabletLike ? 3 : 2.5);
-  const mediumRes = Math.max(isTabletLike ? 1.5 : 1.0, Math.min(deviceDPR, isTabletLike ? 2.2 : 1.4));
-  const lowRes = Math.max(isTabletLike ? 1.25 : 0.9, Math.min(deviceDPR, isTabletLike ? 1.6 : 1.0));
+  const deviceDPR = Math.min(window.devicePixelRatio || 1, isTabletLike ? 1.75 : 1.5);
+  const mediumRes = Math.max(1, Math.min(deviceDPR, isTabletLike ? 1.35 : 1.2));
+  const lowRes = 1;
 
   // 同步到 AnimationManager
   if(window.AnimationManager){
@@ -1449,14 +1491,19 @@ app.ticker.add(tk=>{
     }
   }
   elapsed+=dt*timeScale;
+  const farmOccluded=(window.Battle&&Battle.active)||document.getElementById('dungeonMap')?.classList.contains('on');
+  world.renderable=!farmOccluded;
+  fxScreen.renderable=!farmOccluded;
+  if(farmOccluded) return;
   const st=(elapsed/DAY_SECONDS/SEASON_DAYS)%4;
   const sun=sunlight(), night=1-sun;
   const currentDayPhase = (elapsed % DAY_SECONDS) / DAY_SECONDS;
   const currentDay = Math.floor(elapsed / DAY_SECONDS);
 
-  /* —— 强化昼夜循环更新 —— */
-  if (window.updateDayNightCycle && world) {
-    window.updateDayNightCycle(currentDayPhase, currentDay, world, dt);
+  dayNightClock-=dt;
+  if(window.updateDayNightCycle && world && dayNightClock<=0){
+    dayNightClock=.25;
+    window.updateDayNightCycle(currentDayPhase,currentDay,world,.25);
   }
 
   /* —— 世界调色: 重活 150ms 节流 —— */
@@ -1505,7 +1552,7 @@ app.ticker.add(tk=>{
   snowL.visible = snowL.alpha>0.02;
   if(grassSwap){ grassSwap.t+=dt/0.7;                                  // 草地 alpha-dip 换图
     const ph=grassSwap.t, a=Math.max(.45, ph<.5? 1-ph*1.1 : .45+(ph-.5)*1.1);
-    if(ph>=.5 && !grassSwap.done && grassSwap.tex){ for(const g of grassTiles) g.texture=grassSwap.tex; grassSwap.done=true; }
+    if(ph>=.5 && !grassSwap.done && grassSwap.tex){ for(const g of grassTiles) g.texture=grassSwap.tex; grassSwap.done=true; refreshGroundChunkCaches(); }
     for(const g of grassTiles) g.alpha=Math.min(1,a);
     if(ph>=1){ for(const g of grassTiles) g.alpha=1; grassSwap=null; }
   }
@@ -1526,45 +1573,47 @@ app.ticker.add(tk=>{
       p.tint = 0xffffff;
     }
   }
-  for(const sp of waterTiles){ if(!sp.visible) continue;        // 流水:沿河道移动的亮带(非逐格随机)
-    const flow=Math.sin((sp.position.y*0.03+sp.position.x*0.013)-elapsed*1.5)*0.5+0.5;
-    const b=0.94+flow*0.10; sp.tint=hex([108*b,176*b,198*b]);
+  waterFxClock-=dt;
+  if(waterFxClock<=0){
+    waterFxClock=quality===2?.10:.18;
+    for(const sp of waterTiles){ if(!sp.renderable) continue;
+      const flow=Math.sin((sp._ty*1.9+sp._tx*.8)-elapsed*1.5)*0.5+0.5;
+      const b=0.94+flow*0.10; sp.tint=hex([108*b,176*b,198*b]);
+    }
+    for(const f of foamL.children){ if(f.renderable) f.alpha=.16+Math.sin(elapsed*1.6+f._ph)*.11; }
+    if(waterDisp){ waterDisp.x=(waterDisp.x+.9)%384; waterDisp.y=Math.sin(elapsed*.5)*18; }
   }
-  for(const f of foamL.children) f.alpha=.16+Math.sin(elapsed*1.6+f._ph)*.11;   // 泡沫脉动
-  if(waterDisp){ waterDisp.x=(waterDisp.x+dt*9)%384; waterDisp.y=Math.sin(elapsed*.5)*18; }
-  if(waterDispFilter && !isHeadlessEnv){ const on=quality>0;                       // headless 永不启用波纹滤镜
+  if(waterDispFilter && !isHeadlessEnv){ const on=quality>1;
     if((waterL.filters&&waterL.filters.length>0)!==on) waterL.filters=on?[waterDispFilter]:[]; }
-  for(const o of OBJECTS){
-    const n=o.node;
-    if(n._alt && n._fadeT<1){                                          // 树木季节交叉淡入
-      n._fadeT=Math.min(1,n._fadeT+dt/0.8);
-      n._alt.alpha=n._fadeT; n._body.alpha=1-n._fadeT;
-      if(n._fadeT>=1){ const a=ASSETS[o.kind];
-        n._body.texture=n._alt.texture; n._body.width=a.w; n._body.height=a.h; n._body.alpha=1; n._alt.alpha=0; }
-    }
-    if(!n.visible) continue;
-    if(n._blades) n._blades.rotation+=dt*1.1;                          // 风车叶片旋转
-    if(n._lamp) n._lamp.alpha=night>.5?(night-.5)*1.6:0;
-    if(n._graded&&(o.kind==='tree'||o.kind==='cherry')){
-      n._body.rotation=Math.sin(elapsed*1.1+n.x*.01)*.008;
-      if(n._alt) n._alt.rotation=n._body.rotation;
-    }
-    // 核心交互点呼吸光环（强化辉光半径与频率）
-    if(n._glow){
-      const glowPhase=Math.sin(elapsed*1.8)*0.5+0.5;                   // 频率加快
-      n._glow.alpha=0.28+glowPhase*0.22;                               // 更亮
-      n._glow.scale.set(1+glowPhase*0.18);                             // 更大的脉动幅度
-    }
-    if(o._shake>0){                                // 伐木受击晃动 + 屏幕震动
-      o._shake-=dt*2.4;
-      n.scale.set(1+Math.sin(o._shake*26)*.05*Math.max(0,o._shake));
-
-      // 添加屏幕震动反馈
-      if(o._shake > 0.8 && window.AnimationManager){
-        AnimationManager.shake(world, 3, 100);
+  objectFxClock-=dt;
+  if(objectFxClock<=0){
+    objectFxClock=quality===2?.05:.10;
+    for(const o of OBJECTS){
+      const n=o.node;
+      if(n._alt && n._fadeT<1){
+        n._fadeT=Math.min(1,n._fadeT+objectFxClock/0.8);
+        n._alt.alpha=n._fadeT; n._body.alpha=1-n._fadeT;
+        if(n._fadeT>=1){ const a=ASSETS[o.kind];
+          n._body.texture=n._alt.texture; n._body.width=a.w; n._body.height=a.h; n._body.alpha=1; n._alt.alpha=0; }
       }
-
-      if(o._shake<=0) n.scale.set(1);
+      if(!n.renderable) continue;
+      if(n._blades) n._blades.rotation+=objectFxClock*1.1;
+      if(n._lamp) n._lamp.alpha=night>.5?(night-.5)*1.6:0;
+      if(n._graded&&(o.kind==='tree'||o.kind==='cherry')){
+        n._body.rotation=Math.sin(elapsed*1.1+n.x*.01)*.008;
+        if(n._alt) n._alt.rotation=n._body.rotation;
+      }
+      if(n._glow){
+        const glowPhase=Math.sin(elapsed*1.8)*0.5+0.5;
+        n._glow.alpha=0.28+glowPhase*0.22;
+        n._glow.scale.set(1+glowPhase*0.18);
+      }
+      if(o._shake>0){
+        o._shake-=objectFxClock*2.4;
+        n.scale.set(1+Math.sin(o._shake*26)*.05*Math.max(0,o._shake));
+        if(o._shake > 0.8 && window.AnimationManager) AnimationManager.shake(world,3,100);
+        if(o._shake<=0) n.scale.set(1);
+      }
     }
   }
   /* 玩家与镜头 */
@@ -1653,17 +1702,20 @@ app.ticker.add(tk=>{
   vignette.alpha = tutorialState?.phase === 'intro' ? 0.68 : tutorialState?.phase === 'first_card' ? 0.54 : 1;
   for(const c of cloudShadows){ c.x+=c._v*dt; if(c.x>MAP*TS+600)c.x=-600; }
 
-  // 粒子系统更新 (v9.14: 优先使用高级粒子系统)
-  if (advancedParticleSystem) {
-    advancedParticleSystem.update();
-  } else {
+  particleClock-=dt;
+  if(advancedParticleSystem && particleClock<=0){
+    particleClock=quality===2?1/30:.10;
+    if(quality>0) advancedParticleSystem.update();
+    else advancedParticleSystem.clear();
+  } else if(!advancedParticleSystem) {
     spawnParticles(st,dt,night>.62);
     updateParticles(dt,((Math.floor(st)%4)+4)%4);
   }
 
   hudClock-=dt;
-  if(hudClock<=0){ hudClock=.1; updateHUD(st,Math.floor(elapsed/DAY_SECONDS)); updateEcoHUD(); updatePerfHUD(); updateObjectiveTrack(); }
-  updateInteractionIndicators();
+  if(hudClock<=0){ hudClock=.5; updateHUD(st,Math.floor(elapsed/DAY_SECONDS)); updateEcoHUD(); updatePerfHUD(); updateObjectiveTrack(); }
+  interactionClock-=dt;
+  if(interactionClock<=0){ interactionClock=.10; updateInteractionIndicators(); }
   if(tutorialState.active){
     // Wave 1: 第一小时目标链从“控件教学”改为“第一轮资源循环”
     tutorialState._firstCardCrafted = tutorialState._firstCardCrafted || farm.inventory.cards.length > 0;
@@ -2629,9 +2681,9 @@ function enterWorld(){
   title.querySelector('.card').style.opacity=0;
   title.querySelector('.card').style.transform='translateY(-4vh) scale(.98)';
   const cv=$('clouds'),cc=cv.getContext('2d');
-  const dpr=Math.min(devicePixelRatio||1, isTabletLike ? 3 : 2.5),vw=innerWidth,vh=innerHeight;
-  cv.width=vw*dpr;cv.height=vh*dpr;cv.style.width=vw+'px';cv.style.height=vh+'px';cv.style.opacity=1;
-  const t0=performance.now(),blobs=Array.from({length:14},()=>({x:Math.random()*1.4-.2,y:Math.random(),r:.10+Math.random()*.16,v:.8+Math.random()*.6}));
+  const dpr=1,vw=innerWidth,vh=innerHeight;
+  cv.width=vw;cv.height=vh;cv.style.width=vw+'px';cv.style.height=vh+'px';cv.style.opacity=1;
+  const t0=performance.now(),blobs=Array.from({length:6},()=>({x:Math.random()*1.4-.2,y:Math.random(),r:.10+Math.random()*.16,v:.8+Math.random()*.6}));
   (function sweep(){const e=(performance.now()-t0)/1400;
     cc.setTransform(dpr,0,0,dpr,0,0);cc.clearRect(0,0,vw,vh);
     for(const b of blobs){const x=vw*(b.x+e*b.v*1.4-.8),y=vh*b.y,r=b.r*vw*(1+e*.32);
@@ -2641,7 +2693,7 @@ function enterWorld(){
       cc.fillStyle=gg;cc.beginPath();cc.arc(x,y,r,0,7);cc.fill();}
     if(e<1.02)requestAnimationFrame(sweep);else cv.style.opacity=0;})();
   setTimeout(()=>{title.style.opacity=0;
-    cam.zoom=.56;cam.tzoom=.92;
+    cam.zoom=.92;cam.tzoom=.92;
     document.body.classList.add('hud-on');
     const fab=document.getElementById('craftFAB');
     if(fab){fab.style.display='flex';fab.style.opacity='1';}

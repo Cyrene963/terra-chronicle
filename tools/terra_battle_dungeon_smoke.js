@@ -122,6 +122,7 @@ async function loadGame(page, suffix) {
     return window.DungeonMap.grantLoot({ wood: 2, beast_soul: 1, buff: { id: 'ember_focus', energyFirstTurn: 1, fights: 1 } });
   });
   if (!dungeonLoot.includes('wood×2') || !dungeonLoot.includes('beast_soul×1')) throw new Error(`grantLoot failed: ${dungeonLoot}`);
+  await page.close();
 
   const capturePage = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
   capturePage.on('console', msg => {

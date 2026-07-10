@@ -131,12 +131,8 @@ function updateAmbientLight(dayPhase, container) {
   }
 
   const filter = DayNightCycle.ambientLightFilter;
-
-  // Smooth transition between time periods
-  const alpha = 1.0 - timeOfDay.ambientIntensity;
-  filter.clear();
-  filter.rect(0, 0, 3600, 3600);
-  filter.fill({ color: timeOfDay.ambientColor, alpha: Math.max(0, alpha) });
+  filter.tint = timeOfDay.ambientColor;
+  filter.alpha = Math.max(0, 1.0 - timeOfDay.ambientIntensity);
 
   // Apply tint to sprites (handled by main.js)
   if (window.setWorldTint) {

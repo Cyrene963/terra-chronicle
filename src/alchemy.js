@@ -313,7 +313,9 @@ function updateDisplay(){
   }
 }
 
+let openToken=0;
 function open(){
+  const token=++openToken;
   window.SurfaceLifecycle?.beforeOpen?.('alchemy');
   buildDOM();
   root.style.pointerEvents='auto';
@@ -327,6 +329,7 @@ function open(){
     root.classList.add('panel-on');
 
     requestAnimationFrame(()=>{
+      if(token!==openToken) return;
       root.style.transition='opacity 0.45s cubic-bezier(.2,.85,.2,1), transform 0.45s cubic-bezier(.2,.85,.2,1)';
       root.style.opacity='1';
       root.style.transform='scale(1)';
@@ -368,8 +371,17 @@ function open(){
   }
 }
 
-function close(){
+function close(options={}){
   if(!root) return;
+  openToken++;
+  const closeToken=openToken;
+  if(options.immediate){
+    root.classList.remove('panel-on'); root.style.pointerEvents='none'; root.style.opacity='0';
+    window.SurfaceLifecycle?.afterClose?.('alchemy');
+    return;
+  }
+
+  window.SurfaceLifecycle?.afterClose?.('alchemy');
 
   // 使用转场效果
   if(window.AnimationManager){
@@ -377,15 +389,14 @@ function close(){
     root.style.opacity='0';
     root.style.transform='scale(0.96)';
     setTimeout(()=>{
+      if(closeToken!==openToken) return;
       root.classList.remove('panel-on');
       root.style.pointerEvents='none';
-      window.SurfaceLifecycle?.afterClose?.('alchemy');
     }, 350);
   } else {
     // Fallback
     root.classList.remove('panel-on');
     root.style.pointerEvents='none';
-    window.SurfaceLifecycle?.afterClose?.('alchemy');
   }
 }
 

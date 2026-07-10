@@ -7,7 +7,7 @@
 (function(){
 const $=(t,c,p)=>{const e=document.createElement(t);if(c)e.className=c;if(p)p.appendChild(e);return e;};
 
-let root=null, injected=false, mapData=null, progress={floor:0,path:[]}, runBuffs=[];
+let root=null, injected=false, mapData=null, progress={floor:0,path:[]}, runBuffs=[], openToken=0;
 
 function injectStyle(){
   if(injected) return; injected=true;
@@ -271,6 +271,7 @@ function selectNode(node){
 }
 
 function open(){
+  const token=++openToken;
   window.SurfaceLifecycle?.beforeOpen?.('dungeon');
   buildDOM();
   if(!mapData){ mapData=generateMap(); progress={floor:0,path:[]}; }
@@ -283,6 +284,7 @@ function open(){
     renderMap();
 
     requestAnimationFrame(()=>{
+      if(token!==openToken) return;
       root.style.transition='opacity 0.55s cubic-bezier(.2,.9,.2,1)';
       root.style.opacity='1';
       root.classList.add('on');
@@ -291,23 +293,32 @@ function open(){
     // Fallback
     root.style.display='block';
     renderMap();
-    requestAnimationFrame(()=>root.classList.add('on'));
+    requestAnimationFrame(()=>{ if(token===openToken) root.classList.add('on'); });
   }
 }
 
-function close(){
+function close(options={}){
   if(!root) return;
+  openToken++;
+  const closeToken=openToken;
+  if(options.immediate){
+    root.classList.remove('on'); root.style.opacity='0'; root.style.display='none';
+    window.SurfaceLifecycle?.afterClose?.('dungeon');
+    return;
+  }
+
+  window.SurfaceLifecycle?.afterClose?.('dungeon');
 
   // 使用转场效果返回
   if(window.AnimationManager){
     root.style.transition='opacity 0.45s cubic-bezier(.4,0,.2,1)';
     root.style.opacity='0';
     root.classList.remove('on');
-    setTimeout(()=>{if(root)root.style.display='none'; window.SurfaceLifecycle?.afterClose?.('dungeon');},450);
+    setTimeout(()=>{if(closeToken!==openToken)return;if(root)root.style.display='none';},450);
   } else {
     // Fallback
     root.classList.remove('on');
-    setTimeout(()=>{if(root)root.style.display='none'; window.SurfaceLifecycle?.afterClose?.('dungeon');},500);
+    setTimeout(()=>{if(closeToken!==openToken)return;if(root)root.style.display='none';},500);
   }
 }
 

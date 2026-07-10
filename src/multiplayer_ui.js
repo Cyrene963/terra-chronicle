@@ -13,8 +13,12 @@ const MultiplayerUI = {
 
   /* ================= 初始化 ================= */
   init(wsServerUrl = 'ws://localhost:8866') {
-    // 在标题界面添加模式选择
-    this.injectModeSelection();
+    // Public Wave 1 is an honest single-player slice. Keep the primary title CTA visible;
+    // multiplayer/world surfaces remain available from in-game controls when enabled.
+    const staleSelector = document.getElementById('modeSelector');
+    if (staleSelector) staleSelector.remove();
+    const enterBtn = document.getElementById('enter');
+    if (enterBtn) enterBtn.style.display = '';
 
     // 初始化 WebSocket 客户端（但不自动连接）
     if (typeof TerraWSClient !== 'undefined') {
