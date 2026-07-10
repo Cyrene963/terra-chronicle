@@ -1918,14 +1918,16 @@ function bindMobileControls(){
 }
 bindMobileControls();
 
-/* 卡牌 3D 悬停 */
-addEventListener('mousemove',e=>{
-  const c=$('cardPeek'),f=c.querySelector('.face'),r=c.getBoundingClientRect();
-  if(e.clientX>r.left-40&&e.clientX<r.right+40&&e.clientY>r.top-40&&e.clientY<r.bottom+40){
-    const dx=(e.clientX-(r.left+r.width/2))/r.width,dy=(e.clientY-(r.top+r.height/2))/r.height;
-    f.style.transform=`rotateY(${dx*22}deg) rotateX(${-dy*22}deg)`;
-  }else f.style.transform='';
-});
+/* Card tilt is mouse-only. Avoid layout reads on every pointer move on touch devices. */
+if(matchMedia('(hover:hover) and (pointer:fine)').matches){
+  addEventListener('mousemove',e=>{
+    const c=$('cardPeek'),f=c.querySelector('.face'),r=c.getBoundingClientRect();
+    if(e.clientX>r.left-40&&e.clientX<r.right+40&&e.clientY>r.top-40&&e.clientY<r.bottom+40){
+      const dx=(e.clientX-(r.left+r.width/2))/r.width,dy=(e.clientY-(r.top+r.height/2))/r.height;
+      f.style.transform=`rotateY(${dx*22}deg) rotateX(${-dy*22}deg)`;
+    }else f.style.transform='';
+  }, {passive:true});
+}
 
 /* ================= 13. 五层引导体系 ================= */
 // (1) 序列式高亮引导 (2) 距离感应交互提示 (3) 复杂面板遮罩聚光 (4) 战斗能量预判 (5) 屏幕边缘方向指示
@@ -2666,8 +2668,16 @@ function updatePetCodex(){
 }
 updatePetCodex();
 const petPanel=$('beastPanel'), petCodex=$('petCodex'), petCodexClose=$('petCodexClose');
-if(petPanel&&petCodex) petPanel.onclick=()=>{ updatePetCodex(); petCodex.classList.toggle('on'); };
-if(petCodexClose&&petCodex) petCodexClose.onclick=(e)=>{e.stopPropagation(); petCodex.classList.remove('on');};
+if(petPanel&&petCodex) petPanel.onclick=()=>{
+  updatePetCodex();
+  const open=petCodex.classList.toggle('on');
+  document.body.classList.toggle('pet-codex-open',open);
+};
+if(petCodexClose&&petCodex) petCodexClose.onclick=(e)=>{
+  e.stopPropagation();
+  petCodex.classList.remove('on');
+  document.body.classList.remove('pet-codex-open');
+};
 
 /* ================= 12. 标题 → 世界 转场 ================= */
 function enterWorld(){

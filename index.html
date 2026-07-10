@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preload" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Noto+Serif+SC:wght@300;500;700&display=swap" as="style">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Noto+Serif+SC:wght@300;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="src/panel-system.css?v=94">
+<link rel="stylesheet" href="src/panel-system.css?v=95">
 <style>
   :root{
     --ink:#2b2722; --ivory:#f6f1e7; --gold:#c9a24b; --gold-soft:rgba(201,162,75,.55);
@@ -206,19 +206,6 @@
   #mobileControls{position:fixed;inset:0;z-index:148;pointer-events:none;display:none}
   #touchAction{position:absolute;right:max(22px,env(safe-area-inset-right));bottom:max(44px,env(safe-area-inset-bottom));width:84px;height:84px;border-radius:50%;pointer-events:auto;touch-action:none;border:1.5px solid rgba(255,236,174,.9);background:radial-gradient(circle at 35% 28%,rgba(244,208,63,.92),rgba(130,93,36,.88));color:#2b2417;font-family:'Noto Serif SC',serif;font-size:14px;letter-spacing:.2em;text-indent:.2em;box-shadow:0 14px 34px rgba(0,0,0,.48),0 0 24px rgba(244,208,63,.26)}
   #touchAction:active{transform:scale(.95)}
-  @media (hover:none),(pointer:coarse),(max-width:760px){
-    #mobileControls{display:block}
-    #dock{bottom:18px;max-width:calc(100vw - 232px);gap:10px;padding:9px 10px 9px 16px;font-size:11px}
-    #dock .sep{display:none}
-    #beastPanel{left:18px;bottom:178px;transform:scale(.9);transform-origin:left bottom}
-    #craftFAB{right:24px!important;bottom:230px!important;width:64px!important;height:64px!important}
-    #hintAction{bottom:154px;font-size:11px}
-    #whisper{bottom:210px;width:min(88vw,520px);white-space:normal;text-align:center;line-height:1.7;letter-spacing:.18em;text-indent:0}
-    #seasonDial{top:18px;left:18px;transform:scale(.78);transform-origin:left top}
-    #clock{top:48px;left:120px;transform:scale(.82);transform-origin:left top}
-    #stamina{top:22px;right:18px;transform:scale(.88);transform-origin:right top}
-    #perfBadge,#ecoPanel{display:none}
-  }
 
   /* 背包 Dock 与交互提示 */
   #dock{
@@ -314,6 +301,7 @@
   #petCodex{position:fixed;left:30px;bottom:112px;width:min(420px,calc(100vw - 60px));z-index:42;pointer-events:none;opacity:0;transform:translateY(12px) scale(.98);transition:opacity .24s,transform .24s;background:rgba(246,241,231,.96);backdrop-filter:blur(18px) saturate(1.15);border:1px solid rgba(43,39,34,.26);border-radius:18px;box-shadow:0 22px 60px rgba(10,10,10,.42);padding:18px;color:var(--ink)}
   #petCodex.on{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
   #petCodex .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-family:'Cormorant Garamond',serif;color:var(--gold);letter-spacing:.24em;text-transform:uppercase;font-size:11px}
+  #petCodex .hd .close{display:grid;place-items:center;min-width:44px;min-height:44px;margin:-10px -8px -10px 8px;font-size:24px;cursor:pointer;touch-action:manipulation}
   #petCodex .close{cursor:pointer;font-size:18px;letter-spacing:0;color:var(--ink);opacity:.55}
   #petCodex .summary{padding:12px 14px 14px;border:1px solid rgba(143,109,66,.18);border-radius:14px;background:rgba(255,255,255,.28);margin-bottom:10px}
   #petCodex .summary .t{font-size:10px;letter-spacing:.16em;color:rgba(143,109,66,.82);text-transform:uppercase}
@@ -331,7 +319,7 @@
   #petCodex .pet .mood{font-size:10px;letter-spacing:.1em;color:rgba(43,39,34,.64);margin-top:4px}
   #petCodex .pet .minirow{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
   #petCodex .pet .minirow span{font-size:9px;letter-spacing:.12em;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.42);border:1px solid rgba(143,109,66,.18);color:rgba(43,39,34,.72)}
-  #petCodex .petUse{margin-top:8px;border:1px solid rgba(143,109,66,.45);background:rgba(255,255,255,.3);border-radius:999px;padding:5px 10px;font-size:10px;letter-spacing:.16em;color:var(--ink);cursor:pointer}
+  #petCodex .petUse{margin-top:8px;min-height:44px;border:1px solid rgba(143,109,66,.45);background:rgba(255,255,255,.3);border-radius:999px;padding:8px 12px;font-size:10px;letter-spacing:.16em;color:var(--ink);cursor:pointer}
   #petCodex .petUse:hover{background:var(--gold);color:white}
 
   #ecoPanel{
@@ -404,9 +392,9 @@
   #panel .kicker{font-family:'Cormorant Garamond',serif;font-size:11px;letter-spacing:.5em;color:var(--gold);text-transform:uppercase}
   #panel h3{font-size:27px;font-weight:500;letter-spacing:.14em;margin:10px 0 4px}
   #panel .latin{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:14px;opacity:.55;margin-bottom:30px}
-  #panel .close{position:absolute;top:26px;right:28px;width:30px;height:30px;cursor:pointer;opacity:.55;transition:opacity .3s,transform .5s cubic-bezier(.2,.8,.2,1)}
+  #panel .close{position:absolute;top:18px;right:20px;width:44px;height:44px;cursor:pointer;opacity:.7;transition:opacity .3s,transform .5s cubic-bezier(.2,.8,.2,1)}
   #panel .close:hover{opacity:1;transform:rotate(90deg)}
-  #panel .close::before,#panel .close::after{content:'';position:absolute;top:14px;left:4px;width:22px;height:1px;background:var(--ink)}
+  #panel .close::before,#panel .close::after{content:'';position:absolute;top:21px;left:8px;width:28px;height:1px;background:var(--ink)}
   #panel .close::before{transform:rotate(45deg)}#panel .close::after{transform:rotate(-45deg)}
   .stat{margin-bottom:24px}
   .stat .row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px}
@@ -431,6 +419,28 @@
   #cardPeek .tag{
     position:absolute;bottom:-26px;left:0;right:0;text-align:center;color:rgba(246,241,231,.7);
     font-size:10px;letter-spacing:.4em;text-indent:.4em;
+  }
+
+  /* Final mobile overrides must follow desktop component rules in the cascade. */
+  @media (hover:none),(pointer:coarse),(max-width:760px){
+    #mobileControls{display:block}
+    #dock{left:max(18px,env(safe-area-inset-left));right:auto;transform:none;bottom:max(18px,env(safe-area-inset-bottom));width:auto;max-width:calc(100vw - 142px);gap:9px;padding:9px 12px;font-size:11px;overflow-x:auto;scrollbar-width:none}
+    #dock::-webkit-scrollbar{display:none}
+    #dock .item{flex:none}
+    #dock .sep{display:none}
+    #beastPanel{left:18px;bottom:178px;transform:scale(.9);transform-origin:left bottom}
+    #craftFAB{right:24px!important;bottom:230px!important;width:64px!important;height:64px!important}
+    #hintAction{bottom:154px;font-size:11px}
+    #whisper{bottom:210px;width:min(88vw,520px);white-space:normal;text-align:center;line-height:1.7;letter-spacing:.18em;text-indent:0}
+    #seasonDial{top:18px;left:18px;transform:scale(.78);transform-origin:left top}
+    #clock{top:48px;left:120px;transform:scale(.82);transform-origin:left top}
+    #stamina{top:22px;right:18px;transform:scale(.88);transform-origin:right top}
+    #perfBadge,#ecoPanel{display:none}
+    #petCodex .hd .close{min-width:46px;min-height:46px}
+    #petCodex .petUse{min-height:46px}
+    body.pet-codex-open #mobileControls,
+    body.pet-codex-open #craftFAB,
+    body.pet-codex-open #dock{opacity:0!important;pointer-events:none!important}
   }
 </style>
 </head>
@@ -566,7 +576,7 @@
 <script src="src/websocket_client.js"></script>
 <script src="src/neighbor_system.js"></script>
 <script src="src/multiplayer_ui.js?v=5"></script>
-<script src="src/world_map.js?v=4"></script>
+<script src="src/world_map.js?v=5"></script>
 <script src="src/world_map_integration.js?v=4"></script>
 <!-- 核心游戏系统 -->
 <script src="src/alchemy.js?v=47"></script>
@@ -574,6 +584,6 @@
 <script src="src/battle.js?v=72"></script>
 <script src="src/dungeon.js?v=53"></script>
 <script src="src/upgrade.js?v=39"></script>
-<script src="src/main.js?v=87"></script>
+<script src="src/main.js?v=88"></script>
 </body>
 </html>

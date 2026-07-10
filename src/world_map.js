@@ -142,7 +142,8 @@ const WorldMap = {
 
   // 响应式画布尺寸
   resizeCanvas() {
-    const dpr = window.devicePixelRatio || 1;
+    const coarse = window.matchMedia?.('(pointer:coarse)').matches;
+    const dpr = Math.min(window.devicePixelRatio || 1, coarse ? 1.5 : 2);
     const rect = this.canvas.getBoundingClientRect();
     this.canvas.width = rect.width * dpr;
     this.canvas.height = rect.height * dpr;
@@ -702,8 +703,10 @@ const WorldMap = {
 
   /* ================= 5. 渲染循环 ================= */
   startRenderLoop() {
+    if (this._renderLoopStarted) return;
+    this._renderLoopStarted = true;
     const loop = () => {
-      this.render();
+      if (window.WorldMapIntegration?.isOpen) this.render();
       requestAnimationFrame(loop);
     };
     requestAnimationFrame(loop);
