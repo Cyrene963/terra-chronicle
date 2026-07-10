@@ -1,0 +1,64 @@
+{
+  "timestamp": "20260710T044508Z",
+  "git_sha": "d71e91bd0606225c2f8415cc717de795c6f09a77",
+  "upstream": "origin/main",
+  "source_path": "/root/terra-chronicle-game",
+  "target_path": "/var/www/terra-pixijs",
+  "verify_status": "passed",
+  "key_files": {
+    "index.html": {
+      "sha256": "e2a84bbf51076ca827542f9f6d35bdeb630dae3298e6f2ac2734092494d1567f",
+      "size": 41236
+    },
+    "src/main.js": {
+      "sha256": "538fdc3a6938d34f6ff8b4127b78d71473671255d6766fb0569f59630745be74",
+      "size": 133117
+    },
+    "src/battle.js": {
+      "sha256": "be1ccca56c8dac22d58f8055bfc6379bb8b00522de5a35333915adbcd4af9f03",
+      "size": 52896
+    },
+    "src/multiplayer_ui.js": {
+      "sha256": "ac8db45176f6288d3574ea583bfb7c8b34d8299015d79b04149b93ae82c7d2fd",
+      "size": 22788
+    },
+    "src/world_map.js": {
+      "sha256": "1efdc8598728f560fbed0ee2e7389375616c2383b5210762b602dcec5780656f",
+      "size": 21937
+    },
+    "src/world_map_integration.js": {
+      "sha256": "c7278f5886eb3deee5daa4510dd8a65971c4ed41c9c37598a6ab42a646d652e2",
+      "size": 24173
+    },
+    "package.json": {
+      "sha256": "6cd3f9a24b43c7e263ecd8da96576b0f1ab0e6259cf21afb24a39e45119c6836",
+      "size": 1428
+    }
+  },
+  "mounted_scripts": [
+    "vendor/pixi.min.js",
+    "src/animation-manager.js",
+    "src/surface_manager.js?v=1",
+    "src/state.js?v=8",
+    "src/game_feel_enhanced.js?v=1",
+    "src/feedback_system.js?v=1",
+    "src/soil_particles.js?v=1",
+    "src/seasonal_events.js?v=1",
+    "src/day_night_enhanced.js?v=1",
+    "src/water_shader.js?v=14",
+    "src/advanced_particles.js?v=14",
+    "src/post_processing.js?v=14",
+    "src/material_enhancement.js?v=14",
+    "src/websocket_client.js",
+    "src/neighbor_system.js",
+    "src/multiplayer_ui.js?v=4",
+    "src/world_map.js?v=4",
+    "src/world_map_integration.js?v=4",
+    "src/alchemy.js?v=46",
+    "src/battle_effects.js?v=2",
+    "src/battle.js?v=72",
+    "src/dungeon.js?v=52",
+    "src/upgrade.js?v=39",
+    "src/main.js?v=86"
+  ]
+}

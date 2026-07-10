@@ -31,7 +31,14 @@ const FILES = [
   const mismatches = hashes.filter(row => !row.ok);
 
   const publicBase = process.env.TERRA_PUBLIC_BASE_URL || 'http://165.232.142.30:8867';
-  const browser = await chromium.launch({ headless: true });
+  const configuredChromium = process.env.TERRA_CHROMIUM_PATH;
+  const bundledChromium = '/root/.cloakbrowser/chromium-146.0.7680.177.5/chrome';
+  const executablePath = configuredChromium || (fs.existsSync(bundledChromium) ? bundledChromium : undefined);
+  const browser = await chromium.launch({
+    headless: true,
+    args: ['--disable-gpu', '--disable-gpu-compositing', '--disable-features=VaapiVideoDecoder'],
+    ...(executablePath ? { executablePath } : {})
+  });
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 });
   const consoleErrors = [];
   page.on('console', msg => { if (badConsole(msg)) consoleErrors.push(`${msg.type()}: ${msg.text()}`); });
