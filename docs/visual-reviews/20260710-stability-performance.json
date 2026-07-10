@@ -1,0 +1,31 @@
+{
+  "git_sha": "f591f35b864ae1d66d9e62d3b2aacd1f25c1ddaa",
+  "status": "approved",
+  "reviewer": {
+    "type": "multimodal_vision",
+    "model": "gpt-5.6 native vision",
+    "timestamp": "2026-07-10T14:40:00+08:00",
+    "report": "docs/visual_review_20260710_stability.md"
+  },
+  "screenshots": [
+    "dogfood-output/perf-final-priority.png",
+    "dogfood-output/ux-core-final.png",
+    "dogfood-output/terra-battle-dungeon-smoke/01_battle_cards.png",
+    "dogfood-output/terra-battle-dungeon-smoke/02_dungeon_preview.png"
+  ],
+  "five_hour_flow": {
+    "visual_consistency": "Performance changes preserve generated terrain, river, objects, battle and parchment UI; removed overlays duplicated texture detail rather than carrying gameplay meaning.",
+    "cheap_web_ui": "The title now presents one reliable in-world single-player CTA instead of a hidden button and three web-style mode cards.",
+    "long_term_goal": "Persistent objective progression remains active after onboarding and restores immediately when surfaces close.",
+    "reward_peak": "Quality-origin resonance and capture rewards pass the complete battle/dungeon smoke after the performance rewrite.",
+    "fatigue_risks": "Server SwiftShader improved roughly 10.7x but real iPad/Safari GPU dogfood remains required for device FPS acceptance."
+  },
+  "checks": {
+    "art_style_unified": true,
+    "no_web_ui_placeholders": true,
+    "animation_runtime_verified": true,
+    "reward_feedback_clear": true,
+    "no_render_regression": true
+  },
+  "blockers": []
+}
