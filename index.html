@@ -573,7 +573,7 @@
 
 <script src="vendor/pixi.min.js"></script>
 <script src="src/animation-manager.js?v=2"></script>
-<script src="src/surface_manager.js?v=1"></script>
+<script src="src/surface_manager.js?v=2"></script>
 <script src="src/state.js?v=8"></script>
 <script src="src/game_feel_enhanced.js?v=1"></script>
 <script src="src/feedback_system.js?v=1"></script>
@@ -591,19 +591,19 @@
 <script src="src/websocket_client.js"></script>
 <script src="src/neighbor_system.js"></script>
 <script src="src/multiplayer_ui.js?v=5"></script>
-<script src="src/world_map.js?v=5"></script>
-<script src="src/world_map_integration.js?v=5"></script>
+<script src="src/world_map.js?v=7"></script>
+<script src="src/world_map_integration.js?v=6"></script>
 <!-- 核心游戏系统 -->
-<script src="src/alchemy.js?v=48"></script>
+<script src="src/alchemy.js?v=49"></script>
 <script src="src/battle_effects.js?v=2"></script>
 <script src="src/battle.js?v=74"></script>
-<script src="src/dungeon.js?v=54"></script>
+<script src="src/dungeon.js?v=55"></script>
 <script src="src/upgrade.js?v=40"></script>
 <script>
   // Yield one task so the title CTA can paint and accept input before world construction starts.
   setTimeout(()=>{
     const script=document.createElement('script');
-    script.src='src/main.js?v=90';
+    script.src='src/main.js?v=91';
     script.onerror=()=>{
       const enter=document.getElementById('enter');
       if(enter){enter.textContent='加载失败 · 点击重试';enter.style.pointerEvents='auto';enter.removeAttribute('aria-busy');enter.onclick=()=>location.reload();}

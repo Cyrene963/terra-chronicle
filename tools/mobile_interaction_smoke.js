@@ -43,6 +43,19 @@ fs.mkdirSync(OUT, { recursive: true });
   await page.evaluate(() => Alchemy.close({ immediate: true }));
   await capture('alchemy-close', '#alchemyUI');
 
+  const alchemyRace = await page.evaluate(async () => {
+    const farm=window.Terra.farm;
+    farm.inventory.crops.starwheat=[{originFertility:90},{originFertility:88},{originFertility:86}];
+    farm.inventory.materials.wood=2;
+    Alchemy.open();
+    document.getElementById('addWheat').click();document.getElementById('addWheat').click();document.getElementById('addWheat').click();
+    document.getElementById('addWood').click();document.getElementById('addWood').click();
+    document.getElementById('alchemyBrew').click();
+    Alchemy.close({immediate:true});
+    await new Promise(resolve=>setTimeout(resolve,1650));
+    return { reveal:document.getElementById('cardReveal')?.classList.contains('on')||false, surface:SurfaceLifecycle.active, locked:SurfaceLifecycle.isInputLocked() };
+  });
+
   await page.evaluate(() => FarmUpgrade.open());
   await page.waitForTimeout(120);
   await capture('upgrade-open', '#upgradePanel .shell');
@@ -51,10 +64,24 @@ fs.mkdirSync(OUT, { recursive: true });
 
   await page.evaluate(() => WorldMapIntegration.openMap());
   await page.waitForTimeout(200);
-  await capture('map-open', '#worldMapOverlay');
+  await capture('map-open', '#worldMapOverlay .atlas-canvas-wrap');
+  const mapTouch = await page.evaluate(() => {
+    const canvas=document.getElementById('worldMapCanvas');
+    let clicked=null;
+    const original=WorldMap.onHexClick;
+    WorldMap.onHexClick=hex=>{clicked=hex;};
+    const r=canvas.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;
+    const touch={clientX:x,clientY:y};
+    const event=(type,init)=>{const e=new Event(type,{bubbles:true,cancelable:true});Object.defineProperties(e,init);canvas.dispatchEvent(e);};
+    event('touchstart',{touches:{value:[touch]},changedTouches:{value:[touch]}});
+    event('touchend',{touches:{value:[]},changedTouches:{value:[touch]}});
+    WorldMap.onHexClick=original;
+    return {clicked,renderLoop:WorldMap._renderLoopStarted,mapWidth:WorldMap.mapWidth,mapHeight:WorldMap.mapHeight};
+  });
   await page.evaluate(() => WorldMapIntegration.closeMap());
   await page.waitForTimeout(650);
   await capture('map-close', '#worldMapOverlay');
+  const mapStopped = await page.evaluate(() => !WorldMap._renderLoopStarted && !WorldMapIntegration.isOpen);
 
   await page.evaluate(() => DungeonMap.open());
   await page.waitForTimeout(180);
@@ -91,9 +118,9 @@ fs.mkdirSync(OUT, { recursive: true });
   const viewportFailures = states.filter(s => s.label.endsWith('-open') && s.rect && (s.rect.x < -1 || s.rect.right > 391 || s.rect.width > 391));
   const closeFailures = states.filter(s => s.label.endsWith('-close') && (s.surface || s.locked));
   const switched = states.find(s => s.label === 'battle-closed-by-switch');
-  const report = { baseUrl: BASE, states, battle, battleClosedBySwitch, viewportFailures, closeFailures, errors };
+  const report = { baseUrl: BASE, states, alchemyRace, battle, battleClosedBySwitch, mapTouch, mapStopped, viewportFailures, closeFailures, errors };
   report.ok = errors.length === 0 && viewportFailures.length === 0 && closeFailures.length === 0 &&
-    battleClosedBySwitch && switched?.surface === 'alchemy' && switched?.locked === true &&
+    !alchemyRace.reveal && !alchemyRace.surface && !alchemyRace.locked && battleClosedBySwitch && switched?.surface === 'alchemy' && switched?.locked === true && mapTouch.clicked && mapTouch.clicked.q>=0 && mapTouch.clicked.q<mapTouch.mapWidth && mapTouch.clicked.r>=0 && mapTouch.clicked.r<mapTouch.mapHeight && mapTouch.renderLoop && mapStopped &&
     battle.cardCount >= 4 && battle.handScrollable && battle.cards.every(c => c.width <= 130 && c.height <= 190) && battle.endHeight >= 44;
   fs.writeFileSync(path.join(OUT, 'report.json'), JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));

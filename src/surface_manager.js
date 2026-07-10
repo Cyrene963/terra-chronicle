@@ -64,7 +64,7 @@
     const hooks = registry.get(name) || {};
     transitioning = true;
     safeCall(hooks.close, { ...options, fromLifecycle: true });
-    if (options.immediate) afterClose(name);
+    if (options.immediate && active === name) afterClose(name);
     transitioning = false;
   }
 

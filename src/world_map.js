@@ -553,7 +553,7 @@ const WorldMap = {
         this.lastMousePos = { x: mouseX, y: mouseY };
       } else {
         // 更新悬停六边形
-        const worldPos = this.screenToWorld(mouseX - this.camera.x, mouseY - this.camera.y);
+        const worldPos = this.screenToWorld(mouseX, mouseY);
         const hex = HexMath.pixelToHex(worldPos.x, worldPos.y);
 
         if (hex.q >= 0 && hex.q < this.mapWidth && hex.r >= 0 && hex.r < this.mapHeight) {
@@ -601,7 +601,7 @@ const WorldMap = {
       const mouseY = e.clientY - rect.top;
 
       // 计算缩放前鼠标指向的世界坐标
-      const worldBeforeZoom = this.screenToWorld(mouseX - this.camera.x, mouseY - this.camera.y);
+      const worldBeforeZoom = this.screenToWorld(mouseX, mouseY);
 
       // 更新缩放
       const zoomDelta = e.deltaY > 0 ? 0.9 : 1.1;
@@ -611,13 +611,15 @@ const WorldMap = {
       );
 
       // 调整相机位置,保持鼠标指向同一世界坐标
-      const worldAfterZoom = this.screenToWorld(mouseX - this.camera.x, mouseY - this.camera.y);
+      const worldAfterZoom = this.screenToWorld(mouseX, mouseY);
       this.camera.x += (worldAfterZoom.x - worldBeforeZoom.x) * this.camera.scale;
       this.camera.y += (worldAfterZoom.y - worldBeforeZoom.y) * this.camera.scale;
     }, { passive: false });
 
     // 触摸支持 (移动端)
     let lastTouchDist = 0;
+    let touchStart = null;
+    let touchMoved = false;
 
     canvas.addEventListener('touchstart', (e) => {
       e.preventDefault();
@@ -629,6 +631,8 @@ const WorldMap = {
           x: touch.clientX - rect.left,
           y: touch.clientY - rect.top
         };
+        touchStart = { x: this.lastMousePos.x, y: this.lastMousePos.y, time: performance.now() };
+        touchMoved = false;
       } else if (e.touches.length === 2) {
         // 双指缩放
         const dx = e.touches[0].clientX - e.touches[1].clientX;
@@ -648,6 +652,7 @@ const WorldMap = {
 
         const dx = mouseX - this.lastMousePos.x;
         const dy = mouseY - this.lastMousePos.y;
+        if (touchStart && Math.hypot(mouseX-touchStart.x, mouseY-touchStart.y) > 8) touchMoved = true;
         this.camera.x += dx;
         this.camera.y += dy;
         this.lastMousePos = { x: mouseX, y: mouseY };
@@ -668,7 +673,18 @@ const WorldMap = {
     }, { passive: false });
 
     canvas.addEventListener('touchend', (e) => {
+      if (touchStart && !touchMoved && e.changedTouches.length === 1 && performance.now()-touchStart.time < 500) {
+        const touch=e.changedTouches[0],rect=canvas.getBoundingClientRect();
+        const sx=touch.clientX-rect.left,sy=touch.clientY-rect.top;
+        const world=this.screenToWorld(sx,sy);
+        const hex=HexMath.pixelToHex(world.x,world.y);
+        this.selectedHex={q:hex.q,r:hex.r};
+        this.hoveredHex={...this.selectedHex};
+        this.onHexClick(this.selectedHex);
+      }
       this.isDragging = false;
+      touchStart = null;
+      touchMoved = false;
       if (e.touches.length < 2) {
         lastTouchDist = 0;
       }
@@ -697,8 +713,7 @@ const WorldMap = {
 
   // 显示玩家档案 (预留接口)
   showPlayerProfile(player) {
-    // TODO: 打开模态框显示玩家详情
-    alert(`玩家档案\n\n名称: ${player.name}\n等级: ${player.level}\n风格: ${player.playstyle}\n坐标: (${player.q}, ${player.r})`);
+    window.dispatchEvent(new CustomEvent('terra:worldmap-player', { detail: player }));
   },
 
   /* ================= 5. 渲染循环 ================= */
@@ -706,10 +721,17 @@ const WorldMap = {
     if (this._renderLoopStarted) return;
     this._renderLoopStarted = true;
     const loop = () => {
-      if (window.WorldMapIntegration?.isOpen) this.render();
-      requestAnimationFrame(loop);
+      if (!this._renderLoopStarted) return;
+      if (window.WorldMapIntegration?.isOpen && !document.hidden) this.render();
+      this._renderRaf=requestAnimationFrame(loop);
     };
-    requestAnimationFrame(loop);
+    this._renderRaf=requestAnimationFrame(loop);
+  },
+
+  stopRenderLoop() {
+    this._renderLoopStarted=false;
+    if(this._renderRaf) cancelAnimationFrame(this._renderRaf);
+    this._renderRaf=0;
   }
 };
 

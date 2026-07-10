@@ -343,7 +343,8 @@ addEventListener('orientationchange',scheduleViewportSync);
 addEventListener('pageshow',scheduleViewportSync);
 addEventListener('focus',scheduleViewportSync);
 document.addEventListener('visibilitychange',()=>{
-  if(!document.hidden) scheduleViewportSync();
+  if(document.hidden) app.ticker.stop();
+  else { app.ticker.start(); scheduleViewportSync(); }
 });
 window.visualViewport?.addEventListener('resize',scheduleViewportSync);
 window.visualViewport?.addEventListener('scroll',scheduleViewportSync);
@@ -1541,7 +1542,9 @@ app.ticker.add(tk=>{
     }
   }
   elapsed+=dt*timeScale;
-  const farmOccluded=(window.Battle&&Battle.active)||document.getElementById('dungeonMap')?.classList.contains('on');
+  const activeSurface=window.SurfaceLifecycle?.active;
+  const cardRevealOpen=document.getElementById('cardReveal')?.classList.contains('on');
+  const farmOccluded=Boolean(activeSurface||(window.Battle&&Battle.active)||cardRevealOpen);
   world.renderable=!farmOccluded;
   fxScreen.renderable=!farmOccluded;
   if(farmOccluded) return;

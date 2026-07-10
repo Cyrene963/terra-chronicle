@@ -288,6 +288,7 @@ function cauldronKey(){
   return ['starwheat','dewberry','wood'].map(k => `${k}:${cauldron[k]?.length||cauldron[k]||0}`).join('|');
 }
 function brew(){
+  const brewToken=openToken;
   // 查找匹配配方
   const recipe=RECIPES.find(r=>(r.starwheat||0)===cauldron.starwheat.length && (r.dewberry||0)===cauldron.dewberry.length && (r.wood||0)===cauldron.wood);
   if(!recipe){
@@ -310,6 +311,7 @@ function brew(){
   $('#alchemyDiscovery',root).classList.add('on');
   showStatus('配方共鸣 · 卡牌正在成形');
   setTimeout(()=>{
+    if(brewToken!==openToken || !root?.classList.contains('panel-on')) return;
     $('#alchemyDiscovery',root).classList.remove('on');
     cauldron.starwheat=[]; cauldron.dewberry=[]; cauldron.wood=0;
     updateDisplay();
@@ -396,6 +398,7 @@ function open(){
 function close(options={}){
   if(!root) return;
   openToken++;
+  root.querySelector('#alchemyDiscovery')?.classList.remove('on');
   const closeToken=openToken;
   if(options.immediate){
     root.classList.remove('panel-on'); root.style.pointerEvents='none'; root.style.opacity='0';

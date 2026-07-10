@@ -84,6 +84,7 @@ const WorldMapIntegration = {
 
     // Atlas frame / rail shell
     const atlasRail = document.createElement('div');
+    atlasRail.className='atlas-frame';
     atlasRail.style.cssText = `
       position:absolute;
       left:24px; right:24px; top:24px; bottom:24px;
@@ -95,6 +96,7 @@ const WorldMapIntegration = {
     this.mapOverlay.appendChild(atlasRail);
 
     const leftRail = document.createElement('div');
+    leftRail.className='atlas-left-rail';
     leftRail.style.cssText = `
       position:absolute;
       left:38px; top:130px; bottom:38px; width:248px;
@@ -117,6 +119,7 @@ const WorldMapIntegration = {
     this.mapOverlay.appendChild(leftRail);
 
     const rightRail = document.createElement('div');
+    rightRail.className='atlas-right-rail';
     rightRail.style.cssText = `
       position:absolute;
       right:38px; top:130px; bottom:38px; width:170px;
@@ -137,6 +140,7 @@ const WorldMapIntegration = {
 
     // Canvas container
     const canvasContainer = document.createElement('div');
+    canvasContainer.className='atlas-canvas-wrap';
     canvasContainer.style.cssText = `
       position: absolute;
       left:300px; right:220px; top:90px; bottom:42px;
@@ -158,6 +162,7 @@ const WorldMapIntegration = {
 
     // Close hint (top-right)
     const closeHint = document.createElement('div');
+    closeHint.className='atlas-close';
     closeHint.innerHTML = `
       <div style="display: flex; align-items: center; gap: 12px;">
         <span style="font-size: 11px; letter-spacing: 0.4em; opacity: 0.7;">按 ESC 关闭</span>
@@ -186,6 +191,7 @@ const WorldMapIntegration = {
 
     // Title (top-left)
     const title = document.createElement('div');
+    title.className='atlas-title';
     title.innerHTML = `
       <div style="font-family: 'Cormorant Garamond', serif; font-size: 12px; letter-spacing: 0.5em; opacity: 0.72; margin-bottom: 8px;">ATLAS OF ESTATES</div>
       <div style="font-size: 24px; font-weight: 500; letter-spacing: 0.2em;">大陆图册</div>
@@ -207,6 +213,22 @@ const WorldMapIntegration = {
 
     this.mapOverlay.appendChild(title);
 
+    const mobileStyle=document.createElement('style');
+    mobileStyle.textContent=`
+      @media(max-width:760px){
+        #worldMapOverlay{backdrop-filter:none!important;box-shadow:none!important;}
+        #worldMapOverlay .atlas-frame{left:8px!important;right:8px!important;top:8px!important;bottom:8px!important;border-radius:14px!important;}
+        #worldMapOverlay .atlas-left-rail,#worldMapOverlay .atlas-right-rail{display:none!important;}
+        #worldMapOverlay .atlas-canvas-wrap{left:10px!important;right:10px!important;top:96px!important;bottom:max(10px,env(safe-area-inset-bottom))!important;border-radius:10px!important;}
+        #worldMapOverlay .atlas-title{top:max(8px,env(safe-area-inset-top))!important;left:10px!important;width:auto!important;right:64px!important;padding:8px 10px!important;border-radius:10px!important;}
+        #worldMapOverlay .atlas-title>div:first-child,#worldMapOverlay .atlas-title>div:last-child{display:none!important;}
+        #worldMapOverlay .atlas-title>div:nth-child(2){font-size:19px!important;letter-spacing:.12em!important;}
+        #worldMapOverlay .atlas-close{top:max(8px,env(safe-area-inset-top))!important;right:8px!important;width:46px!important;height:46px!important;padding:0!important;display:grid!important;place-items:center!important;z-index:4!important;}
+        #worldMapOverlay #mapCloseBtn{width:46px!important;height:46px!important;display:grid!important;place-items:center!important;}
+        #worldMapOverlay .atlas-close span{display:none!important;}
+        #worldMapOverlay #playerProfilePanel{left:10px!important;right:10px!important;bottom:max(10px,env(safe-area-inset-bottom))!important;width:auto!important;max-height:65dvh!important;padding:18px!important;}
+      }`;
+    document.head.appendChild(mobileStyle);
     document.body.appendChild(this.mapOverlay);
   },
 
@@ -323,6 +345,7 @@ const WorldMapIntegration = {
         return;
       }
     }
+    WorldMap.startRenderLoop();
 
     // Load current player and neighbors
     this.loadPlayerData();
@@ -337,6 +360,7 @@ const WorldMapIntegration = {
 
     const token=++this.transitionToken;
     this.isOpen = false;
+    WorldMap.stopRenderLoop?.();
     this.mapOverlay.style.opacity = '0';
 
     this.hideProfilePanel();

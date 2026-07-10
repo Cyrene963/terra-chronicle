@@ -172,7 +172,11 @@ function showToast(title, body, after){
   toast.querySelector('.dtBody').textContent=body||'';
   toast.classList.add('on');
   clearTimeout(showToast._timer);
-  showToast._timer=setTimeout(()=>{ toast.classList.remove('on'); if(after) after(); }, 1500);
+  const toastToken=openToken;
+  showToast._timer=setTimeout(()=>{
+    toast.classList.remove('on');
+    if(toastToken===openToken&&root?.classList.contains('on')&&after) after();
+  }, 1500);
 }
 
 function buildDOM(){
@@ -317,6 +321,8 @@ function open(){
 function close(options={}){
   if(!root) return;
   openToken++;
+  clearTimeout(showToast._timer);
+  document.getElementById('dungeonToast')?.classList.remove('on');
   const closeToken=openToken;
   if(options.immediate){
     root.classList.remove('on'); root.style.opacity='0'; root.style.display='none';
