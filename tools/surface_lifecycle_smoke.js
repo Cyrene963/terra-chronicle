@@ -6,7 +6,12 @@ const OUT = '/root/terra-chronicle-game/dogfood-output/surface-lifecycle-smoke';
 fs.mkdirSync(OUT, { recursive: true });
 
 (async () => {
-  const browser = await chromium.launch({ headless: true });
+  const executablePath = process.env.TERRA_CHROMIUM_PATH;
+  const browser = await chromium.launch({
+    headless: true,
+    args: ['--disable-gpu', '--disable-gpu-compositing', '--disable-features=VaapiVideoDecoder'],
+    ...(executablePath ? { executablePath } : {})
+  });
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));

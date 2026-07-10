@@ -14,11 +14,11 @@ function injectStyle(){
   const css=`
   #dungeonMap{position:fixed;inset:0;z-index:85;display:none;opacity:0;
     transition:opacity .45s cubic-bezier(.2,.8,.2,1);font-family:'Noto Serif SC',serif;color:#f4ecd8;overflow:hidden;
-    background:url('assets/ui/dungeon_entrance_bg.jpg') center/cover,#100d12;}
+    background:url('assets/ui/dungeon_entrance_bg.jpg') center/cover,#211a12;}
   #dungeonMap::before{content:'';position:absolute;inset:0;background:
-    radial-gradient(circle at 68% 24%,rgba(196,124,255,.22),transparent 30%),
-    radial-gradient(circle at 18% 78%,rgba(236,183,82,.2),transparent 30%),
-    linear-gradient(180deg,rgba(8,6,12,.42),rgba(6,6,10,.88));backdrop-filter:blur(3px) saturate(1.08);}
+    radial-gradient(circle at 68% 24%,rgba(163,196,117,.14),transparent 30%),
+    radial-gradient(circle at 18% 78%,rgba(236,183,82,.18),transparent 30%),
+    linear-gradient(180deg,rgba(32,24,16,.34),rgba(14,11,8,.78));backdrop-filter:blur(2px) saturate(1.02);}
   #dungeonMap::after{content:'';position:absolute;inset:22px;border:1px solid rgba(244,208,117,.18);border-radius:30px;pointer-events:none;box-shadow:inset 0 0 90px rgba(0,0,0,.5);}
   #dungeonMap.on{display:block;opacity:1;animation:mapIn .55s cubic-bezier(.2,.9,.2,1);}
   @keyframes mapIn{0%{transform:scale(1.04);filter:blur(8px);opacity:0}100%{transform:scale(1);filter:blur(0);opacity:1}}
@@ -31,17 +31,15 @@ function injectStyle(){
   #dungeonMap .legend span{font-size:11px;letter-spacing:.12em;border:1px solid rgba(244,208,117,.24);border-radius:999px;padding:8px 12px;background:rgba(0,0,0,.24);backdrop-filter:blur(8px);}
   #dungeonMap .mapWrap{position:absolute;inset:28px 28px 28px 420px;z-index:1;display:grid;place-items:center;}
   #dungeonMap .mapCanvas{position:relative;width:min(760px,calc(100vw - 470px));height:min(650px,calc(100vh - 78px));min-width:460px;min-height:520px;
-    border-radius:34px;border:1px solid rgba(244,208,117,.34);background:
-    radial-gradient(circle at 68% 25%,rgba(150,75,225,.18),transparent 28%),
-    radial-gradient(circle at 42% 58%,rgba(244,208,117,.12),transparent 42%),
-    linear-gradient(145deg,rgba(91,62,36,.58),rgba(28,20,22,.66) 52%,rgba(12,10,16,.74));
-    box-shadow:0 28px 95px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.08);overflow:hidden;}
+    border-radius:8px;border:1px solid rgba(120,77,31,.52);background:
+    linear-gradient(rgba(238,220,178,.78),rgba(208,177,119,.72)),url('assets/sprites/scroll_paper.png') center/cover;
+    box-shadow:0 28px 95px rgba(0,0,0,.48),inset 0 0 0 7px rgba(100,61,25,.13),inset 0 1px 0 rgba(255,255,255,.28);overflow:hidden;}
   #dungeonMap .mapCanvas::before{content:'';position:absolute;inset:18px;border:1px solid rgba(244,208,117,.18);border-radius:26px;background:
     radial-gradient(circle at 25% 28%,rgba(255,226,158,.08),transparent 2px),radial-gradient(circle at 70% 38%,rgba(255,226,158,.08),transparent 2px),radial-gradient(circle at 56% 72%,rgba(166,111,255,.14),transparent 3px);}
-  #dungeonMap .path{position:absolute;height:3px;background:linear-gradient(90deg,transparent,rgba(166,111,255,.22),rgba(255,226,158,.68),rgba(244,208,117,.52),transparent);
-    transform-origin:left center;box-shadow:0 0 10px rgba(244,208,117,.18);border-radius:999px;opacity:.72;}
-  #dungeonMap .node{position:absolute;width:124px;height:124px;border-radius:30px;cursor:pointer;border:1px solid rgba(244,208,117,.24);
-    background:radial-gradient(circle at 50% 46%,rgba(255,220,130,.10),rgba(22,14,22,.18) 62%,rgba(0,0,0,.18));box-shadow:0 18px 46px rgba(0,0,0,.45);
+  #dungeonMap .path{position:absolute;height:3px;background:repeating-linear-gradient(90deg,rgba(100,65,32,.18) 0 8px,rgba(100,65,32,.72) 8px 15px);
+    transform-origin:left center;box-shadow:0 1px 0 rgba(255,244,207,.35);border-radius:999px;opacity:.82;}
+  #dungeonMap .node{position:absolute;width:124px;height:124px;border-radius:50%;cursor:pointer;border:1px solid rgba(105,66,29,.34);
+    background:radial-gradient(circle at 50% 46%,rgba(255,244,205,.68),rgba(178,132,72,.2) 62%,rgba(82,47,19,.1));box-shadow:0 12px 28px rgba(67,39,18,.28);
     display:grid;place-items:center;transition:transform .28s ease,box-shadow .28s ease,border-color .28s ease;overflow:visible;}
   #dungeonMap .node::before{content:'';position:absolute;inset:14px;border-radius:28px;background:radial-gradient(circle,rgba(244,208,117,.08),transparent 68%);pointer-events:none;}
   #dungeonMap .node:hover{transform:translateY(-8px) scale(1.04);border-color:#ffe0a0;box-shadow:0 28px 70px rgba(0,0,0,.58),0 0 32px rgba(244,208,117,.16);}
@@ -53,7 +51,9 @@ function injectStyle(){
   #dungeonMap .node.boss{width:148px;height:148px;border-radius:40px;border-width:2px;}
   #dungeonMap .node .icon{position:relative;width:96px;height:96px;object-fit:contain;filter:drop-shadow(0 12px 22px rgba(0,0,0,.72));}
   #dungeonMap .node.boss .icon{width:122px;height:122px;}
-  #dungeonMap .node .label{position:absolute;left:50%;bottom:-25px;transform:translateX(-50%);white-space:nowrap;font-size:13px;letter-spacing:.1em;color:#fff4d0;font-weight:900;text-shadow:0 2px 8px rgba(0,0,0,.92);background:rgba(13,8,12,.66);border:1px solid rgba(244,208,117,.22);border-radius:999px;padding:4px 9px;}
+  #dungeonMap .node .label{position:absolute;left:50%;bottom:-25px;transform:translateX(-50%);white-space:nowrap;font-size:13px;letter-spacing:.1em;color:#4b2f18;font-weight:900;text-shadow:0 1px 0 rgba(255,245,213,.7);background:rgba(242,222,178,.9);border:1px solid rgba(112,71,31,.3);border-radius:5px;padding:4px 9px;}
+  #dungeonMap .node .impact{position:absolute;left:50%;top:calc(100% + 31px);transform:translateX(-50%);width:154px;text-align:center;font-size:9px;line-height:1.35;letter-spacing:.025em;color:#6a4624;font-weight:800;text-shadow:0 1px rgba(255,246,218,.65);}
+  #dungeonMap .node.boss .impact{top:auto;bottom:calc(100% + 8px);width:150px;}
   #dungeonMap .node.locked .label{color:#d9c89f;background:rgba(8,7,9,.72);} #dungeonMap .node.boss .label{color:#f4d075;}
   #dungeonMap .node.current::after{content:'可选';position:absolute;top:9px;right:10px;font-size:10px;letter-spacing:.12em;color:#2a1b0d;background:#f4d075;border-radius:999px;padding:3px 7px;box-shadow:0 3px 10px rgba(0,0,0,.36);}
   #dungeonMap .closeBtn{position:absolute;top:36px;right:42px;font-size:32px;cursor:pointer;color:#f6d99d;opacity:.72;transition:all .25s;
@@ -98,6 +98,17 @@ function rewardPreviewFor(type){
     chest:'材料或卡牌补给',
     boss:'工坊突破材料'
   })[type]||'未知回响';
+}
+
+function farmImpactFor(type){
+  return ({
+    combat:'材料 / 祝福 → 下一战与炼金',
+    elite:'高阶残响 → 卡组与工坊',
+    rest:'恢复状态 → 保住远征路线',
+    event:'污染种子 → 灵兽孵化',
+    chest:'木材 / 灵魂 → 扩建与进化',
+    boss:'深渊核心 → 工坊突破'
+  })[type]||'未知回流';
 }
 
 function buffName(b){ return ({abyss_vigor:'深渊活力',ember_focus:'余烬专注',root_guard:'根甲护佑'})[b?.id]||b?.name||'未知祝福'; }
@@ -210,7 +221,7 @@ function renderMap(){
       const labels={combat:'战斗',elite:'精英',rest:'篝火',event:'地脉事件',chest:'遗物宝箱',boss:'深渊核心'};
       const icon=icons[node.type]||'?';
       nd.title=`${labels[node.type]||node.type} · ${rewardPreviewFor(node.type)}`;
-      nd.innerHTML=`<img src="assets/ui/${icon}" class="icon" alt="${labels[node.type]||node.type}"/><div class="label">${labels[node.type]||node.type}</div>`;
+      nd.innerHTML=`<img src="assets/ui/${icon}" class="icon" alt="${labels[node.type]||node.type}"/><div class="label">${labels[node.type]||node.type}</div><div class="impact">${farmImpactFor(node.type)}</div>`;
 
       if(!locked) nd.onclick=()=>selectNode(node);
     });

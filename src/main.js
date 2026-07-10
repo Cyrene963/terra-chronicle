@@ -1662,7 +1662,7 @@ app.ticker.add(tk=>{
   }
 
   hudClock-=dt;
-  if(hudClock<=0){ hudClock=.1; updateHUD(st,Math.floor(elapsed/DAY_SECONDS)); updateEcoHUD(); updatePerfHUD(); }
+  if(hudClock<=0){ hudClock=.1; updateHUD(st,Math.floor(elapsed/DAY_SECONDS)); updateEcoHUD(); updatePerfHUD(); updateObjectiveTrack(); }
   updateInteractionIndicators();
   if(tutorialState.active){
     // Wave 1: 第一小时目标链从“控件教学”改为“第一轮资源循环”
@@ -1923,6 +1923,7 @@ function applyWave1SurfacePhase(){
   const onlineStatus=document.getElementById('onlineStatus');
   if(onlineStatus) onlineStatus.style.display = phase === 'freeplay' ? 'flex' : 'none';
   if(whisper && phase !== 'intro') whisper.style.opacity = 0;
+  updateObjectiveTrack();
 }
 
 window.applyWave1SurfacePhase = applyWave1SurfacePhase;
@@ -1955,6 +1956,43 @@ function advanceTutorial() {
       renderTutorial();
     }
   }
+}
+
+function objectiveSnapshot(){
+  const materials=farm.inventory?.materials||{};
+  const cards=farm.inventory?.cards||[];
+  const beasts=farm.beasts||[];
+  const upgrades=farm.upgrades||[];
+  const bestQuality=cards.reduce((best,card)=>Math.max(best,Number(card?.quality)||0),0);
+  if(!tutorialState.completed){
+    const step=tutorialState.steps[tutorialState.step]||tutorialState.steps[tutorialState.steps.length-1];
+    return {chapter:'庄园复苏',title:step?.title||'完成第一轮庄园循环',progress:`${Math.min(tutorialState.step+1,tutorialState.steps.length)} / ${tutorialState.steps.length}`,tone:'intro'};
+  }
+  if(cards.length===0) return {chapter:'炼金初火',title:'锻造第一张可用卡牌',progress:'卡牌 0 / 1',tone:'craft'};
+  if((materials.blight_seed||0)<1 && (materials.beast_soul||0)<1) return {chapter:'首次远征',title:'穿过远征门，带回深渊战利品',progress:'目标：污染种子或灵兽灵魂',tone:'expedition'};
+  if(beasts.length<2) return {chapter:'灵兽盟约',title:'用远征材料孵化第二只灵兽',progress:`灵兽 ${beasts.length} / 2`,tone:'beast'};
+  if(upgrades.length<1) return {chapter:'工坊突破',title:'把远征资源投入第一次庄园升级',progress:'升级 0 / 1',tone:'upgrade'};
+  if(bestQuality<.82) return {chapter:'丰饶锻造',title:'培育高品质材料，锻造极品卡牌',progress:`最高品质 ${Math.round(bestQuality*100)} / 82`,tone:'quality'};
+  return {chapter:'地脉共鸣',title:'带极品卡深入远征，触发丰饶回响',progress:'下一峰值：深渊核心',tone:'mastery'};
+}
+
+function updateObjectiveTrack(){
+  if(!entered) return;
+  let track=document.getElementById('objectiveTrack');
+  if(!track){
+    track=document.createElement('div');
+    track.id='objectiveTrack';
+    track.innerHTML='<div class="objectiveSeal"></div><div class="objectiveCopy"><div class="objectiveChapter"></div><div class="objectiveTitle"></div></div><div class="objectiveProgress"></div>';
+    document.body.appendChild(track);
+  }
+  const hidden=tutorialState.active || window.SurfaceLifecycle?.isInputLocked?.() || (window.Battle&&Battle.active) || (window.WorldMapIntegration&&WorldMapIntegration.isOpen);
+  track.classList.toggle('hidden',Boolean(hidden));
+  const snapshot=objectiveSnapshot();
+  track.dataset.tone=snapshot.tone;
+  track.querySelector('.objectiveSeal').textContent=tutorialState.completed?'目标':'序';
+  track.querySelector('.objectiveChapter').textContent=snapshot.chapter;
+  track.querySelector('.objectiveTitle').textContent=snapshot.title;
+  track.querySelector('.objectiveProgress').textContent=snapshot.progress;
 }
 
 function renderTutorial() {
@@ -2005,6 +2043,7 @@ function renderTutorial() {
 function removeTutorialUI() {
   const overlay = document.getElementById('tutorialOverlay');
   if(overlay) overlay.remove();
+  updateObjectiveTrack();
 }
 
 function worldToScreen(wx, wy) {
