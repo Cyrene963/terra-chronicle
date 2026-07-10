@@ -2,7 +2,7 @@
   "git_sha": "e9a8465a07cd644fbf5c756eb85a4a675fb7f47d",
   "status": "approved",
   "reviewer": {
-    "type": "multimodal_vision_and_runtime",
+    "type": "multimodal_vision",
     "model": "gpt-5.6 native vision",
     "timestamp": "2026-07-10T19:30:00+08:00"
   },
@@ -28,8 +28,14 @@
     "console_errors": 0,
     "page_errors": 0,
     "map_canvas": "370x738",
-    "map_touch_hex": [60, 72],
-    "map_bounds": [100, 100],
+    "map_touch_hex": [
+      60,
+      72
+    ],
+    "map_bounds": [
+      100,
+      100
+    ],
     "battle_card_size": "126x184",
     "battle_end_button_height": 44
   },
@@ -38,5 +44,23 @@
     "world_map": "PASS - full-width canvas, rails hidden, nonblank, close control clear",
     "battle": "PASS - enemy, intent, scrollable hand and player controls remain operable"
   },
-  "blockers": []
+  "blockers": [],
+  "five_hour_flow": {
+    "visual_consistency": "Alchemy, atlas, dungeon and battle keep the approved parchment, bronze, botanical and illustrated game-art language across repeated surface switches.",
+    "cheap_web_ui": "No placeholder art, browser prompt, generic dashboard card shell or nested settings UI was introduced.",
+    "long_term_goal": "Repeated farm-to-alchemy-to-atlas-to-dungeon-to-battle transitions preserve input ownership, map navigation and reward-return loops without stale overlays.",
+    "reward_peak": "Battle reward behavior and quality-origin feedback remain intact under the core battle/dungeon smoke; only mobile ergonomics and lifecycle safety changed.",
+    "fatigue_risks": "Compact mobile card text and dense atlas labels remain polish risks, but horizontal card access, touch targets and modal close behavior have no blocking failure."
+  },
+  "checks": {
+    "art_style_unified": true,
+    "no_web_ui_placeholders": true,
+    "animation_runtime_verified": true,
+    "reward_feedback_clear": true,
+    "no_render_regression": true,
+    "mobile_touch_selection_verified": true,
+    "surface_lifecycle_verified": true,
+    "hidden_render_suspension_verified": true,
+    "async_race_cancellation_verified": true
+  }
 }
