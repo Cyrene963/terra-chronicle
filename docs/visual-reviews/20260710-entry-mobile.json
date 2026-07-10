@@ -1,0 +1,40 @@
+{
+  "git_sha": "cc3e63ae1a571e2f4b9e1620e221e4681b2efd86",
+  "status": "approved",
+  "reviewer": {
+    "type": "multimodal_vision_and_runtime",
+    "model": "gpt-5.6 native vision",
+    "timestamp": "2026-07-10T16:40:00+08:00",
+    "report": "docs/visual_review_20260710_entry_mobile.md"
+  },
+  "screenshots": [
+    "dogfood-output/mobile-alchemy-entry-final.png",
+    "dogfood-output/mobile-battle-entry-final.png"
+  ],
+  "five_hour_flow": {
+    "visual_consistency": "Mobile alchemy and battle retain the generated parchment, bronze, botanical, and illustrated card language.",
+    "cheap_web_ui": "No placeholder core art or generic nested-card shell was introduced.",
+    "long_term_goal": "Slow-device entry is acknowledged immediately and core modal gameplay remains reachable without stale surfaces.",
+    "reward_peak": "Battle reward content was not changed; battle presentation and hand ergonomics remain intact.",
+    "fatigue_risks": "Narrow alchemy information density and compact battle top copy remain non-blocking polish targets."
+  },
+  "checks": {
+    "art_style_unified": true,
+    "no_web_ui_placeholders": true,
+    "animation_runtime_verified": true,
+    "reward_feedback_clear": true,
+    "no_render_regression": true,
+    "entry_slow_load_verified": true,
+    "mobile_surface_geometry_verified": true,
+    "surface_lifecycle_verified": true,
+    "battle_immediate_close_verified": true
+  },
+  "degraded_checks": [
+    {
+      "name": "multi_page_battle_dungeon_smoke",
+      "status": "host_sigterm_during_swiftshader_readpixels",
+      "counted_as_pass": false
+    }
+  ],
+  "blockers": []
+}
