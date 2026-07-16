@@ -1,0 +1,8 @@
+{
+  "run": 15,
+  "stage": "plant",
+  "data": "{\"ownerId\":\"local\",\"plots\":{},\"inventory\":{\"crops\":{},\"materials\":{\"wood\":2},\"cards\":[]},\"beasts\":[{\"id\":\"water_spirit_starter\",\"species\":\"water_spirit\",\"element\":\"water\",\"level\":1,\"xp\":0,\"stamina\":100,\"evolution\":{\"diet\":{},\"laborHistory\":{}},\"assignment\":\"irrigate\"}],\"tech\":{\"agriculture\":0,\"military\":0,\"magic\":0,\"unlockedRecipes\":[\"card_sprout_guard\"]},\"stamina\":6,\"day\":1,\"lastSavedAt\":1783691346720,\"upgrades\":[],\"runtimeState\":{\"elapsed\":20.40000000000006,\"day\":0,\"staminaUsed\":4,\"felledTrees\":{\"tree:23:27.2\":1}},\"fieldState\":{\"22,29\":{\"species\":\"starwheat\",\"grown\":1.8000000000000005,\"mature\":false,\"watered\":false,\"boost\":false},\"23,29\":{\"species\":\"starwheat\",\"grown\":0.7,\"mature\":false,\"watered\":false,\"boost\":false},\"24,29\":{\"species\":\"starwheat\",\"grown\":0,\"mature\":false,\"watered\":false,\"boost\":false}},\"tutorialProgress\":{\"step\":2,\"moved\":true,\"chopped\":true,\"portalVisited\":false}}",
+  "savedAt": "2026-07-10T13:49:07.022Z",
+  "provenance": "Captured from real touch-driven run 15 on 2026-07-10; no inventory mutation or debug action injection.",
+  "fixtureVersion": 1
+}

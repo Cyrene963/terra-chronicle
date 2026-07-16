@@ -118,18 +118,7 @@ const devices = [
 
   await browser.close();
   const reportPath = path.join(OUT, 'report.json');
-  let mergedResults = results;
-  if (selectedDevice && fs.existsSync(reportPath)) {
-    try {
-      const previous = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
-      const byDevice = new Map((previous.results || []).map(result => [result.device, result]));
-      for (const result of results) byDevice.set(result.device, result);
-      mergedResults = devices.map(device => byDevice.get(device.name)).filter(Boolean);
-    } catch (_) {
-      mergedResults = results;
-    }
-  }
-  const report = { baseUrl: BASE, results: mergedResults, ok: mergedResults.every(result => result.ok) };
+  const report = { baseUrl: BASE, expectedMainVersion, selectedDevice: selectedDevice || 'all', results, ok: results.every(result => result.ok) };
   fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));
   if (!report.ok) process.exit(1);

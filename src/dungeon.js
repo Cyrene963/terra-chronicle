@@ -142,8 +142,9 @@ function consumeRunBuffs(){
 function activeBuffSummary(){ return runBuffs.length?`当前祝福: ${runBuffs.map(b=>`${buffName(b)}×${b.fights||1}`).join(' / ')}`:''; }
 
 function grantLoot(loot){
-  if(!loot || !window.Terra?.farm) return '';
+  if(!loot || !window.Terra?.farm) return null;
   const f=window.Terra.farm, labels=[];
+  const oldMaterials={...f.inventory.materials},oldBeasts=[...(f.beasts||[])],oldBuffs=runBuffs.map(b=>({...b}));
   if(loot.buff){ addRunBuff(loot.buff); labels.push(buffName(loot.buff)); }
   for(const [k,v] of Object.entries(loot)){
     if(k==='buff') continue;
@@ -157,7 +158,11 @@ function grantLoot(loot){
     f.inventory.materials[k]=(f.inventory.materials[k]||0)+v;
     labels.push(`${k}×${v}`);
   }
-  window.Terra.save();
+  if(window.Terra.save()===false){
+    f.inventory.materials=oldMaterials;f.beasts=oldBeasts;runBuffs=oldBuffs;
+    window.normalizeBeasts?.();window.updateBeastRosterUI?.();return null;
+  }
+  window.updateDock?.();
   return labels.join(' · ');
 }
 
@@ -261,7 +266,13 @@ function selectNode(node){
       buffs: runBuffs.map(b=>({...b})),
       onWin(loot){
         if(!loot) loot={};
-        grantLoot(loot);
+        const summary=grantLoot(loot);
+        if(summary===null){
+          progress.path.pop();
+          open();
+          showToast('存档暂不可用', '战利品与路线进度均未提交，请重试当前节点。');
+          return;
+        }
         consumeRunBuffs();
         progress.floor++;
         if(progress.floor>=mapData.length){ showToast('深渊征服', '战利品已带回农场，回到地表休整。'); return; }
@@ -278,12 +289,14 @@ function selectNode(node){
     renderMap();
   } else if(node.type==='event'){
     const summary=grantLoot({buff:{id:'ember_focus',energyFirstTurn:1,fights:1}, blight_seed:1});
-    showToast('地脉事件', `你稳定了污染裂隙，获得 ${summary || '余烬专注'}。`);
+    if(summary===null){progress.path.pop();showToast('存档暂不可用','事件奖励与路线进度均未提交，请重试。');renderMap();return;}
+    showToast('地脉事件', `你稳定了污染裂隙，获得 ${summary}.`);
     progress.floor++;
     if(progress.floor>=mapData.length){ showToast('深渊征服', '路线已完成，返回农场整备。', close); return; }
     renderMap();
   } else if(node.type==='chest'){
     const summary=grantLoot({wood:3, beast_soul:1});
+    if(summary===null){progress.path.pop();showToast('存档暂不可用','宝箱奖励与路线进度均未提交，请重试。');renderMap();return;}
     showToast('遗物宝箱', `开启旧世木箱，获得 ${summary}。`);
     progress.floor++;
     if(progress.floor>=mapData.length){ showToast('深渊征服', '路线已完成，返回农场整备。', close); return; }

@@ -67,7 +67,7 @@
   @keyframes ruleGrow{to{width:min(420px,46vw)}}
   @keyframes riseIn{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
   #enter{
-    opacity:0;animation:riseIn 1.6s 1.9s cubic-bezier(.2,.8,.2,1) forwards;
+    opacity:1;animation:none;
     background:none;border:1px solid rgba(246,241,231,.4);color:var(--ivory);
     font-family:'Noto Serif SC',serif;font-weight:300;letter-spacing:.5em;text-indent:.5em;
     font-size:15px;padding:15px 52px;cursor:pointer;position:relative;overflow:hidden;
@@ -103,7 +103,7 @@
   body[data-phase="first_card"] #eventIndicator,
   body[data-phase="first_card"] #ecoPanel,
   body[data-phase="first_card"] #petCodex { opacity:0 !important; pointer-events:none !important; }
-  body[data-phase="first_card"] #beastPanel { display:flex !important; opacity:.82; }
+  body[data-phase="first_card"] #beastPanel { display:none !important; pointer-events:none !important; }
   body[data-phase="first_card"] #craftFAB { opacity:1; pointer-events:auto; }
 
   body[data-phase="first_expedition"] #beastPanel { display:flex !important; opacity:1; }
@@ -230,16 +230,15 @@
     cursor:pointer;pointer-events:auto;
     filter:drop-shadow(0 6px 16px rgba(0,0,0,.55)) drop-shadow(0 0 12px rgba(244,208,63,.38));
     transition:transform .35s cubic-bezier(.34,1.56,.64,1),filter .35s,opacity .3s;
-    animation:fabBob 2.6s ease-in-out infinite;
+    animation:none;
   }
-  #craftFAB:not(.disabled):hover{transform:translateY(-7px) scale(1.09);filter:drop-shadow(0 14px 26px rgba(0,0,0,.6)) drop-shadow(0 0 20px rgba(244,208,63,.65));}
+  @media (hover:hover) and (pointer:fine){#craftFAB:not(.disabled):hover{transform:translateY(-4px) scale(1.06);filter:drop-shadow(0 14px 26px rgba(0,0,0,.6)) drop-shadow(0 0 20px rgba(244,208,63,.65));}}
   #craftFAB:not(.disabled):active{transform:translateY(-3px) scale(1.04);}
   #craftFAB.disabled{opacity:.62;filter:grayscale(.5) drop-shadow(0 4px 10px rgba(0,0,0,.45));animation:none;}
   #craftFAB.hot{filter:drop-shadow(0 6px 16px rgba(0,0,0,.55)) drop-shadow(0 0 22px rgba(244,208,63,.85)) brightness(1.08) saturate(1.15);}
   #craftFAB.disabled::after{content:'';position:absolute;top:2px;right:2px;width:13px;height:13px;
     background:#d46b4f;border-radius:50%;border:2px solid #2b1e18;box-shadow:0 1px 4px rgba(0,0,0,.5);
-    animation:fabBob 1.6s ease-in-out infinite;}
-  @keyframes fabBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+    animation:eventPulse 1.6s ease-in-out infinite;}
 
   #craftBtn{
     border:1px solid var(--gold);background:transparent;color:var(--ink);cursor:pointer;
@@ -425,6 +424,7 @@
   @media (hover:none),(pointer:coarse),(max-width:760px){
     #mobileControls{display:block}
     #dock{left:max(18px,env(safe-area-inset-left));right:auto;transform:none;bottom:max(18px,env(safe-area-inset-bottom));width:auto;max-width:calc(100vw - 142px);gap:9px;padding:9px 12px;font-size:11px;overflow-x:auto;scrollbar-width:none}
+    body[data-phase="intro"] #dock{transform:none;transform-origin:left bottom}
     #dock::-webkit-scrollbar{display:none}
     #dock .item{flex:none}
     #dock .sep{display:none}
@@ -574,7 +574,7 @@
 <script src="vendor/pixi.min.js"></script>
 <script src="src/animation-manager.js?v=2"></script>
 <script src="src/surface_manager.js?v=2"></script>
-<script src="src/state.js?v=8"></script>
+<script src="src/state.js?v=12"></script>
 <script src="src/game_feel_enhanced.js?v=1"></script>
 <script src="src/feedback_system.js?v=1"></script>
 <script src="src/soil_particles.js?v=1"></script>
@@ -594,16 +594,16 @@
 <script src="src/world_map.js?v=7"></script>
 <script src="src/world_map_integration.js?v=6"></script>
 <!-- 核心游戏系统 -->
-<script src="src/alchemy.js?v=49"></script>
+<script src="src/alchemy.js?v=51"></script>
 <script src="src/battle_effects.js?v=2"></script>
 <script src="src/battle.js?v=74"></script>
-<script src="src/dungeon.js?v=55"></script>
-<script src="src/upgrade.js?v=40"></script>
+<script src="src/dungeon.js?v=59"></script>
+<script src="src/upgrade.js?v=41"></script>
 <script>
   // Yield one task so the title CTA can paint and accept input before world construction starts.
   setTimeout(()=>{
     const script=document.createElement('script');
-    script.src='src/main.js?v=91';
+    script.src='src/main.js?v=97';
     script.onerror=()=>{
       const enter=document.getElementById('enter');
       if(enter){enter.textContent='加载失败 · 点击重试';enter.style.pointerEvents='auto';enter.removeAttribute('aria-busy');enter.onclick=()=>location.reload();}

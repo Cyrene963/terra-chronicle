@@ -107,7 +107,7 @@ fi
 python3 - <<PY
 import hashlib, json, os, re, time
 root='$ROOT'; target='$TARGET'; manifest='$MANIFEST'; verify='$VERIFY_STATUS'; sha='$LOCAL_SHA'; upstream='$UPSTREAM'; stamp='$STAMP'
-files=['index.html','src/main.js','src/battle.js','src/multiplayer_ui.js','src/world_map.js','src/world_map_integration.js','package.json']
+files=['index.html','src/main.js','src/state.js','src/alchemy.js','src/surface_manager.js','src/battle.js','src/dungeon.js','src/upgrade.js','src/multiplayer_ui.js','src/world_map.js','src/world_map_integration.js','package.json']
 out={'timestamp':stamp,'git_sha':sha,'upstream':upstream,'source_path':root,'target_path':target,'verify_status':verify,'key_files':{}}
 for rel in files:
     p=os.path.join(root, rel)

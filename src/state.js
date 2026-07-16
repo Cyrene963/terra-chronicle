@@ -36,9 +36,43 @@ function createPrivateFarm(ownerId){
     beasts: [],           // { id, species, element, stamina, evolution:{diet:{}, laborHistory:{}},
                           //   assignment: null|'irrigate'|'mill'|'till'|'forge'|'combat' }
     /** 科技树: agriculture | military | magic 三线(条条大路皆可胜) */
-    tech: { agriculture: 0, military: 0, magic: 0, unlockedRecipes: ['card_sprout_guard'] },
+    tech: { agriculture: 0, military: 0, magic: 0, unlockedRecipes: ['card_sprout_guard','card_river_blessing'] },
     stamina: 6, day: 1, lastSavedAt: null,
   };
+}
+function normalizeFarm(raw){
+  const base=createPrivateFarm(typeof raw?.ownerId==='string'?raw.ownerId:'local');
+  const farm=raw&&typeof raw==='object'&&!Array.isArray(raw)?raw:{};
+  farm.schemaVersion=2;
+  farm.ownerId=typeof farm.ownerId==='string'?farm.ownerId:base.ownerId;
+  farm.plots=farm.plots&&typeof farm.plots==='object'&&!Array.isArray(farm.plots)?farm.plots:{};
+  farm.inventory=farm.inventory&&typeof farm.inventory==='object'&&!Array.isArray(farm.inventory)?farm.inventory:{};
+  farm.inventory.crops=farm.inventory.crops&&typeof farm.inventory.crops==='object'&&!Array.isArray(farm.inventory.crops)?farm.inventory.crops:{};
+  for(const [kind,list] of Object.entries(farm.inventory.crops)) farm.inventory.crops[kind]=Array.isArray(list)?list.filter(item=>item&&typeof item==='object'&&!Array.isArray(item)):[];
+  farm.inventory.materials=farm.inventory.materials&&typeof farm.inventory.materials==='object'&&!Array.isArray(farm.inventory.materials)?farm.inventory.materials:{};
+  for(const [kind,count] of Object.entries(farm.inventory.materials)) farm.inventory.materials[kind]=Math.max(0,Number.isFinite(Number(count))?Number(count):0);
+  farm.inventory.cards=Array.isArray(farm.inventory.cards)?farm.inventory.cards.filter(c=>c&&typeof c==='object'):[];
+  farm.beasts=Array.isArray(farm.beasts)?farm.beasts.filter(b=>b&&typeof b==='object'):[];
+  farm.upgrades=Array.isArray(farm.upgrades)?[...new Set(farm.upgrades.filter(x=>typeof x==='string'))]:[];
+  farm.tech=farm.tech&&typeof farm.tech==='object'&&!Array.isArray(farm.tech)?farm.tech:{...base.tech};
+  farm.tech.unlockedRecipes=Array.isArray(farm.tech.unlockedRecipes)?farm.tech.unlockedRecipes.filter(x=>typeof x==='string'):[];
+  for(const recipe of ['card_sprout_guard','card_river_blessing']) if(!farm.tech.unlockedRecipes.includes(recipe)) farm.tech.unlockedRecipes.push(recipe);
+  farm.fieldState=farm.fieldState&&typeof farm.fieldState==='object'&&!Array.isArray(farm.fieldState)?farm.fieldState:{};
+  farm.runtimeState=farm.runtimeState&&typeof farm.runtimeState==='object'&&!Array.isArray(farm.runtimeState)?farm.runtimeState:{};
+  farm.runtimeState.felledTrees=farm.runtimeState.felledTrees&&typeof farm.runtimeState.felledTrees==='object'&&!Array.isArray(farm.runtimeState.felledTrees)?farm.runtimeState.felledTrees:{};
+  for(const [key,value] of Object.entries(farm.runtimeState.felledTrees)){
+    const day=Math.max(0,Math.floor(Number(value)||0));
+    if(!day)delete farm.runtimeState.felledTrees[key];else farm.runtimeState.felledTrees[key]=day;
+  }
+  if(Number.isFinite(Number(farm.runtimeState.elapsed)))farm.runtimeState.elapsed=Math.max(0,Number(farm.runtimeState.elapsed));else delete farm.runtimeState.elapsed;
+  farm.runtimeState.day=Math.max(0,Math.floor(Number(farm.runtimeState.day)||0));
+  farm.runtimeState.staminaUsed=Math.max(0,Math.min(6,Math.floor(Number(farm.runtimeState.staminaUsed)||0)));
+  for(const [key,state] of Object.entries(farm.fieldState)){
+    if(!/^\d+,\d+$/.test(key)||!state||typeof state!=='object'||Array.isArray(state)){delete farm.fieldState[key];continue;}
+    state.species=state.species==='dewberry'?'dewberry':'starwheat';state.grown=Math.max(0,Number(state.grown)||0);state.mature=!!state.mature;state.watered=!!state.watered;state.boost=!!state.boost;
+  }
+  farm.tutorialProgress=farm.tutorialProgress&&typeof farm.tutorialProgress==='object'&&!Array.isArray(farm.tutorialProgress)?farm.tutorialProgress:undefined;
+  return farm;
 }
 
 /* ================= 2. 公共大世界(联机博弈层) ================= */
@@ -87,7 +121,7 @@ const RECIPES = {
   },
   card_river_blessing: {
     name: '河川祝福', element: 'water', baseAtk: 8, baseDef: 12, heal: 22,
-    needs: { crops: { dewberry: 4 }, materials: { beastPart_water: 1 } },
+    needs: { crops: { dewberry: 3 }, materials: { wood: 1 } },
   },
 };
 
@@ -149,10 +183,31 @@ const Terra = {
   farm: null, overworld: null,
   newGame(ownerId='local'){ this.farm=createPrivateFarm(ownerId);
     this.overworld=createPublicOverworld(1); return this; },
-  save(){ this.farm.lastSavedAt=Date.now();
-    localStorage.setItem('terra_farm', JSON.stringify(this.farm)); },
-  load(){ const s=localStorage.getItem('terra_farm');
-    if(s) this.farm=JSON.parse(s); return !!s; },
+  save(){
+    if(!this.farm) return false;
+    const previousSavedAt=this.farm.lastSavedAt;
+    this.farm.lastSavedAt=Date.now();
+    try{ localStorage.setItem('terra_farm', JSON.stringify(this.farm)); return true; }
+    catch(err){ this.farm.lastSavedAt=previousSavedAt;console.warn('[Terra] Save unavailable:',err?.message||err); return false; }
+  },
+  load(){
+    let s;
+    try{s=localStorage.getItem('terra_farm');}
+    catch(err){console.warn('[Terra] Save storage unavailable:',err?.message||err);this.farm=null;return false;}
+    if(!s) return false;
+    try{
+      const parsed=JSON.parse(s);
+      if(!parsed || typeof parsed!=='object' || Array.isArray(parsed)) throw new Error('invalid farm payload');
+      this.farm=normalizeFarm(parsed);
+      return true;
+    }catch(err){
+      try{ localStorage.setItem('terra_farm_corrupt_backup',s); }catch{}
+      try{localStorage.removeItem('terra_farm');}catch{}
+      console.warn('[Terra] Corrupt save was backed up and reset');
+      this.farm=null;
+      return false;
+    }
+  },
   craftCard, spawnStrategicNode, RECIPES,
 };
 window.Terra = Terra;

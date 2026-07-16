@@ -1,0 +1,23 @@
+{
+  "stage": "alchemy",
+  "data": "{\"ownerId\":\"local\",\"plots\":{},\"inventory\":{\"crops\":{\"starwheat\":[],\"dewberry\":[]},\"materials\":{\"wood\":0},\"cards\":[{\"id\":\"card_mrf15nir6788\",\"recipeId\":\"card_sprout_guard\",\"archetype\":\"thorn\",\"effectText\":\"守势流派 · 格挡会蓄积荆棘反伤\",\"name\":\"新芽守卫\",\"element\":\"earth\",\"atk\":19,\"def\":27,\"heal\":0,\"quality\":0.64,\"origin\":\"starwheat\",\"craftsmanship\":0.74,\"affixes\":[\"稳定工艺\"],\"bound\":true}]},\"beasts\":[{\"id\":\"water_spirit_starter\",\"species\":\"water_spirit\",\"element\":\"water\",\"level\":1,\"xp\":0,\"stamina\":100,\"evolution\":{\"diet\":{},\"laborHistory\":{}},\"assignment\":\"irrigate\"}],\"tech\":{\"agriculture\":0,\"military\":0,\"magic\":0,\"unlockedRecipes\":[\"card_sprout_guard\"]},\"stamina\":6,\"day\":1,\"lastSavedAt\":1783693671723,\"upgrades\":[],\"runtimeState\":{\"elapsed\":25.416600000000127,\"day\":0,\"staminaUsed\":4,\"felledTrees\":{\"tree:23:27.2\":1}},\"fieldState\":{},\"tutorialProgress\":{\"step\":4,\"moved\":true,\"chopped\":true,\"portalVisited\":false},\"schemaVersion\":2,\"fieldSavedAt\":1783693669347}",
+  "savedAt": "2026-07-10T14:27:53.262Z",
+  "committed": {
+    "cards": 1,
+    "star": 0,
+    "wood": 0,
+    "tutorial": "alchemy"
+  },
+  "after": {
+    "cards": 1,
+    "star": 0,
+    "wood": 0,
+    "tutorial": "portal",
+    "surface": null,
+    "locked": false
+  },
+  "errors": [],
+  "ok": true,
+  "provenance": "Captured from real touch-driven run 15 on 2026-07-10; no inventory mutation or debug action injection.",
+  "fixtureVersion": 1
+}

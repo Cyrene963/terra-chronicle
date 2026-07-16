@@ -1,0 +1,47 @@
+{
+  "batchId": "final-candidate-v6",
+  "generatedAt": "2026-07-16T11:12:00Z",
+  "resolved": [
+    {
+      "id": "TERRA-PERSIST-001",
+      "class": "product",
+      "severity": "P0",
+      "issue": "Crop, tree, stamina, tutorial, alchemy, dungeon reward, beast progression, and workshop upgrade mutations could diverge from persisted state.",
+      "resolution": "Added schema normalization and transactional rollback paths. Save failure now leaves player-visible inventory, progression, visuals, and route state unchanged.",
+      "evidence": [9, 16, 17, 18, 19, 20]
+    },
+    {
+      "id": "TERRA-HARNESS-001",
+      "class": "test_harness",
+      "severity": "P0",
+      "issue": "Full-flow runner referenced an undefined profile and checkpoint harvest used fixed plot coordinates.",
+      "resolution": "Passed the profile explicitly, split the full journey into persisted stages, and derive harvest keys from the real plant checkpoint.",
+      "evidence": [8, 18, 19, 20]
+    },
+    {
+      "id": "TERRA-HARNESS-002",
+      "class": "test_harness",
+      "severity": "P1",
+      "issue": "Playwright visibility/stability checks flaked on animated dungeon nodes.",
+      "resolution": "Use computed-style plus viewport-intersection readiness and a real touchscreen tap at the node center.",
+      "evidence": [8, 20]
+    },
+    {
+      "id": "TERRA-INFRA-001",
+      "class": "infrastructure",
+      "severity": "P1",
+      "issue": "Chromium intermittently exited on shared-memory descriptor/resource allocation failures.",
+      "resolution": "Runner preserves each attempt and allows one retry only for explicitly classified infrastructure failures.",
+      "evidence": [4]
+    }
+  ],
+  "open": [
+    {
+      "id": "TERRA-VISUAL-001",
+      "class": "release_gate",
+      "severity": "P0",
+      "issue": "Current-SHA multimodal visual review and public deployment readback are pending.",
+      "blocksRelease": true
+    }
+  ]
+}

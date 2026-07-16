@@ -1,0 +1,20 @@
+{
+  "stage": "harvest",
+  "data": "{\"ownerId\":\"local\",\"plots\":{},\"inventory\":{\"crops\":{\"starwheat\":[{\"species\":\"starwheat\",\"quality\":0.64,\"originFertility\":64,\"grade\":\"粗麦\",\"watered\":false,\"soil\":{\"fert\":82,\"moist\":57,\"pest\":6,\"mana\":38}},{\"species\":\"starwheat\",\"quality\":0.7,\"originFertility\":70,\"grade\":\"良品\",\"watered\":false,\"soil\":{\"fert\":90,\"moist\":52,\"pest\":30,\"mana\":53}},{\"species\":\"starwheat\",\"quality\":0.59,\"originFertility\":59,\"grade\":\"粗麦\",\"watered\":false,\"soil\":{\"fert\":75,\"moist\":53,\"pest\":20,\"mana\":37}}]},\"materials\":{\"wood\":2},\"cards\":[]},\"beasts\":[{\"id\":\"water_spirit_starter\",\"species\":\"water_spirit\",\"element\":\"water\",\"level\":1,\"xp\":0,\"stamina\":100,\"evolution\":{\"diet\":{},\"laborHistory\":{}},\"assignment\":\"irrigate\"}],\"tech\":{\"agriculture\":0,\"military\":0,\"magic\":0,\"unlockedRecipes\":[\"card_sprout_guard\"]},\"stamina\":6,\"day\":1,\"lastSavedAt\":1783693654637,\"upgrades\":[],\"runtimeState\":{\"elapsed\":23.3000000000001,\"day\":0,\"staminaUsed\":4,\"felledTrees\":{\"tree:23:27.2\":1}},\"fieldState\":{},\"tutorialProgress\":{\"step\":3,\"moved\":true,\"chopped\":true,\"portalVisited\":false},\"schemaVersion\":2,\"fieldSavedAt\":1783693654634}",
+  "savedAt": "2026-07-10T14:27:34.824Z",
+  "evidence": {
+    "star": 3,
+    "wood": 2,
+    "fieldKeys": [],
+    "stamina": 4,
+    "tutorial": {
+      "step": 3,
+      "moved": true,
+      "chopped": true,
+      "portalVisited": false
+    }
+  },
+  "errors": [],
+  "provenance": "Captured from real touch-driven run 15 on 2026-07-10; no inventory mutation or debug action injection.",
+  "fixtureVersion": 1
+}

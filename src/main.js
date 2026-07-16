@@ -113,6 +113,7 @@ const SELECTED_PET_DEFS = {
 
 /* ================= 2. 世界常量与调色脚本 ================= */
 const TS = 64, MAP = 56;                       // 瓦片尺寸 / 地图边长
+const INTERACT_RANGE=120;
 const DAY_SECONDS = 30, SEASON_DAYS = 7;       // demo 时间节奏
 const SEASONS = [
   { name: '春', latin: 'VER' }, { name: '夏', latin: 'AESTAS' },
@@ -212,14 +213,18 @@ function placeObjects(){
   OBJECTS.push({kind:'bush',tx:23.2,ty:25.4});
   OBJECTS.push({kind:'rock',tx:18.4,ty:22.8});
   OBJECTS.push({kind:'tree',tx:17.2,ty:28.3});
-  OBJECTS.push({kind:'tree',tx:23.8,ty:29.0});
+  // Keep the starter field visually and interactively clear of random props.
+  for(let i=OBJECTS.length-1;i>=0;i--){const o=OBJECTS[i];if(o.tx>=22&&o.tx<30&&o.ty>=29&&o.ty<33)OBJECTS.splice(i,1);}
+  // Dedicated first-hour tree: visible from spawn and clear of farm plots/roads.
+  for(let i=OBJECTS.length-1;i>=0;i--){const o=OBJECTS[i];if(Math.abs(o.tx-23)<.8&&Math.abs(o.ty-27.2)<.8)OBJECTS.splice(i,1);}
+  OBJECTS.push({kind:'tree',tx:23,ty:27.2,tutorial:true});
   OBJECTS.push({kind:'fence',tx:18.4,ty:27.2});
   OBJECTS.push({kind:'fence',tx:19.4,ty:27.3});
   OBJECTS.push({kind:'fence',tx:20.4,ty:27.35});
   // 耕地栅栏(留缺口) — Wave 1: 弱化首屏横向硬切，把栅栏更多留在田地下沿
   for(let x=22;x<=29;x++){
     if(x!==25&&x!==26){
-      if(x<=23 || x>=28) OBJECTS.push({kind:'fence',tx:x,ty:28.1});
+      if(x<=22 || x>=28) OBJECTS.push({kind:'fence',tx:x,ty:28.1});
       OBJECTS.push({kind:'fence',tx:x,ty:32.4});
     }
   }
@@ -229,6 +234,9 @@ function placeObjects(){
   for(let i=OBJECTS.length-1;i>=0;i--){ const o=OBJECTS[i];
     if(Math.abs(o.tx-47)<2 && Math.abs(o.ty-10)<2) OBJECTS.splice(i,1); }
   OBJECTS.push({kind:'portal',tx:47,ty:10,glow:true});
+  // First expedition gate: reachable from the manor without crossing the full map.
+  for(let i=OBJECTS.length-1;i>=0;i--){const o=OBJECTS[i];if(Math.abs(o.tx-23)<1.1&&Math.abs(o.ty-24)<1.1)OBJECTS.splice(i,1);}
+  OBJECTS.push({kind:'portal',tx:23,ty:24,glow:true,tutorial:true});
   // 孵化阵 + 工坊熔炉(农庄附近):清格再放
   for(let i=OBJECTS.length-1;i>=0;i--){ const o=OBJECTS[i];
     if((Math.abs(o.tx-17)<2&&Math.abs(o.ty-31)<2)||(Math.abs(o.tx-25)<2&&Math.abs(o.ty-22)<2)) OBJECTS.splice(i,1); }
@@ -342,10 +350,12 @@ addEventListener('resize',scheduleViewportSync);
 addEventListener('orientationchange',scheduleViewportSync);
 addEventListener('pageshow',scheduleViewportSync);
 addEventListener('focus',scheduleViewportSync);
-document.addEventListener('visibilitychange',()=>{
-  if(document.hidden) app.ticker.stop();
+function handleVisibilityChange(hidden=document.hidden){
+  simClockMs=performance.now();
+  if(hidden) app.ticker.stop();
   else { app.ticker.start(); scheduleViewportSync(); }
-});
+}
+document.addEventListener('visibilitychange',()=>handleVisibilityChange());
 window.visualViewport?.addEventListener('resize',scheduleViewportSync);
 window.visualViewport?.addEventListener('scroll',scheduleViewportSync);
 
@@ -676,7 +686,9 @@ for(const o of OBJECTS){
 /* 耕地: 玩家手植作物(种植→成熟→收获,§13 农场交互) */
 const crops=[];                // 已种下的作物节点(参与视口剔除)
 const planted={};              // tileKey → { node, at, mature }
+const fellQueue=[];            // felled world objects awaiting day-based recovery
 const GROW_SECONDS=DAY_SECONDS*0.6;
+let fieldStateDirty=false,fieldSaveClock=0,runtimeSaveClock=0;
 
 /* ================= 7. 主角 ================= */
 function makePlayer(){
@@ -810,7 +822,7 @@ function keyboardInputY(){ return (keys.s||keys.arrowdown?1:0)-(keys.w||keys.arr
 function currentMoveInput(){
   return { x: keyboardInputX(), y: keyboardInputY() };
 }
-function manualMove(dt){                          // keyboard direct movement
+function manualMove(dt,emitVisual=true){           // keyboard direct movement
   const input=currentMoveInput();
   let inputX=input.x;
   let inputY=input.y;
@@ -830,7 +842,7 @@ function manualMove(dt){                          // keyboard direct movement
   if(Math.abs(movement.dx) > 0.1) facing = movement.dx > 0 ? 1 : -1;
 
   // 生成尘埃粒子
-  if(movement.moving && movementEnhancer) {
+  if(emitVisual && movement.moving && movementEnhancer) {
     const newDust = movementEnhancer.spawnDustParticles(player.x, player.y + 4, movement.speed, dt);
     dustParticles.push(...newDust);
   }
@@ -840,14 +852,14 @@ function manualMove(dt){                          // keyboard direct movement
     tutorialState._moved = true;
   }
 
-  animateWalk(dt, movement.moving, movement.speed);
+  if(emitVisual) animateWalk(dt, movement.moving, movement.speed);
 }
-function followPath(dt){                           // 沿 A* 路径自动行走（加速/减速增强版）
+function followPath(dt,emitVisual=true){             // 沿 A* 路径自动行走（加速/减速增强版）
   const wp=player._path[0];
   let targetDx=wp.wx-player.x, targetDy=wp.wy-player.y;
   const d=Math.hypot(targetDx,targetDy);
   if(d<5){ player._path.shift();
-    if(!player._path.length){ player._path=null; onArrive(); animateWalk(dt,false,0); if(movementEnhancer) movementEnhancer.reset(); }
+    if(!player._path.length){ player._path=null; onArrive(); if(emitVisual) animateWalk(dt,false,0); if(movementEnhancer) movementEnhancer.reset(); }
     return; }
 
   // 归一化目标方向
@@ -872,17 +884,17 @@ function followPath(dt){                           // 沿 A* 路径自动行走�
   if(Math.abs(movement.dx)>.05) facing=movement.dx>0?1:-1;
 
   // 生成尘埃粒子
-  if(movement.moving && movementEnhancer) {
+  if(emitVisual && movement.moving && movementEnhancer) {
     const newDust = movementEnhancer.spawnDustParticles(player.x, player.y + 4, movement.speed, dt);
     dustParticles.push(...newDust);
   }
 
-  animateWalk(dt, movement.moving, movement.speed);
+  if(emitVisual) animateWalk(dt, movement.moving, movement.speed);
 }
-function movePlayer(dt){
+function movePlayer(dt,emitVisual=true){
   const hasDirectInput=keyboardInputX()||keyboardInputY();
-  if(hasDirectInput){ if(player._path){player._path=null;pendingAction=null;if(movementEnhancer) movementEnhancer.reset();} manualMove(dt); return; }
-  if(player._path){ followPath(dt); return; }
+  if(hasDirectInput){ if(player._path){player._path=null;pendingAction=null;if(movementEnhancer) movementEnhancer.reset();} manualMove(dt,emitVisual); return; }
+  if(player._path){ followPath(dt,emitVisual); return; }
 
   // 待机状态：应用摩擦力让速度自然衰减到0
   const movement = movementEnhancer ? movementEnhancer.updateMovement(0, 0, dt) : {dx: 0, dy: 0, speed: 0, moving: false};
@@ -894,7 +906,7 @@ function movePlayer(dt){
     player.zIndex = player.y;
   }
 
-  animateWalk(dt, movement.moving, movement.speed);
+  if(emitVisual) animateWalk(dt, movement.moving, movement.speed);
 }
 
 /* ================= 8. 镜头 ================= */
@@ -990,6 +1002,18 @@ function objectAtTile(tx,ty){
     if(Math.floor(o.node.x/TS)===tx && Math.floor(o.node.y/TS)===ty) return o; }
   return null;
 }
+function objectAtWorld(wx,wy){
+  let best=null,bestDist=Infinity;
+  for(const o of OBJECTS){
+    if(o.felled||o.node.visible===false||!['tree','cherry','portal','incubator','furnace'].includes(o.kind))continue;
+    const asset=ASSETS[o.kind]||{},halfW=Math.max(TS*.42,(asset.w||TS)*.42);
+    const top=o.node.y-Math.max(TS*.7,(asset.h||TS)*.88),bottom=o.node.y+TS*.2;
+    if(wx<o.node.x-halfW||wx>o.node.x+halfW||wy<top||wy>bottom)continue;
+    const d=Math.abs(wx-o.node.x)+Math.abs(wy-o.node.y)*.25;
+    if(d<bestDist){best=o;bestDist=d;}
+  }
+  return best;
+}
 function spawnWorldRipple(wx, wy, tint=0xf4d03f, label=''){
   // 增强点击波纹效果
   if(window.AnimationManager){
@@ -1017,42 +1041,51 @@ function spawnWorldRipple(wx, wy, tint=0xf4d03f, label=''){
   if(label) toastHint(label);
 }
 /* 点击/触摸 → 路由: 树→走到旁边砍伐; 耕地→走过去种/收; 空地→走过去 */
+const commandTrace=[];
+function traceCommand(wx,wy,tx,ty,kind,action){
+  commandTrace.push({at:performance.now(),wx,wy,tx,ty,kind:kind||null,action,path:player._path?.length||0});
+  if(commandTrace.length>12)commandTrace.shift();
+}
 function commandTo(wx,wy){
   spawnWorldRipple(wx,wy,0xf4d03f);
   const tx=Math.floor(wx/TS), ty=Math.floor(wy/TS);
   const sx=Math.floor(player.x/TS), sy=Math.floor(player.y/TS);
-  const o=objectAtTile(tx,ty);
+  const o=objectAtWorld(wx,wy)||objectAtTile(tx,ty);
   if(o && (o.kind==='tree'||o.kind==='cherry')){          // → 砍伐
-    rebuildSolidTiles(); const nw=nearestWalkable(tx,ty);
+    const otx=Math.floor(o.node.x/TS),oty=Math.floor(o.node.y/TS);
+    rebuildSolidTiles(); const nw=nearestWalkable(otx,oty);
     if(!nw) return; const path=tilePath(sx,sy,nw.x,nw.y);
-    if(path){ player._path=path; pendingAction={type:'chop',obj:o}; toastHint('前往伐木…'); }
+    if(path){ player._path=path; pendingAction={type:'chop',obj:o}; traceCommand(wx,wy,tx,ty,o.kind,'chop'); toastHint('前往伐木…'); }
     return;
   }
   if(o && o.kind==='portal'){                             // → 进入深渊副本
-    rebuildSolidTiles(); const nw=nearestWalkable(tx,ty);
+    const otx=Math.floor(o.node.x/TS),oty=Math.floor(o.node.y/TS);
+    rebuildSolidTiles(); const nw=nearestWalkable(otx,oty);
     if(!nw) return; const path=tilePath(sx,sy,nw.x,nw.y);
     if(path){ player._path=path; pendingAction={type:'portal'}; toastHint('前往深渊之门…'); }
     return;
   }
   if(o && o.kind==='incubator'){                          // → 灵兽孵化阵
-    rebuildSolidTiles(); const nw=nearestWalkable(tx,ty);
+    const otx=Math.floor(o.node.x/TS),oty=Math.floor(o.node.y/TS);
+    rebuildSolidTiles(); const nw=nearestWalkable(otx,oty);
     if(!nw) return; const path=tilePath(sx,sy,nw.x,nw.y);
     if(path){ player._path=path; pendingAction={type:'breed'}; toastHint('前往孵化阵…'); }
     return;
   }
   if(o && o.kind==='furnace'){                            // → 农场升级面板
-    rebuildSolidTiles(); const nw=nearestWalkable(tx,ty);
+    const otx=Math.floor(o.node.x/TS),oty=Math.floor(o.node.y/TS);
+    rebuildSolidTiles(); const nw=nearestWalkable(otx,oty);
     if(!nw) return; const path=tilePath(sx,sy,nw.x,nw.y);
     if(path){ player._path=path; pendingAction={type:'upgrade'}; toastHint('前往工坊升级…'); }
     return;
   }
   if(tileMeta[tx+','+ty]){                                 // → 种/收
     const path=tilePath(sx,sy,tx,ty);
-    if(path){ player._path=path; pendingAction={type:'farm',key:tx+','+ty}; }
+    if(path){ player._path=path; pendingAction={type:'farm',key:tx+','+ty}; traceCommand(wx,wy,tx,ty,o?.kind,'farm'); }
     return;
   }
   const path=tilePath(sx,sy,tx,ty);                        // → 行走
-  if(path){ player._path=path; pendingAction=null; }
+  if(path){ player._path=path; pendingAction=null; traceCommand(wx,wy,tx,ty,o?.kind,'move'); }
 }
 const chopLoop={obj:null,t:0};
 function onArrive(){
@@ -1061,19 +1094,35 @@ function onArrive(){
   const arriveLabel={farm:'抵达耕地',chop:'开始伐木',portal:'深渊之门',breed:'孵化阵',upgrade:'工坊'}[a.type];
   spawnWorldRipple(player.x,player.y,a.type==='portal'?0xb68cff:a.type==='farm'?0x9fdc7b:0xf4d03f,arriveLabel);
   if(a.type==='farm') interactFarm(a.key);
-  else if(a.type==='chop'){ chopLoop.obj=a.obj; chopLoop.t=0; }
+  else if(a.type==='chop'){ chopLoop.obj=a.obj; chopLoop.nextAt=0; }
   else if(a.type==='portal'){
-    // 传送门直接进入战斗（暂时禁用 DungeonMap 选择界面）
-    tutorialState._portalVisited = true;
-    enterBattle();
+    if(window.DungeonMap){
+      DungeonMap.open();
+      if(window.SurfaceLifecycle?.active==='dungeon') tutorialState._portalVisited=true;
+    }else enterBattle();
   }
   else if(a.type==='breed') openBreed();
   else if(a.type==='upgrade'){ if(window.FarmUpgrade) FarmUpgrade.open(); }
 }
 function nearestPortal(){
   for(const o of OBJECTS){ if(o.kind!=='portal') continue;
-    if(Math.hypot(o.node.x-player.x,o.node.y-player.y)<110) return o; }
+    if(Math.hypot(o.node.x-player.x,o.node.y-player.y)<INTERACT_RANGE) return o; }
   return null;
+}
+function grantBattleLoot(loot){
+  if(window.DungeonMap?.grantLoot) return DungeonMap.grantLoot(loot);
+  if(!loot||!farm) return '';
+  const labels=[],oldMaterials={...farm.inventory.materials},oldBeasts=[...(farm.beasts||[])];
+  for(const [key,value] of Object.entries(loot)){
+    if(key==='buff')continue;
+    if(key==='beast'){
+      farm.beasts??=[];farm.beasts.push({id:`${value.species||'beast'}_${Date.now().toString(36)}`,...value,stamina:100,xp:0,evolution:{diet:{},laborHistory:{}}});
+      normalizeBeasts?.();labels.push(value.name||'灵兽');continue;
+    }
+    farm.inventory.materials[key]=(farm.inventory.materials[key]||0)+Number(value||0);labels.push(`${key}×${value}`);
+  }
+  if(Terra.save()===false){farm.inventory.materials=oldMaterials;farm.beasts=oldBeasts;normalizeBeasts?.();return '';}
+  return labels.join(' · ');
 }
 function enterBattle(){
   if(!window.Battle || Battle.active) return;
@@ -1086,9 +1135,8 @@ function enterBattle(){
       Battle.enter({
         deck: farm.inventory.cards,
         onWin(loot){
-          for(const k in loot) farm.inventory.materials[k]=(farm.inventory.materials[k]||0)+loot[k];
-          const label=Object.entries(loot||{}).map(([k,v])=>`${k}×${v}`).join(' · ')||'无';
-          Terra.save(); updateDock(); toastHint(`凯旋 · 带回 ${label}`);
+          const label=grantBattleLoot(loot)||'无';
+          updateDock(); toastHint(`凯旋 · 带回 ${label}`);
         },
         onLose(){ toastHint('败退 · 已退回农场'); },
       });
@@ -1103,9 +1151,8 @@ function enterBattle(){
       Battle.enter({
         deck: farm.inventory.cards,
         onWin(loot){
-          for(const k in loot) farm.inventory.materials[k]=(farm.inventory.materials[k]||0)+loot[k];
-          const label=Object.entries(loot||{}).map(([k,v])=>`${k}×${v}`).join(' · ')||'无';
-          Terra.save(); updateDock(); toastHint(`凯旋 · 带回 ${label}`); fl.style.opacity='0'; },
+          const label=grantBattleLoot(loot)||'无';
+          updateDock(); toastHint(`凯旋 · 带回 ${label}`); fl.style.opacity='0'; },
         onLose(){ toastHint('败退 · 已退回农场'); fl.style.opacity='0'; },
       });
       setTimeout(()=>{ fl.style.opacity='0'; }, 200);
@@ -1197,7 +1244,7 @@ function beastStep(dt){
     if((beastAI.t*4|0)!==((beastAI.t+dt)*4|0)) spawnSplash(beastAI.target);  // 周期水花爆发
     if(beastAI.t<=0){
       const pc=planted[beastAI.target];
-      if(pc){ pc.watered=true; pc.boost=true; toastHint(`水系灵兽群 Lv.${waterPower().toFixed(1)} 灌溉 · 生长加速${farm.upgrades?.includes('beast_capacity')?' · 栖地加成':''}`); }
+      if(pc){ pc.watered=true; pc.boost=true; fieldStateDirty=true; saveFieldState(true); toastHint(`水系灵兽群 Lv.${waterPower().toFixed(1)} 灌溉 · 生长加速${farm.upgrades?.includes('beast_capacity')?' · 栖地加成':''}`); }
       beastAI.state='idle'; beastAI.t=.5; setBeastStatus('idle');
     }
   }
@@ -1245,7 +1292,12 @@ function hatchFire(){
   objL.addChild(fireBeast);
   fireAI={state:'idle',t:1.2,path:null,bob:0,hop:0};
   if(!fireSpirit()) farm.beasts.push({id:'fire_spirit_ember',species:'fire_spirit',element:'fire',level:1,xp:0,stamina:100,evolution:{diet:{},laborHistory:{}},assignment:'forge'});
-  Terra.save();
+}
+function rollbackFireVisual(){
+  if(!fireBeast)return;
+  if(fireBeast.parent)fireBeast.parent.removeChild(fireBeast);
+  fireBeast.destroy?.({children:true});
+  fireBeast=null;fireAI=null;
 }
 function fireGoto(tx,ty){ const sx=Math.floor(fireBeast.x/TS),sy=Math.floor(fireBeast.y/TS);
   const p=tilePath(sx,sy,tx,ty); if(!p) return false; fireAI.path=p; return true; }
@@ -1332,6 +1384,25 @@ function breedBtn(label,sub,enabled,onClick){
   }
   return b;
 }
+function commitBreedMutation(mutate,successMessage){
+  const previousMaterials={...farm.inventory.materials};
+  const previousBeasts=structuredClone(farm.beasts||[]);
+  const previousBeastSize=beast._bw?{bw:beast._bw,bh:beast._bh}:null;
+  const hadFire=!!fireSpirit();
+  mutate();
+  if(Terra.save()===false){
+    farm.inventory.materials=previousMaterials;
+    farm.beasts=previousBeasts;
+    if(previousBeastSize){beast._bw=previousBeastSize.bw;beast._bh=previousBeastSize.bh;}
+    if(!hadFire)rollbackFireVisual();
+    normalizeBeasts?.();syncCompanionPets();updatePetCodex();updateDock();updateBeastRosterUI();
+    toastHint('本地存储暂不可用 · 材料与灵兽状态未提交');openBreed();
+    return false;
+  }
+  syncCompanionPets();updatePetCodex();updateDock();updateBeastRosterUI();
+  toastHint(successMessage);openBreed();
+  return true;
+}
 function openBreed(){
   buildBreedPanel();
   const soul=farm.inventory.materials.beast_soul||0, seed=farm.inventory.materials.blight_seed||0;
@@ -1342,22 +1413,17 @@ function openBreed(){
     fire?'火灵兽 · 已孵化':'孵化 火灵兽 🔥',
     fire?`Lv.${fire.level} · 熔炉高温持续更久，刷新后仍会回到工坊`:'消耗 灵兽灵魂×1 + 污染种子×1 · 自动为锻造加热熔炉',
     !fire && soul>=1 && seed>=1,
-    ()=>{ farm.inventory.materials.beast_soul--; farm.inventory.materials.blight_seed--;
-      hatchFire(); Terra.save(); updateDock(); toastHint('火灵兽破壳而出!'); openBreed(); }));
+    ()=>commitBreedMutation(()=>{farm.inventory.materials.beast_soul--;farm.inventory.materials.blight_seed--;hatchFire();},'火灵兽破壳而出!')));
   opts.appendChild(breedBtn(
     `巡田进化 · 润野型 💧 Lv.${water?.level||1} → Lv.${(water?.level||1)+1}`,
     `消耗 灵兽灵魂×1 · 灌溉施法更快，水系灵兽群降低虫害压力`,
     soul>=1,
-    ()=>{ farm.inventory.materials.beast_soul--; const w=waterSpirit(); w.level=Math.min(9,(w.level||1)+1); w.xp=(w.xp||0)+1; w.evolutionBranch='irrigation';
-      if(beast._bw){ beast._bw*=1.08; beast._bh*=1.08; }
-      Terra.save(); updateDock(); updateBeastRosterUI(); toastHint(`润野型进化 Lv.${w.level} · 巡田效率提升`); openBreed(); }));
+    ()=>commitBreedMutation(()=>{farm.inventory.materials.beast_soul--;const w=waterSpirit();w.level=Math.min(9,(w.level||1)+1);w.xp=(w.xp||0)+1;w.evolutionBranch='irrigation';if(beast._bw){beast._bw*=1.08;beast._bh*=1.08;}},`润野型进化 Lv.${Math.min(9,(water?.level||1)+1)} · 巡田效率提升`)));
   opts.appendChild(breedBtn(
     `灵脉进化 · 汲泉型 ✦ Lv.${water?.level||1} → Lv.${(water?.level||1)+1}`,
     `消耗 灵兽灵魂×1 + 污染种子×1 · 收获品质与灵脉充能更高`,
     soul>=1 && seed>=1,
-    ()=>{ farm.inventory.materials.beast_soul--; farm.inventory.materials.blight_seed--; const w=waterSpirit(); w.level=Math.min(9,(w.level||1)+1); w.xp=(w.xp||0)+1; w.evolutionBranch='mana';
-      if(beast._bw){ beast._bw*=1.05; beast._bh*=1.12; }
-      Terra.save(); updateDock(); updateBeastRosterUI(); toastHint(`汲泉型进化 Lv.${w.level} · 灵脉共鸣增强`); openBreed(); }));
+    ()=>commitBreedMutation(()=>{farm.inventory.materials.beast_soul--;farm.inventory.materials.blight_seed--;const w=waterSpirit();w.level=Math.min(9,(w.level||1)+1);w.xp=(w.xp||0)+1;w.evolutionBranch='mana';if(beast._bw){beast._bw*=1.05;beast._bh*=1.12;}},`汲泉型进化 Lv.${Math.min(9,(water?.level||1)+1)} · 灵脉共鸣增强`)));
   for(const [species,def] of Object.entries(SELECTED_PET_DEFS)){
     const pet=beastBySpecies(species);
     if(!pet) continue;
@@ -1369,7 +1435,7 @@ function openBreed(){
       `${def.name} · ${pet.evolutionBranch?'进阶':'觉醒'} ${branch} Lv.${pet.level||1} → Lv.${Math.min(9,(pet.level||1)+1)}`,
       `消耗 ${needSoul?`灵兽灵魂×${needSoul}`:''}${needSoul&&needSeed?' + ':''}${needSeed?`污染种子×${needSeed}`:''} · ${def.passive} / ${def.active} · ${def.role}`,
       enabled,
-      ()=>{
+      ()=>commitBreedMutation(()=>{
         farm.inventory.materials.beast_soul-=needSoul;
         farm.inventory.materials.blight_seed-=needSeed;
         pet.level=Math.min(9,(pet.level||1)+1);
@@ -1377,16 +1443,15 @@ function openBreed(){
         pet.evolutionBranch=branch;
         pet.activeSkill=def.active;
         pet.passiveSkill=def.passive;
-        Terra.save(); syncCompanionPets(); updatePetCodex(); updateDock(); updateBeastRosterUI(); toastHint(`${def.name} ${branch} Lv.${pet.level} · ${def.passive} 生效`); openBreed();
-      }));
+      },`${def.name} ${branch} Lv.${Math.min(9,(pet.level||1)+1)} · ${def.passive} 生效`)));
   }
   breedEl.style.opacity='1'; breedEl.style.pointerEvents='auto'; breedEl.style.transform='translate(-50%,-50%) scale(1)';
 }
 function closeBreed(){ if(!breedEl)return; breedEl.style.opacity='0'; breedEl.style.pointerEvents='none'; breedEl.style.transform='translate(-50%,-50%) scale(.88)'; }
 function nearestIncubator(){ for(const o of OBJECTS){ if(o.kind!=='incubator')continue;
-  if(Math.hypot(o.node.x-player.x,o.node.y-player.y)<110) return o; } return null; }
+  if(Math.hypot(o.node.x-player.x,o.node.y-player.y)<INTERACT_RANGE) return o; } return null; }
 function nearestFurnace(){ for(const o of OBJECTS){ if(o.kind!=='furnace')continue;
-  if(Math.hypot(o.node.x-player.x,o.node.y-player.y)<110) return o; } return null; }
+  if(Math.hypot(o.node.x-player.x,o.node.y-player.y)<INTERACT_RANGE) return o; } return null; }
 
 // 全局光(乘) + 暮金(加) + 晕影 + 太阳柔光
 const ambient=new PIXI.Sprite(PIXI.Texture.WHITE); ambient.blendMode='multiply';
@@ -1478,7 +1543,8 @@ if (typeof SeasonalParticleSystem !== 'undefined') {
 
 /* ================= 10. 时间系统与主循环 ================= */
 // 初始时间设为正午(白天最亮时刻),避免进入游戏后黑屏
-let elapsed=DAY_SECONDS*0.5, timeScale=1, entered=false;
+let elapsed=DAY_SECONDS*0.5, timeScale=1, entered=false, worldFrameReady=false;
+let simClockMs=performance.now();
 let recolorClock=0, cullClock=0, hudClock=0, dayNightClock=0, waterFxClock=0, objectFxClock=0, interactionClock=0, particleClock=0, curWaterBase=[84,150,164], curCrop=0x96be64;
 
 /* —— 自适应画质: FPS 不足时逐级降载(软渲染/低端机自救) + AnimationManager 联动 —— */
@@ -1517,6 +1583,9 @@ const dayPhase=()=> (elapsed%DAY_SECONDS)/DAY_SECONDS;
 const sunlight=()=> Math.max(0,Math.sin(dayPhase()*Math.PI));
 
 app.ticker.add(tk=>{
+  const frameNow=performance.now();
+  const wallDt=Math.max(0,(frameNow-simClockMs)/1000);
+  simClockMs=frameNow;
   if(!entered || document.getElementById('title')){
     world.renderable=false;
     fxScreen.renderable=false;
@@ -1524,7 +1593,12 @@ app.ticker.add(tk=>{
   }
   world.renderable=true;
   fxScreen.renderable=true;
-  const dt=Math.min(.05,tk.deltaMS/1000);
+  worldFrameReady=true;
+  const rawDt=Math.max(0,tk.deltaMS/1000);
+  const dt=Math.min(.05,rawDt);
+  // Pixi's ticker delta is normalized/clamped and can severely undercount
+  // elapsed time under software WebGL. Gameplay uses bounded monotonic time.
+  const simDt=Math.min(.5,wallDt);
   fpsN++;
   const fnow=performance.now();
   if(fnow-fpsT0>=2500){
@@ -1541,13 +1615,15 @@ app.ticker.add(tk=>{
       }
     }
   }
-  elapsed+=dt*timeScale;
   const activeSurface=window.SurfaceLifecycle?.active;
   const cardRevealOpen=document.getElementById('cardReveal')?.classList.contains('on');
   const farmOccluded=Boolean(activeSurface||(window.Battle&&Battle.active)||cardRevealOpen);
   world.renderable=!farmOccluded;
   fxScreen.renderable=!farmOccluded;
-  if(farmOccluded) return;
+  if(farmOccluded){simClockMs=performance.now();return;}
+  elapsed+=simDt*timeScale;
+  runtimeSaveClock+=simDt;
+  if(runtimeSaveClock>=5&&window.Terra?.farm){runtimeSaveClock=0;saveRuntimeState();}
   const st=(elapsed/DAY_SECONDS/SEASON_DAYS)%4;
   const sun=sunlight(), night=1-sun;
   const currentDayPhase = (elapsed % DAY_SECONDS) / DAY_SECONDS;
@@ -1669,9 +1745,15 @@ app.ticker.add(tk=>{
       }
     }
   }
-  /* 玩家与镜头 */
-  if(entered && !(window.Battle&&Battle.active)){ movePlayer(dt); }
-  updateCamera(dt);
+  /* 玩家与镜头: fixed substeps preserve real-time movement under low render FPS. */
+  if(entered && !(window.Battle&&Battle.active)){
+    let movementBudget=simDt,guard=0;
+    while(movementBudget>0.0001&&guard++<10){
+      const step=Math.min(.05,movementBudget),isLast=movementBudget-step<=0.0001||guard>=10;
+      movePlayer(step,isLast);movementBudget-=step;
+    }
+  }
+  updateCamera(simDt);
 
   // 更新尘埃粒子
   if(dustParticles.length > 0 && movementEnhancer) {
@@ -1712,24 +1794,27 @@ app.ticker.add(tk=>{
   for(const key in planted){ const pc=planted[key];
     if(!pc.mature){
       const prevGrown = pc.grown || 0;
-      pc.grown = prevGrown + dt * timeScale * (pc.boost ? 1.8 : 1);
+      pc.grown = prevGrown + simDt * timeScale * (pc.boost ? 1.8 : 1);
 
       // 成熟瞬间触发发光动画
       if(prevGrown < GROW_SECONDS && pc.grown >= GROW_SECONDS){
         pc.mature = true;
+        fieldStateDirty=true;
+        saveFieldState(true);
         if(feedbackSystem){
           feedbackSystem.animateMature(pc.node);
         }
-      }
+      } else fieldStateDirty=true;
     }
   }
-  if(entered){ updateEcology(dt); beastStep(dt); stepWaterDrops(dt); stepTrails(dt); fireStep(dt); stepEmbers(dt); stepCompanionPets(dt);
+  if(fieldStateDirty){ fieldSaveClock+=simDt; if(fieldSaveClock>=5) saveFieldState(true); }
+  if(entered){ updateEcology(simDt); beastStep(dt); stepWaterDrops(dt); stepTrails(dt); fireStep(dt); stepEmbers(dt); stepCompanionPets(dt);
     // 更新交互反馈系统
     if(feedbackSystem) feedbackSystem.update(dt);
     if(chopLoop.obj){ const o=chopLoop.obj;
       if(o.felled||staminaUsed>=6) chopLoop.obj=null;
-      else if(Math.hypot(o.node.x-player.x,o.node.y-player.y)>100) chopLoop.obj=null;
-      else { chopLoop.t-=dt; if(chopLoop.t<=0){ chopLoop.t=.5; chop(o); } } }
+      else if(Math.hypot(o.node.x-player.x,o.node.y-player.y)>INTERACT_RANGE) chopLoop.obj=null;
+      else if(performance.now()>=(chopLoop.nextAt||0)){ chopLoop.nextAt=performance.now()+500; chop(o); } }
   }
   seasonFilterOn = false;                      // world 级滤镜会触发 Pixi 离屏裁剪黑块,先关闭以保证全图稳定渲染
   if(world.filters && world.filters.length>0) world.filters=[];
@@ -1772,7 +1857,6 @@ app.ticker.add(tk=>{
   if(tutorialState.active){
     // Wave 1: 第一小时目标链从“控件教学”改为“第一轮资源循环”
     tutorialState._firstCardCrafted = tutorialState._firstCardCrafted || farm.inventory.cards.length > 0;
-    if(tutorialState._firstCardCrafted && !tutorialState._portalVisited && nearestPortal()) tutorialState._portalVisited = true;
     advanceTutorial();
   }
   springTick(dt);
@@ -1883,19 +1967,27 @@ function updateHUD(st,day){
 
   // 每3天或季节变化时更新天气
   if(day!==lastDay){
+    const initialDay=lastDay<0;
+    const savedDay=Number(farm?.runtimeState?.day);
     lastDay=day;
     $('dayNum').textContent=String(day%28+1).padStart(2,'0');
     if(day - lastWeatherChange >= 3 || si !== lastSI){
       changeWeather(si);
       lastWeatherChange = day;
     }
-    staminaUsed=0; syncLeaves();
-    for(let i=fellQueue.length-1;i>=0;i--){
-      const f=fellQueue[i];
-      if(day>=f.day){ f.o.felled=false; f.o.hp=2;
-        if(f.o._col) colliders.push(f.o._col);
-        fellQueue.splice(i,1); }
-    }
+    const actualDayChange=!initialDay||!Number.isFinite(savedDay)||savedDay!==day;
+    if(actualDayChange){
+      staminaUsed=0; syncLeaves();
+      if(farm?.runtimeState) farm.runtimeState.staminaUsed=0;
+      for(let i=fellQueue.length-1;i>=0;i--){
+        const f=fellQueue[i];
+        if(day>=f.day){ f.o.felled=false; f.o.hp=2; f.o.node.visible=true;
+          if(f.o._col) colliders.push(f.o._col);
+          if(farm?.runtimeState?.felledTrees) delete farm.runtimeState.felledTrees[objectSaveKey(f.o)];
+          fellQueue.splice(i,1); }
+      }
+    }else syncLeaves();
+    if(farm?.runtimeState){farm.runtimeState.day=day;saveRuntimeState();}
 
     // 每日检查季节事件触发
     if(window.updateSeasonalEvents) {
@@ -1943,7 +2035,12 @@ function openPanel(meta){
   $('whisper').style.opacity=0;
 }
 /* 点击/触摸 = 寻路移动 + 上下文交互;右键 = 查看地籍档案 */
-function screenToWorld(cx,cy){ return { wx:(cx-world.x)/world.scale.x, wy:(cy-world.y)/world.scale.y }; }
+function screenToWorld(cx,cy){
+  const rect=app.canvas.getBoundingClientRect();
+  const sx=(cx-rect.left)*(app.screen.width/Math.max(1,rect.width));
+  const sy=(cy-rect.top)*(app.screen.height/Math.max(1,rect.height));
+  return { wx:(sx-world.x)/world.scale.x, wy:(sy-world.y)/world.scale.y };
+}
 app.canvas.addEventListener('pointerdown',e=>{
   if(!entered || e.button===2 || window.SurfaceLifecycle?.isInputLocked?.()) return;
   const {wx,wy}=screenToWorld(e.clientX,e.clientY);
@@ -1992,6 +2089,7 @@ const tutorialState = {
   steps: [
     { id: 'move', title: '走近你的庄园', check: () => tutorialState._moved },
     { id: 'chop', title: '收集第一批木材', target: 'tree', check: () => tutorialState._chopped || (farm.inventory.materials.wood||0) >= 2 },
+    { id: 'grow', title: '种植并收获三份星麦', target: 'plot', check: () => (farm.inventory.crops.starwheat||[]).length >= 3 },
     { id: 'alchemy', title: '点亮第一张卡牌', target: 'fab', check: () => tutorialState._firstCardCrafted || farm.inventory.cards.length > 0 },
     { id: 'portal', title: '带着新卡前往远征门', target: 'portal', check: () => tutorialState._portalVisited }
   ],
@@ -2005,7 +2103,7 @@ const tutorialState = {
 };
 window.tutorialState = tutorialState;
 function applyWave1SurfacePhase(){
-  const phase = tutorialState.completed ? 'freeplay' : (tutorialState.step <= 1 ? 'intro' : tutorialState.step === 2 ? 'first_card' : 'first_expedition');
+  const phase = tutorialState.completed ? 'freeplay' : (tutorialState.step <= 1 ? 'intro' : tutorialState.step <= 3 ? 'first_card' : 'first_expedition');
   tutorialState.phase = phase;
   document.body.dataset.phase = phase;
   const eventIndicator=$('eventIndicator'), ecoPanel=$('ecoPanel'), beastPanel=$('beastPanel');
@@ -2015,14 +2113,14 @@ function applyWave1SurfacePhase(){
   if(ecoPanel) ecoPanel.style.display = phase === 'freeplay' ? 'block' : 'none';
   if(weatherTag) weatherTag.style.display = phase === 'intro' ? 'none' : 'block';
   if(hintAction) hintAction.style.display = phase === 'intro' ? 'none' : 'block';
-  if(cardPeek) cardPeek.style.display = phase === 'intro' ? 'none' : 'block';
+  if(cardPeek) cardPeek.style.display = tutorialState.active ? 'none' : 'block';
   const craftFAB=document.getElementById('craftFAB');
-  if(craftFAB) craftFAB.style.display = phase === 'intro' ? 'none' : 'flex';
+  if(craftFAB) craftFAB.style.display = tutorialState.active && tutorialState.step < 3 ? 'none' : (phase === 'intro' ? 'none' : 'flex');
   if(seasonDial) seasonDial.style.opacity = phase === 'intro' ? '.72' : '1';
   if(clock) clock.style.opacity = phase === 'intro' ? '.72' : '1';
   if(stamina) stamina.style.opacity = phase === 'intro' ? '.72' : '1';
-  if(beastPanel) beastPanel.style.display = phase === 'intro' ? 'none' : 'flex';
-  if(beastPanel) beastPanel.style.opacity = phase === 'first_card' ? '.82' : '1';
+  if(beastPanel) beastPanel.style.display = tutorialState.active ? 'none' : 'flex';
+  if(beastPanel) beastPanel.style.opacity = '1';
   const worldBtn=document.getElementById('worldMapButton');
   if(worldBtn) worldBtn.style.display = phase === 'freeplay' ? 'flex' : 'none';
   const neighborBtn=document.getElementById('neighborTrigger');
@@ -2039,23 +2137,39 @@ function startTutorial() {
   const save = window.Terra?.farm?.tutorialCompleted;
   if(save) { tutorialState.completed = true; applyWave1SurfacePhase(); return; }
   tutorialState.active = true;
-  tutorialState.step = 0;
+  const progress=window.Terra?.farm?.tutorialProgress||{};
+  tutorialState.step = Math.max(0,Math.min(tutorialState.steps.length-1,Number(progress.step)||0));
+  tutorialState._moved=!!progress.moved;
+  tutorialState._chopped=!!progress.chopped;
+  tutorialState._portalVisited=!!progress.portalVisited;
   tutorialState._alchemyClosed = false;
   tutorialState._firstCardCrafted = farm.inventory.cards.length > 0;
   applyWave1SurfacePhase();
   renderTutorial();
+  clearInterval(tutorialState._renderTimer);
+  tutorialState._renderTimer=setInterval(()=>{
+    if(tutorialState.active) renderTutorial();
+    else clearInterval(tutorialState._renderTimer);
+  },250);
 }
 
 function advanceTutorial() {
   const current = tutorialState.steps[tutorialState.step];
   if(current && current.check()) {
     tutorialState.step++;
+    if(window.Terra?.farm){
+      window.Terra.farm.tutorialProgress={step:tutorialState.step,moved:!!tutorialState._moved,chopped:!!tutorialState._chopped,portalVisited:!!tutorialState._portalVisited};
+      window.Terra.save();
+    }
     applyWave1SurfacePhase();
     if(tutorialState.step >= tutorialState.steps.length) {
       tutorialState.completed = true;
       tutorialState.active = false;
       applyWave1SurfacePhase();
-      if(window.Terra?.farm) window.Terra.farm.tutorialCompleted = true;
+      if(window.Terra?.farm){
+        window.Terra.farm.tutorialCompleted = true;
+        delete window.Terra.farm.tutorialProgress;
+      }
       window.Terra?.save();
       removeTutorialUI();
       toastHint('第一轮循环完成 · 继续经营庄园');
@@ -2113,7 +2227,10 @@ function renderTutorial() {
   }
   const step = tutorialState.steps[tutorialState.step];
   const touchMode = matchMedia('(hover:none), (pointer:coarse), (max-width:760px)').matches;
-  if (window.SurfaceLifecycle?.isInputLocked?.() || (window.Battle && Battle.active) || (window.WorldMapIntegration && WorldMapIntegration.isOpen)) { overlay.innerHTML=''; return; }
+  if (window.SurfaceLifecycle?.isInputLocked?.() || (window.Battle && Battle.active) || (window.WorldMapIntegration && WorldMapIntegration.isOpen)) {
+    if(overlay._tutorialHtml!==''){overlay.innerHTML='';overlay._tutorialHtml='';}
+    return;
+  }
   let markerHtml = '';
   if(step.target === 'fab') {
     const fab = document.getElementById('craftFAB');
@@ -2122,21 +2239,44 @@ function renderTutorial() {
       markerHtml = `<div class="tutorialMarker" style="position:absolute;left:${r.left + r.width/2}px;top:${r.top + r.height/2}px;width:${Math.max(78,r.width+22)}px;height:${Math.max(78,r.height+22)}px;transform:translate(-50%,-50%);border:3px solid rgba(244,208,63,.92);border-radius:50%;box-shadow:0 0 28px rgba(244,208,63,.38);animation:tutorialPulse 1.5s ease-in-out infinite;pointer-events:none"></div>`;
     }
   } else if(step.target === 'portal') {
-    const portal = OBJECTS.find(o => o.kind === 'portal');
+    const portal = OBJECTS.filter(o=>o.kind==='portal').sort((a,b)=>Math.hypot(a.node.x-player.x,a.node.y-player.y)-Math.hypot(b.node.x-player.x,b.node.y-player.y))[0];
     if(portal) {
       const screenPos = worldToScreen(portal.node.x, portal.node.y);
       if(screenPos) markerHtml = `<div class="tutorialMarker" style="position:absolute;left:${screenPos.x}px;top:${screenPos.y}px;width:80px;height:80px;transform:translate(-50%,-50%);border:3px solid rgba(244,208,63,.8);border-radius:50%;animation:tutorialPulse 1.5s ease-in-out infinite;pointer-events:none"></div>`;
+    }
+  } else if(step.target === 'tree' || step.target === 'plot') {
+    let target=null;
+    if(step.target==='tree'){
+      const options=OBJECTS.filter(o=>(o.kind==='tree'||o.kind==='cherry')&&!o.felled);
+      options.sort((a,b)=>(b.tutorial?1:0)-(a.tutorial?1:0)||Math.hypot(a.node.x-player.x,a.node.y-player.y)-Math.hypot(b.node.x-player.x,b.node.y-player.y));
+      if(options[0])target={x:options[0].node.x,y:options[0].node.y-ASSETS[options[0].kind].h*.45};
+    }else{
+      const options=Object.entries(tileMeta).filter(([key,m])=>!planted[key]&&m.moist<72&&m.mana<72).map(([key])=>{
+        const [x,y]=key.split(',').map(Number);return{x:x*TS+TS/2,y:y*TS+TS/2,key,d:Math.hypot(x*TS+TS/2-player.x,y*TS+TS/2-player.y)};
+      }).sort((a,b)=>a.d-b.d);
+      target=options[0]||null;
+    }
+    if(target){
+      const p=worldToScreen(target.x,target.y),margin=54;
+      if(p){
+        const onscreen=p.x>margin&&p.x<innerWidth-margin&&p.y>110&&p.y<innerHeight-margin;
+        const x=Math.max(margin,Math.min(innerWidth-margin,p.x)),y=Math.max(120,Math.min(innerHeight-margin,p.y));
+        const arrowAngle=Math.atan2(p.y-y,p.x-x)*180/Math.PI;
+        markerHtml=`<div class="tutorialMarker" style="position:absolute;left:${x}px;top:${y}px;width:${onscreen?76:54}px;height:${onscreen?76:54}px;transform:translate(-50%,-50%);border:3px solid rgba(244,208,63,.9);border-radius:50%;box-shadow:0 0 28px rgba(244,208,63,.42);animation:tutorialPulse 1.5s ease-in-out infinite;pointer-events:none"><div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(${arrowAngle}deg);font-size:20px">${onscreen?'':'➤'}</div></div>`;
+      }
     }
   }
   const title = step.id === 'move' && touchMode ? '点按地面走近庄园' : step.title;
   const hint = step.id === 'move'
     ? (touchMode ? '先靠近屋前土地与工坊，熟悉你的庄园范围' : '点击地面寻路，或按住 WASD / 方向键靠近屋前区域')
     : step.id === 'chop'
-      ? (touchMode ? '先收集少量木材，为第一张卡准备材料' : '点击树木或靠近后按空格，先拿到第一批木材')
+      ? (touchMode ? '点击金色标记中的树冠，收集第一批木材' : '点击标记中的树木或靠近后按空格，先拿到第一批木材')
+      : step.id === 'grow'
+        ? `跟随金色标记播种星麦，成熟后再次点按收获 · ${Math.min(3,(farm.inventory.crops.starwheat||[]).length)} / 3${staminaUsed>=6?' · 等待天色推进，次日叶片会恢复':''}`
       : step.id === 'alchemy'
         ? (touchMode ? '打开金色炼金炉，做出你的第一张卡牌' : '打开炼金工坊，把材料锻造成第一张可用卡牌')
         : '带着新卡靠近远征门，验证第一轮庄园循环';
-  if(window.Battle&&Battle.active){overlay.innerHTML='';}else overlay.innerHTML = `
+  const html = `
     <div style="position:absolute;inset:0;background:rgba(0,0,0,.12);pointer-events:none;"></div>
     <div style="position:absolute;left:50%;top:18%;transform:translateX(-50%);width:min(86vw,520px);text-align:center;color:#f6f1e7;pointer-events:none;text-shadow:0 4px 18px rgba(0,0,0,.95)">
       <div style="font-size:clamp(20px,5vw,28px);letter-spacing:.18em;margin-bottom:12px;color:#f4d03f">${title}</div>
@@ -2145,9 +2285,11 @@ function renderTutorial() {
     </div>
     ${markerHtml}
   `;
+  if(overlay._tutorialHtml!==html){overlay.innerHTML=html;overlay._tutorialHtml=html;}
 }
 
 function removeTutorialUI() {
+  clearInterval(tutorialState._renderTimer);
   const overlay = document.getElementById('tutorialOverlay');
   if(overlay) overlay.remove();
   updateObjectiveTrack();
@@ -2155,9 +2297,10 @@ function removeTutorialUI() {
 
 function worldToScreen(wx, wy) {
   if(!world || !app) return null;
+  const rect=app.canvas.getBoundingClientRect();
   const sx = wx * world.scale.x + world.x;
   const sy = wy * world.scale.y + world.y;
-  return { x: sx, y: sy };
+  return { x:rect.left+sx*(rect.width/app.screen.width), y:rect.top+sy*(rect.height/app.screen.height) };
 }
 
 /* ================= 13.1 距离感应交互提示 ================= */
@@ -2241,10 +2384,35 @@ farm.inventory ??= { crops:{}, materials:{}, cards:[] };
 farm.inventory.crops ??= {};
 farm.inventory.materials ??= {};
 farm.inventory.cards ??= [];
-farm.tech ??= { agriculture:0, military:0, magic:0, unlockedRecipes:['card_sprout_guard'] };
-farm.tech.unlockedRecipes ??= ['card_sprout_guard'];
+farm.tech ??= { agriculture:0, military:0, magic:0, unlockedRecipes:['card_sprout_guard','card_river_blessing'] };
+farm.tech.unlockedRecipes ??= ['card_sprout_guard','card_river_blessing'];
 farm.upgrades ??= [];
 farm.beasts ??= [];
+farm.runtimeState ??= { elapsed, day:Math.floor(elapsed/DAY_SECONDS), staminaUsed:0, felledTrees:{} };
+farm.runtimeState.felledTrees ??= {};
+if(Number.isFinite(Number(farm.runtimeState.elapsed))) elapsed=Math.max(0,Number(farm.runtimeState.elapsed));
+staminaUsed=Math.max(0,Math.min(6,Number(farm.runtimeState.staminaUsed)||0));
+syncLeaves();
+const objectSaveKey=o=>`${o.kind}:${o.tx}:${o.ty}`;
+function saveRuntimeState(){
+  farm.runtimeState.elapsed=elapsed;
+  farm.runtimeState.day=Math.floor(elapsed/DAY_SECONDS);
+  farm.runtimeState.staminaUsed=staminaUsed;
+  return Terra.save();
+}
+function restoreFelledTrees(){
+  const day=Math.floor(elapsed/DAY_SECONDS);
+  for(const o of OBJECTS){
+    const recovery=Number(farm.runtimeState.felledTrees[objectSaveKey(o)]||0);
+    if(!recovery)continue;
+    if(day>=recovery){delete farm.runtimeState.felledTrees[objectSaveKey(o)];continue;}
+    o.felled=true;o.node.visible=false;o.hp=2;
+    const ci=colliders.findIndex(c=>c.x===o.node.x&&c.y===o.node.y);
+    if(ci>=0)o._col=colliders.splice(ci,1)[0];
+    fellQueue.push({o,day:recovery});
+  }
+}
+restoreFelledTrees();
 function normalizeBeasts(){
   const selectedSpecies=new Set(Object.keys(SELECTED_PET_DEFS));
   farm.beasts = (farm.beasts||[]).filter(b=>!(selectedSpecies.has(b.species) && (!b.obtainedFrom || b.id?.endsWith('_companion')))).map((b,i)=>({
@@ -2269,6 +2437,35 @@ function normalizeBeasts(){
 }
 window.normalizeBeasts=normalizeBeasts;
 normalizeBeasts();
+farm.fieldState ??= {};
+const offlineFieldSeconds=Math.max(0,Math.min(6*60*60,(Date.now()-Number(farm.fieldSavedAt||farm.lastSavedAt||Date.now()))/1000));
+if(offlineFieldSeconds>0){
+  for(const state of Object.values(farm.fieldState)){
+    if(!state||state.mature)continue;
+    state.grown=Math.min(GROW_SECONDS,(Number(state.grown)||0)+offlineFieldSeconds*(state.boost?1.8:1));
+    if(state.grown>=GROW_SECONDS)state.mature=true;
+  }
+}
+function buildCropAt(key,state){
+  if(!tileMeta[key]||planted[key])return null;
+  const species=state.species==='dewberry'?'dewberry':'starwheat';
+  const c=makeNode(species==='dewberry'?'crop_dewberry':'crop');
+  const [tx,ty]=key.split(',').map(Number);
+  c.x=tx*TS+TS/2;c.y=ty*TS+TS/2+16;c._shadow.visible=false;c.scale.set(.32);
+  overlayL.addChild(c);crops.push(c);
+  return planted[key]={node:c,grown:Number(state.grown)||0,mature:!!state.mature,watered:!!state.watered,boost:!!state.boost,species,_stage:-1};
+}
+function saveFieldState(force=false){
+  if(!force&&!fieldStateDirty)return true;
+  const next={};
+  for(const [key,pc] of Object.entries(planted)) next[key]={species:pc.species,grown:pc.grown||0,mature:!!pc.mature,watered:!!pc.watered,boost:!!pc.boost};
+  farm.fieldState=next;farm.fieldSavedAt=Date.now();
+  farm.runtimeState.elapsed=elapsed;farm.runtimeState.day=Math.floor(elapsed/DAY_SECONDS);farm.runtimeState.staminaUsed=staminaUsed;
+  const saved=Terra.save();
+  fieldStateDirty=!saved;if(saved)fieldSaveClock=0;return saved;
+}
+for(const [key,state] of Object.entries(farm.fieldState)) buildCropAt(key,state||{});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){saveFieldState(true);saveRuntimeState();}});
 const beastBySpecies=species=>farm.beasts.find(b=>b.species===species);
 const beastLevel=species=>beastBySpecies(species)?.level||1;
 const selectedPetEntries=()=>farm.beasts.filter(b=>SELECTED_PET_DEFS[b.species]);
@@ -2330,7 +2527,7 @@ const waterSpirit=()=>beastBySpecies('water_spirit');
 const waterBeasts=()=>farm.beasts.filter(b=>b.element==='water'||b.species==='water_spirit'||b.species==='spring_drop');
 function waterPower(){ return waterBeasts().reduce((sum,b)=>sum+(b.level||1)+(b.evolutionBranch==='mana'?.35:0),0)+(selectedPetPower().water||0); }
 const fireSpirit=()=>beastBySpecies('fire_spirit');
-farm.inventory.materials.wood ??= 8;           // 初始木材(伐木系统未上线前)
+farm.inventory.materials.wood ??= 0;
 if(fireSpirit()) hatchFire();
 
 let whisperTimer;
@@ -2340,7 +2537,6 @@ function toastHint(t){ const w=$('whisper'); w.textContent=t; w.style.opacity=1;
 const playerTileKey=()=>Math.floor(player.x/TS)+','+Math.floor((player.y-4)/TS);
 
 /* 伐木 */
-const fellQueue=[];
 const ecoState={score:72,pest:18,soil:76,predator:0,status:'平衡',detail:'虫害低 · 水灵兽巡田 · 土壤稳定',clock:0};
 function updateEcology(dt){
   ecoState.clock+=dt;
@@ -2392,27 +2588,29 @@ function nearestChoppable(){
     const dx=o.node.x-player.x, dy=o.node.y-player.y, d=dx*dx+dy*dy;
     if(d<bd){bd=d;best=o;}
   }
-  return bd<95*95? best:null;
+  return bd<INTERACT_RANGE*INTERACT_RANGE? best:null;
 }
 function chop(o){
   o.hp=(o.hp??2)-1; o._shake=1;
   if(o.hp>0){ toastHint('咔 —— 再砍一下'); return; }
   if(staminaUsed>=6){ toastHint('体力耗尽 · 待明日恢复'); o.hp=1; return; }
-  staminaUsed++; syncLeaves();
-  farm.inventory.materials.wood=(farm.inventory.materials.wood||0)+2;
-  tutorialState._chopped=true;             // 教程: 伐木一次即推进(不依赖具体木材数)
-  Terra.save(); updateDock();
+  const oldWood=farm.inventory.materials.wood||0,oldStamina=staminaUsed,oldChopped=tutorialState._chopped,oldRuntime=structuredClone(farm.runtimeState);
+  const recoverDay=Math.floor(elapsed/DAY_SECONDS)+1,key=objectSaveKey(o);
+  staminaUsed=oldStamina+1;
+  farm.inventory.materials.wood=oldWood+2;
+  farm.runtimeState.felledTrees[key]=recoverDay;
+  tutorialState._chopped=true;
+  if(saveRuntimeState()===false){
+    staminaUsed=oldStamina;farm.inventory.materials.wood=oldWood;farm.runtimeState=oldRuntime;tutorialState._chopped=oldChopped;o.hp=1;syncLeaves();toastHint('保存失败 · 木材与体力均未变动');return;
+  }
+  syncLeaves();updateDock();
 
   // 伐木粒子爆发 + 增强屏幕震动
   if(feedbackSystem){
     const treeType = o.kind === 'cherry' ? 'cherry' : 'oak';
     feedbackSystem.burstChopParticles(o.node.x, o.node.y, treeType);
-
-    // 数字飘字（飘向HUD木材图标）
-    const hudWoodPos = {x: 120, y: window.innerHeight - 60}; // 根据实际HUD位置调整
+    const hudWoodPos = {x: 120, y: window.innerHeight - 60};
     feedbackSystem.floatNumber(o.node.x, o.node.y, 'wood', 2, hudWoodPos);
-
-    // 屏幕震动反馈
     if(window.BattleEffects) window.BattleEffects.screenShake(8, 180, document.body);
   }
 
@@ -2420,7 +2618,7 @@ function chop(o){
   o.felled=true; o.node.visible=false;
   const ci=colliders.findIndex(c=>c.x===o.node.x&&c.y===o.node.y);
   if(ci>=0) o._col=colliders.splice(ci,1)[0];
-  fellQueue.push({o, day:Math.floor(elapsed/DAY_SECONDS)+1});
+  fellQueue.push({o,day:recoverDay});
 }
 
 function interactFarm(key){
@@ -2428,14 +2626,19 @@ function interactFarm(key){
   const pc=planted[key];
   if(!pc){                                        // 播种
     if(staminaUsed>=6){ toastHint('体力耗尽 · 待明日恢复'); return; }
+    const oldStamina=staminaUsed,oldFieldState=farm.fieldState,oldFieldSavedAt=farm.fieldSavedAt,oldRuntime=structuredClone(farm.runtimeState);
     staminaUsed++; syncLeaves();
+    farm.runtimeState.staminaUsed=staminaUsed;
     const meta=tileMeta[key];
     const species=(meta.moist>=72 || meta.mana>=72)?'dewberry':'starwheat';
-    const c=makeNode(species==='dewberry'?'crop_dewberry':'crop');
-    const [tx,ty]=key.split(',').map(Number);
-    c.x=tx*TS+TS/2; c.y=ty*TS+TS/2+16; c._shadow.visible=false; c.scale.set(.32);
-    overlayL.addChild(c); crops.push(c);
-    planted[key]={node:c, grown:0, mature:false, watered:false, boost:false, species, _stage:-1};
+    const pc=buildCropAt(key,{species,grown:0,mature:false,watered:false,boost:false});
+    const c=pc.node;
+    fieldStateDirty=true;
+    if(saveFieldState(true)===false){
+      delete planted[key];overlayL.removeChild(c);const cropIndex=crops.indexOf(c);if(cropIndex>=0)crops.splice(cropIndex,1);
+      staminaUsed=oldStamina;farm.runtimeState=oldRuntime;farm.fieldState=oldFieldState;farm.fieldSavedAt=oldFieldSavedAt;fieldStateDirty=false;syncLeaves();toastHint('保存失败 · 未扣体力，未播种');return;
+    }
+    if(tutorialState.active&&tutorialState.steps[tutorialState.step]?.id==='grow')renderTutorial();
 
     // 播种弹出动画 + 土壤粒子
     if(feedbackSystem){
@@ -2453,13 +2656,19 @@ function interactFarm(key){
     pc.grade=harvestGrade(q);
     const bonus=farm.upgrades?.includes('farmland_2') ? 1 : 0;
     const total=1+bonus;
-    for(let i=0;i<total;i++){
-      (farm.inventory.crops[pc.species] ??= []).push({
-        species:pc.species, quality:+(q/100).toFixed(2), originFertility:q,
-        grade:pc.grade, watered:!!pc.watered,
-        soil:{fert:meta.fert,moist:meta.moist,pest:meta.pest,mana:meta.mana} });
+    const currentList=Array.isArray(farm.inventory.crops[pc.species])?farm.inventory.crops[pc.species]:[];
+    const harvested=[];
+    for(let i=0;i<total;i++) harvested.push({
+      species:pc.species, quality:+(q/100).toFixed(2), originFertility:q,
+      grade:pc.grade, watered:!!pc.watered,
+      soil:{fert:meta.fert,moist:meta.moist,pest:meta.pest,mana:meta.mana} });
+    const oldInventory=farm.inventory,oldFieldState=farm.fieldState,oldFieldSavedAt=farm.fieldSavedAt,oldRuntime=structuredClone(farm.runtimeState);
+    farm.inventory={...farm.inventory,crops:{...farm.inventory.crops,[pc.species]:[...currentList,...harvested]}};
+    delete planted[key];fieldStateDirty=true;
+    if(saveFieldState(true)===false){
+      planted[key]=pc;farm.inventory=oldInventory;farm.fieldState=oldFieldState;farm.fieldSavedAt=oldFieldSavedAt;farm.runtimeState=oldRuntime;fieldStateDirty=false;toastHint('保存失败 · 作物仍在田中，库存未增加');return;
     }
-    Terra.save(); updateDock();
+    updateDock();
 
     // 收获粒子爆发 + 数字飘字 + 屏幕震动
     if(feedbackSystem){
@@ -2477,7 +2686,7 @@ function interactFarm(key){
     toastHint(`收获 ${pc.grade}${pc.species==='dewberry'?'露莓':'星麦'} ×${total} · 品质 ${q}${pc.watered?' · 灵兽灌溉':''}${bonus?' · 扩建加成':''}`);
     overlayL.removeChild(pc.node);
     const ci=crops.indexOf(pc.node); if(ci>=0)crops.splice(ci,1);
-    delete planted[key];
+    if(tutorialState.active&&tutorialState.steps[tutorialState.step]?.id==='grow')renderTutorial();
   } else toastHint('成长中 · 再等等');
 }
 function calcHarvestQuality(meta, pc){
@@ -2613,7 +2822,7 @@ function updateDock(){
       fab.classList.remove('disabled');
       fab.style.opacity='1';
       fab.style.pointerEvents='auto';
-      fab.style.animation='fabBob 2.6s ease-in-out infinite';
+      fab.style.animation='none';
       if(forgeHot) fab.classList.add('hot');
       else fab.classList.remove('hot');
       // 清空 tooltip（可用时不显示）
@@ -2635,6 +2844,7 @@ function updateDock(){
     }
   }
 }
+window.updateDock=updateDock;
 // 绑定FAB点击事件（添加 hover 显示 tooltip）
 const fabBtn=document.getElementById('craftFAB');
 const fabTooltip=document.getElementById('craftBtnTooltip');
@@ -2812,13 +3022,23 @@ window.__dbg={app,world,groundL,waterL,snowL,overlayL,objL,fxScreen,player,cam,b
   beastStep, get ecology(){return ecoState}, get quality(){return quality}, get fps(){return fpsLast}, get fireBeast(){return fireBeast}, get forgeHot(){return forgeHot}, openBreed, hatchFire, useSelectedPetActive, grantSelectedPet, syncCompanionPets,
   get beasts(){return farm.beasts}, get companionPets(){return companionPets}, get companionBehaviors(){return companionBehaviors},
   get selectedPets(){return selectedPetSummary()},
-  get ready(){return entered && !!app?.renderer && app.screen.width>0 && app.screen.height>0},
+  get ready(){return entered && worldFrameReady && !!app?.renderer && app.screen.width>0 && app.screen.height>0},
   get farm(){return Terra.farm},
   get scripts(){return [...document.scripts].map(s=>s.src).filter(Boolean)},
   get plantedCount(){return Object.keys(planted).length},
   get cardCount(){return farm.inventory.cards.length},
   get parts(){return parts.length},
   get objects(){return OBJECTS},
+  get pendingAction(){return pendingAction?{type:pendingAction.type,key:pendingAction.key||null,kind:pendingAction.obj?.kind||null}:null;},
+  get pathLength(){return player._path?.length||0;},
+  get chopState(){return {active:!!chopLoop.obj,t:chopLoop.t,kind:chopLoop.obj?.kind||null};},
+  get commandTrace(){return commandTrace.slice();},
+  get appScreen(){return {width:app.screen.width,height:app.screen.height};},
+  get tickerStarted(){return !!app.ticker.started;},
+  setPageHiddenForTest(hidden){handleVisibilityChange(!!hidden);if(hidden){saveFieldState(true);saveRuntimeState();}},
+  get worldTransform(){return {x:world.x,y:world.y,scale:world.scale.x};},
+  get plotMeta(){return Object.entries(tileMeta).map(([key,meta])=>({key,...meta}));},
+  worldToClient(wx,wy){ return worldToScreen(wx,wy); },
   commandTo, interact};
 
 /* Loading screen fade-out (after first successful frame) */

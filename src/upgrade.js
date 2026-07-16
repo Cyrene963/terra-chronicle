@@ -154,11 +154,20 @@ function showToast(title, body){
 
 function buy(u){
   const f=window.Terra?.farm; if(!f) return;
+  const previousMaterials={...f.inventory.materials};
+  const previousUpgrades=[...(f.upgrades||[])];
   f.inventory.materials.wood-=u.cost.wood;
   f.inventory.materials.beast_soul-=u.cost.soul;
   if(!f.upgrades) f.upgrades=[];
   f.upgrades.push(u.id);
-  window.Terra.save();
+  if(window.Terra.save()===false){
+    f.inventory.materials=previousMaterials;
+    f.upgrades=previousUpgrades;
+    if(window.updateDock) updateDock();
+    showToast('存档暂不可用','材料与升级状态均未提交，请重试。');
+    render();
+    return;
+  }
   if(window.updateDock) updateDock();
 
   // 升级完成特效：金色粒子爆发

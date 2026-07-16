@@ -1,0 +1,41 @@
+{
+  "batchId": "final-candidate-v6",
+  "candidateBase": "http://127.0.0.1:8871",
+  "generatedAt": "2026-07-16T11:12:00Z",
+  "status": "deterministic_gate_passed_visual_review_pending",
+  "releaseEligible": false,
+  "sourceReport": "dogfood-output/ultra-regression-20/final-candidate-v6/report.json",
+  "candidateChangedAfterRun": false,
+  "summary": {
+    "total": 20,
+    "passed": 20,
+    "productFailed": 0,
+    "infrastructureFailed": 0,
+    "classCounts": {
+      "real-input-e2e": 11,
+      "api-transaction-smoke": 5,
+      "checkpoint-resume-smoke": 4
+    }
+  },
+  "retryEvidence": {
+    "policy": "At most one retry, infrastructure failures only. Product or semantic failures are never retried.",
+    "runsWithRetry": [4],
+    "run4": {
+      "firstAttempt": "browser_resource_exit",
+      "secondAttempt": "passed",
+      "attemptsPreservedInSourceReport": true
+    }
+  },
+  "semanticCoverage": [
+    "Immediate mobile entry and delayed main-script entry",
+    "Tutorial tree and dynamic plot interaction through real canvas input",
+    "Rapid surface ownership and cleanup",
+    "World-map touch and drag coordinate handling",
+    "Complete new-player journey split across persisted checkpoints",
+    "Atomic save-failure rollback for chop, plant, harvest, alchemy, dungeon rewards, beast progression, and workshop upgrades",
+    "Corrupt and partial save normalization",
+    "Background resume and viewport rotation",
+    "Alchemy, reward routing, dynamic checkpoint harvest, portal, dungeon, and playable battle"
+  ],
+  "remainingGate": "Commit candidate, generate current-SHA desktop/mobile screenshots, perform multimodal review, then verify public deployment."
+}

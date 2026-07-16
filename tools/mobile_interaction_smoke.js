@@ -23,6 +23,12 @@ fs.mkdirSync(OUT, { recursive: true });
   await page.click('#enter');
   await page.waitForFunction(() => window.__dbg?.ready && document.body.classList.contains('hud-on'), null, { timeout: 90000 });
 
+  const introDock = await page.evaluate(() => {
+    const el = document.getElementById('dock');
+    const rect = el?.getBoundingClientRect();
+    return rect ? { x: rect.x, right: rect.right, width: rect.width, viewportWidth: innerWidth } : null;
+  });
+
   const states = [];
   const capture = async (label, selector) => {
     states.push(await page.evaluate(({ label, selector }) => {
@@ -47,13 +53,14 @@ fs.mkdirSync(OUT, { recursive: true });
     const farm=window.Terra.farm;
     farm.inventory.crops.starwheat=[{originFertility:90},{originFertility:88},{originFertility:86}];
     farm.inventory.materials.wood=2;
+    const beforeCards=farm.inventory.cards.length;
     Alchemy.open();
     document.getElementById('addWheat').click();document.getElementById('addWheat').click();document.getElementById('addWheat').click();
     document.getElementById('addWood').click();document.getElementById('addWood').click();
     document.getElementById('alchemyBrew').click();
     Alchemy.close({immediate:true});
     await new Promise(resolve=>setTimeout(resolve,1650));
-    return { reveal:document.getElementById('cardReveal')?.classList.contains('on')||false, surface:SurfaceLifecycle.active, locked:SurfaceLifecycle.isInputLocked() };
+    return { reveal:document.getElementById('cardReveal')?.classList.contains('on')||false, surface:SurfaceLifecycle.active, locked:SurfaceLifecycle.isInputLocked(), cardsAdded:farm.inventory.cards.length-beforeCards, starLeft:(farm.inventory.crops.starwheat||[]).length, woodLeft:farm.inventory.materials.wood||0 };
   });
 
   await page.evaluate(() => FarmUpgrade.open());
@@ -118,9 +125,9 @@ fs.mkdirSync(OUT, { recursive: true });
   const viewportFailures = states.filter(s => s.label.endsWith('-open') && s.rect && (s.rect.x < -1 || s.rect.right > 391 || s.rect.width > 391));
   const closeFailures = states.filter(s => s.label.endsWith('-close') && (s.surface || s.locked));
   const switched = states.find(s => s.label === 'battle-closed-by-switch');
-  const report = { baseUrl: BASE, states, alchemyRace, battle, battleClosedBySwitch, mapTouch, mapStopped, viewportFailures, closeFailures, errors };
-  report.ok = errors.length === 0 && viewportFailures.length === 0 && closeFailures.length === 0 &&
-    !alchemyRace.reveal && !alchemyRace.surface && !alchemyRace.locked && battleClosedBySwitch && switched?.surface === 'alchemy' && switched?.locked === true && mapTouch.clicked && mapTouch.clicked.q>=0 && mapTouch.clicked.q<mapTouch.mapWidth && mapTouch.clicked.r>=0 && mapTouch.clicked.r<mapTouch.mapHeight && mapTouch.renderLoop && mapStopped &&
+  const report = { baseUrl: BASE, introDock, states, alchemyRace, battle, battleClosedBySwitch, mapTouch, mapStopped, viewportFailures, closeFailures, errors };
+  report.ok = errors.length === 0 && introDock && introDock.x >= 0 && introDock.right <= introDock.viewportWidth && viewportFailures.length === 0 && closeFailures.length === 0 &&
+    !alchemyRace.reveal && !alchemyRace.surface && !alchemyRace.locked && alchemyRace.cardsAdded===1 && alchemyRace.starLeft===0 && alchemyRace.woodLeft===0 && battleClosedBySwitch && switched?.surface === 'alchemy' && switched?.locked === true && mapTouch.clicked && mapTouch.clicked.q>=0 && mapTouch.clicked.q<mapTouch.mapWidth && mapTouch.clicked.r>=0 && mapTouch.clicked.r<mapTouch.mapHeight && mapTouch.renderLoop && mapStopped &&
     battle.cardCount >= 4 && battle.handScrollable && battle.cards.every(c => c.width <= 130 && c.height <= 190) && battle.endHeight >= 44;
   fs.writeFileSync(path.join(OUT, 'report.json'), JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));

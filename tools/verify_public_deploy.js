@@ -27,7 +27,9 @@ const FILES = [
 
 (async () => {
   const versions = scriptVersions(path.join(LIVE_ROOT, 'index.html'));
-  const hashes = compareSourceLive(FILES).filter(row => row.sourceExists || row.liveExists);
+  const required = Object.keys(versions);
+  const scriptFiles = required.map(name => `src/${name}`);
+  const hashes = compareSourceLive([...new Set([...FILES, ...scriptFiles])]).filter(row => row.sourceExists || row.liveExists);
   const mismatches = hashes.filter(row => !row.ok);
 
   const publicBase = process.env.TERRA_PUBLIC_BASE_URL || 'http://165.232.142.30:8867';
@@ -51,7 +53,6 @@ const FILES = [
     return !!(mode || (enter && enter.isConnected));
   }, { timeout: 20000 });
   const scripts = await page.evaluate(() => [...document.scripts].map(s => s.src).filter(Boolean));
-  const required = ['state.js', 'alchemy.js', 'battle.js', 'dungeon.js', 'upgrade.js', 'main.js'];
   const loaded = Object.fromEntries(required.map(name => [name, hasExpectedScript(scripts, name, versions)]));
   try {
     await page.screenshot({ path: path.join(OUT, 'public_landing.png'), fullPage: false, timeout: 15000 });

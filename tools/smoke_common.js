@@ -7,10 +7,10 @@ const LIVE_ROOT = process.env.TERRA_LIVE_ROOT || '/var/www/terra-pixijs';
 function scriptVersions(indexPath = path.join(LIVE_ROOT, 'index.html')) {
   const html = fs.readFileSync(indexPath, 'utf8');
   const versions = {};
-  const re = /(?:src=["']|\.src\s*=\s*["'])(src\/(state|alchemy|battle|dungeon|upgrade|main)\.js\?v=([^"']+))["']/g;
+  const re = /(?:src=["']|\.src\s*=\s*["'])(src\/([A-Za-z0-9_-]+\.js)\?v=([^"']+))["']/g;
   let m;
   while ((m = re.exec(html))) {
-    versions[`${m[2]}.js`] = m[3];
+    versions[m[2]] = m[3];
   }
   return versions;
 }
